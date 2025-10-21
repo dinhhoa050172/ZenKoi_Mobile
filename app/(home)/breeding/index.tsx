@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
 import {
   Camera,
   ChevronDown,
@@ -11,8 +11,8 @@ import {
   Thermometer,
   Venus,
   X,
-} from "lucide-react-native";
-import React, { useState } from "react";
+} from 'lucide-react-native';
+import React, { useState } from 'react';
 import {
   Modal,
   ScrollView,
@@ -20,11 +20,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
-} from "react-native-safe-area-context";
+} from 'react-native-safe-area-context';
 
 interface BreedingData {
   id: string;
@@ -38,108 +38,108 @@ interface BreedingData {
   survivalRate: number;
   daysLeft: number;
   status:
-    | "Đang ghép cặp"
-    | "Ấp trứng"
-    | "Nuôi cá bột"
-    | "Tuyển chọn"
-    | "Hủy ghép cặp";
+    | 'Đang ghép cặp'
+    | 'Ấp trứng'
+    | 'Nuôi cá bột'
+    | 'Tuyển chọn'
+    | 'Hủy ghép cặp';
 }
 
 export default function BreedingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [selectedFilter, setSelectedFilter] = useState("Tất cả bể cá");
+  const [selectedFilter, setSelectedFilter] = useState('Tất cả bể cá');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showCountModal, setShowCountModal] = useState(false);
-  const [countMethod, setCountMethod] = useState("Đếm theo mẫu");
+  const [countMethod, setCountMethod] = useState('Đếm theo mẫu');
 
-  const [totalWeight, setTotalWeight] = useState("");
-  const [sampleWeight, setSampleWeight] = useState("");
-  const [sampleCount, setSampleCount] = useState("");
-  const [avgWeight, setAvgWeight] = useState("");
+  const [totalWeight, setTotalWeight] = useState('');
+  const [sampleWeight, setSampleWeight] = useState('');
+  const [sampleCount, setSampleCount] = useState('');
+  const [avgWeight, setAvgWeight] = useState('');
   const [showIncubationModal, setShowIncubationModal] = useState(false);
-  const [healthyEggs, setHealthyEggs] = useState("");
-  const [badEggs, setBadEggs] = useState("");
-  const [hatchedEggs, setHatchedEggs] = useState("");
-  const [waterTemp, setWaterTemp] = useState("");
-  const [ph, setPh] = useState("");
-  const [oxygen, setOxygen] = useState("");
+  const [healthyEggs, setHealthyEggs] = useState('');
+  const [badEggs, setBadEggs] = useState('');
+  const [hatchedEggs, setHatchedEggs] = useState('');
+  const [waterTemp, setWaterTemp] = useState('');
+  const [ph, setPh] = useState('');
+  const [oxygen, setOxygen] = useState('');
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferCount, setTransferCount] = useState("");
+  const [transferCount, setTransferCount] = useState('');
   const [selectedPondForTransfer, setSelectedPondForTransfer] =
-    useState("Hồ A");
+    useState('Hồ A');
   const [showFryUpdateModal, setShowFryUpdateModal] = useState(false);
-  const [currentFryCount, setCurrentFryCount] = useState("");
+  const [currentFryCount, setCurrentFryCount] = useState('');
   const [showSelectionModal, setShowSelectionModal] = useState(false);
-  const [selectionCount, setSelectionCount] = useState("");
+  const [selectionCount, setSelectionCount] = useState('');
 
-  const filterOptions = ["Tất cả bể cá", "Đang sinh sản", "Hoàn thành", "Hủy"];
+  const filterOptions = ['Tất cả bể cá', 'Đang sinh sản', 'Hoàn thành', 'Hủy'];
 
   const breedingData: BreedingData[] = [
     {
-      id: "1",
-      code: "BC-001",
-      name: "Sakura × Yuki",
-      maleFish: "Kohaku",
-      femaleFish: "Sanke",
-      pond: "Hồ A",
+      id: '1',
+      code: 'BC-001',
+      name: 'Sakura × Yuki',
+      maleFish: 'Kohaku',
+      femaleFish: 'Sanke',
+      pond: 'Hồ A',
       eggCount: 800,
       temperature: 22,
       survivalRate: 85,
       daysLeft: 12,
-      status: "Đang ghép cặp",
+      status: 'Đang ghép cặp',
     },
     {
-      id: "2",
-      code: "BC-002",
-      name: "Tancho × Showa",
-      maleFish: "Tancho",
-      femaleFish: "Showa",
-      pond: "Hồ B",
+      id: '2',
+      code: 'BC-002',
+      name: 'Tancho × Showa',
+      maleFish: 'Tancho',
+      femaleFish: 'Showa',
+      pond: 'Hồ B',
       eggCount: 650,
       temperature: 23,
       survivalRate: 78,
       daysLeft: 8,
-      status: "Ấp trứng",
+      status: 'Ấp trứng',
     },
     {
-      id: "3",
-      code: "BC-003",
-      name: "Asagi × Kohaku",
-      maleFish: "Asagi",
-      femaleFish: "Kohaku",
-      pond: "Hồ C",
+      id: '3',
+      code: 'BC-003',
+      name: 'Asagi × Kohaku',
+      maleFish: 'Asagi',
+      femaleFish: 'Kohaku',
+      pond: 'Hồ C',
       eggCount: 1200,
       temperature: 21,
       survivalRate: 72,
       daysLeft: 0,
-      status: "Tuyển chọn",
+      status: 'Tuyển chọn',
     },
     {
-      id: "4",
-      code: "BC-004",
-      name: "Yamabuki × Ginrin",
-      maleFish: "Yamabuki",
-      femaleFish: "Ginrin",
-      pond: "Hồ D",
+      id: '4',
+      code: 'BC-004',
+      name: 'Yamabuki × Ginrin',
+      maleFish: 'Yamabuki',
+      femaleFish: 'Ginrin',
+      pond: 'Hồ D',
       eggCount: 950,
       temperature: 20,
       survivalRate: 0,
       daysLeft: 0,
-      status: "Hủy ghép cặp",
+      status: 'Hủy ghép cặp',
     },
     {
-      id: "5",
-      code: "BC-005",
-      name: "Kenzo × Mei",
-      maleFish: "Kenzo",
-      femaleFish: "Mei",
-      pond: "Hồ C",
+      id: '5',
+      code: 'BC-005',
+      name: 'Kenzo × Mei',
+      maleFish: 'Kenzo',
+      femaleFish: 'Mei',
+      pond: 'Hồ C',
       eggCount: 1800,
       temperature: 21,
       survivalRate: 72,
       daysLeft: 45,
-      status: "Nuôi cá bột",
+      status: 'Nuôi cá bột',
     },
   ];
 
@@ -161,15 +161,15 @@ export default function BreedingScreen() {
     return (
       <>
         <View className="mb-4">
-          <Text className="text-base font-medium text-gray-900 mb-2">
+          <Text className="mb-2 text-base font-medium text-gray-900">
             {label}
           </Text>
           <TouchableOpacity
-            className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex-row items-center justify-between"
+            className="flex-row items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             onPress={() => setShowDialog(true)}
           >
             <Text
-              className={`${value && value !== placeholder ? "text-gray-900" : "text-gray-500"}`}
+              className={`${value && value !== placeholder ? 'text-gray-900' : 'text-gray-500'}`}
             >
               {value || placeholder}
             </Text>
@@ -183,10 +183,10 @@ export default function BreedingScreen() {
           animationType="fade"
           onRequestClose={() => setShowDialog(false)}
         >
-          <View className="flex-1 bg-black/50 justify-center items-center p-4">
-            <View className="bg-white rounded-2xl w-full max-w-sm">
-              <View className="p-4 border-b border-gray-200">
-                <Text className="text-lg font-semibold text-gray-900 text-center">
+          <View className="flex-1 items-center justify-center bg-black/50 p-4">
+            <View className="w-full max-w-sm rounded-2xl bg-white">
+              <View className="border-b border-gray-200 p-4">
+                <Text className="text-center text-lg font-semibold text-gray-900">
                   Chọn {label.toLowerCase()}
                 </Text>
               </View>
@@ -194,29 +194,29 @@ export default function BreedingScreen() {
                 {options.map((opt, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    className={`px-4 py-4 flex-row items-center ${idx < options.length - 1 ? "border-b border-gray-100" : ""}`}
+                    className={`flex-row items-center px-4 py-4 ${idx < options.length - 1 ? 'border-b border-gray-100' : ''}`}
                     onPress={() => {
                       onSelect(opt);
                       setShowDialog(false);
                     }}
                   >
                     <View
-                      className={`w-5 h-5 rounded-full border-2 mr-3 ${value === opt ? "bg-blue-500 border-blue-500" : "border-gray-300"}`}
+                      className={`mr-3 h-5 w-5 rounded-full border-2 ${value === opt ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}
                     ></View>
                     <Text
-                      className={`flex-1 ${value === opt ? "text-blue-600 font-medium" : "text-gray-900"}`}
+                      className={`flex-1 ${value === opt ? 'font-medium text-blue-600' : 'text-gray-900'}`}
                     >
                       {opt}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-              <View className="p-4 border-t border-gray-200">
+              <View className="border-t border-gray-200 p-4">
                 <TouchableOpacity
-                  className="bg-gray-100 rounded-lg py-3"
+                  className="rounded-lg bg-gray-100 py-3"
                   onPress={() => setShowDialog(false)}
                 >
-                  <Text className="text-center text-gray-700 font-medium">
+                  <Text className="text-center font-medium text-gray-700">
                     Hủy
                   </Text>
                 </TouchableOpacity>
@@ -230,18 +230,18 @@ export default function BreedingScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Đang ghép cặp":
-        return "#3b82f6"; // blue
-      case "Ấp trứng":
-        return "#f59e0b"; // amber
-      case "Nuôi cá bột":
-        return "#10b981"; // green
-      case "Tuyển chọn":
-        return "#6366f1"; // indigo
-      case "Hủy ghép cặp":
-        return "#ef4444"; // red
+      case 'Đang ghép cặp':
+        return '#3b82f6'; // blue
+      case 'Ấp trứng':
+        return '#f59e0b'; // amber
+      case 'Nuôi cá bột':
+        return '#10b981'; // green
+      case 'Tuyển chọn':
+        return '#6366f1'; // indigo
+      case 'Hủy ghép cặp':
+        return '#ef4444'; // red
       default:
-        return "#6b7280"; // gray
+        return '#6b7280'; // gray
     }
   };
 
@@ -254,9 +254,9 @@ export default function BreedingScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <View className="p-4">
         {/* Filter Dropdown */}
-        <View className="mb-4 relative">
+        <View className="relative mb-4">
           <TouchableOpacity
-            className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex-row items-center justify-between"
+            className="flex-row items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3"
             onPress={() => setShowFilterDropdown(!showFilterDropdown)}
           >
             <Text className="text-gray-900">{selectedFilter}</Text>
@@ -264,11 +264,11 @@ export default function BreedingScreen() {
           </TouchableOpacity>
 
           {showFilterDropdown && (
-            <View className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-2xl mt-1 z-10 shadow-lg">
+            <View className="absolute left-0 right-0 top-full z-10 mt-1 rounded-2xl border border-gray-200 bg-white shadow-lg">
               {filterOptions.map((option, index) => (
                 <TouchableOpacity
                   key={index}
-                  className={`px-4 py-3 ${index < filterOptions.length - 1 ? "border-b border-gray-100" : ""}`}
+                  className={`px-4 py-3 ${index < filterOptions.length - 1 ? 'border-b border-gray-100' : ''}`}
                   onPress={() => {
                     setSelectedFilter(option);
                     setShowFilterDropdown(false);
@@ -286,7 +286,7 @@ export default function BreedingScreen() {
           <Text className="text-xl font-bold text-gray-900">
             Quản lý sinh sản
           </Text>
-          <TouchableOpacity className="rounded-lg px-3 py-2 border border-gray-300">
+          <TouchableOpacity className="rounded-lg border border-gray-300 px-3 py-2">
             <Filter size={16} color="black" />
           </TouchableOpacity>
         </View>
@@ -299,20 +299,20 @@ export default function BreedingScreen() {
       >
         {breedingData.map((breeding) => {
           const color = getStatusColor(breeding.status);
-          const badgeBg = color + "20";
+          const badgeBg = color + '20';
 
           return (
             <View
               key={breeding.id}
-              className="bg-white rounded-2xl px-4 py-2 mb-4 shadow-sm"
+              className="mb-4 rounded-2xl bg-white px-4 py-2 shadow-sm"
             >
               {/* Header */}
-              <View className="flex-row items-center justify-between mb-3">
+              <View className="mb-3 flex-row items-center justify-between">
                 <Text className="text-lg font-bold text-gray-900">
                   {breeding.code}
                 </Text>
                 <View
-                  className="px-2 py-1 rounded-full"
+                  className="rounded-full px-2 py-1"
                   style={{ backgroundColor: badgeBg }}
                 >
                   <Text className="text-xs font-medium" style={{ color }}>
@@ -323,7 +323,7 @@ export default function BreedingScreen() {
 
               {/* Common top info */}
               <View className="mb-3">
-                <View className="flex-row items-center justify-between mb-2">
+                <View className="mb-2 flex-row items-center justify-between">
                   <Text className="text-base font-semibold text-gray-900">
                     {breeding.name}
                   </Text>
@@ -349,7 +349,7 @@ export default function BreedingScreen() {
                 </View>
 
                 <View className="flex-row items-center">
-                  <View className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
+                  <View className="mr-2 h-2 w-2 rounded-full bg-blue-500" />
                   <Text className="text-sm text-gray-600">
                     Đang ở {breeding.pond}
                   </Text>
@@ -357,10 +357,10 @@ export default function BreedingScreen() {
               </View>
 
               {/* Variants by status */}
-              {breeding.status === "Đang ghép cặp" && (
+              {breeding.status === 'Đang ghép cặp' && (
                 <View>
                   <View className="flex-row flex-wrap">
-                    <View className="w-1/2 mb-2">
+                    <View className="mb-2 w-1/2">
                       <Text className="text-xs text-gray-500">
                         Giai đoạn hiện tại
                       </Text>
@@ -368,7 +368,7 @@ export default function BreedingScreen() {
                         Ghép cặp
                       </Text>
                     </View>
-                    <View className="w-1/2 mb-2">
+                    <View className="mb-2 w-1/2">
                       <Text className="text-xs text-gray-500">Số ngày</Text>
                       <Text className="text-sm font-semibold text-gray-900">
                         {breeding.daysLeft} ngày
@@ -376,23 +376,23 @@ export default function BreedingScreen() {
                     </View>
                   </View>
 
-                  <View className="flex-row mt-4 pt-2 border-t border-gray-200">
+                  <View className="mt-4 flex-row border-t border-gray-200 pt-2">
                     <TouchableOpacity
-                      className="flex-1 flex-row items-center justify-center py-2 mr-2 bg-green-600 rounded-lg"
+                      className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-green-600 py-2"
                       onPress={() => {
                         /* Cập nhật: Đã đẻ */
                       }}
                     >
-                      <Text className="text-white font-medium">
+                      <Text className="font-medium text-white">
                         Cập nhật: Đã đẻ
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className="flex-1 flex-row items-center justify-center py-2 ml-2 border border-gray-200 rounded-lg"
+                      className="ml-2 flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
                       onPress={() => router.push(`/breeding/${breeding.id}`)}
                     >
                       <Eye size={16} color="#6b7280" />
-                      <Text className="text-gray-600 text-sm ml-2">
+                      <Text className="ml-2 text-sm text-gray-600">
                         Chi tiết
                       </Text>
                     </TouchableOpacity>
@@ -400,19 +400,19 @@ export default function BreedingScreen() {
                 </View>
               )}
 
-              {breeding.status === "Ấp trứng" && (
+              {breeding.status === 'Ấp trứng' && (
                 <View>
-                  <View className="bg-gray-50 rounded-lg p-3">
+                  <View className="rounded-lg bg-gray-50 p-3">
                     <Text className="text-sm text-gray-600">
-                      Số trứng:{" "}
+                      Số trứng:{' '}
                       <Text className="font-semibold text-gray-900">
                         Chưa đếm
-                      </Text>{" "}
-                      Tỷ lệ thụ tinh:{" "}
+                      </Text>{' '}
+                      Tỷ lệ thụ tinh:{' '}
                       <Text className="font-semibold text-gray-900">85%</Text>
                     </Text>
-                    <Text className="text-sm text-gray-600 mt-2">
-                      Số ngày ấp:{" "}
+                    <Text className="mt-2 text-sm text-gray-600">
+                      Số ngày ấp:{' '}
                       <Text className="font-semibold text-gray-900">
                         15 ngày
                       </Text>
@@ -421,7 +421,7 @@ export default function BreedingScreen() {
 
                   <View className="mt-3">
                     <View className="flex-row justify-between">
-                      <View className="bg-green-50 rounded p-3 flex-1 mr-2 items-center">
+                      <View className="mr-2 flex-1 items-center rounded bg-green-50 p-3">
                         <Text className="text-sm font-medium text-green-700">
                           Khỏe
                         </Text>
@@ -429,7 +429,7 @@ export default function BreedingScreen() {
                           0
                         </Text>
                       </View>
-                      <View className="bg-orange-50 rounded p-3 flex-1 mr-2 items-center">
+                      <View className="mr-2 flex-1 items-center rounded bg-orange-50 p-3">
                         <Text className="text-sm font-medium text-orange-600">
                           Hỏng
                         </Text>
@@ -437,7 +437,7 @@ export default function BreedingScreen() {
                           0
                         </Text>
                       </View>
-                      <View className="bg-purple-50 rounded p-3 flex-1 items-center">
+                      <View className="flex-1 items-center rounded bg-purple-50 p-3">
                         <Text className="text-sm font-medium text-purple-600">
                           Đã nở
                         </Text>
@@ -448,25 +448,25 @@ export default function BreedingScreen() {
                     </View>
                   </View>
 
-                  <View className="mt-4 pt-2 border-t border-gray-200">
-                    <View className="flex-row mb-2">
+                  <View className="mt-4 border-t border-gray-200 pt-2">
+                    <View className="mb-2 flex-row">
                       <TouchableOpacity
-                        className="flex-1 py-2 mr-2 rounded-lg flex-row items-center justify-center"
-                        style={{ backgroundColor: "#fb923c" }}
+                        className="mr-2 flex-1 flex-row items-center justify-center rounded-lg py-2"
+                        style={{ backgroundColor: '#fb923c' }}
                         onPress={() => setShowCountModal(true)}
                       >
                         <Egg size={16} color="white" />
-                        <Text className="text-white font-medium ml-2">
+                        <Text className="ml-2 font-medium text-white">
                           Đếm trứng
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        className="flex-1 py-2 rounded-lg flex-row items-center justify-center"
-                        style={{ backgroundColor: "#2563eb" }}
+                        className="flex-1 flex-row items-center justify-center rounded-lg py-2"
+                        style={{ backgroundColor: '#2563eb' }}
                         onPress={() => setShowIncubationModal(true)}
                       >
                         <Thermometer size={16} color="white" />
-                        <Text className="text-white font-medium ml-2">
+                        <Text className="ml-2 font-medium text-white">
                           Ghi nhận ấp trứng
                         </Text>
                       </TouchableOpacity>
@@ -474,21 +474,21 @@ export default function BreedingScreen() {
 
                     <View className="flex-row">
                       <TouchableOpacity
-                        className="flex-1 py-2 mr-2 rounded-lg flex-row items-center justify-center"
-                        style={{ backgroundColor: "#10b981" }}
+                        className="mr-2 flex-1 flex-row items-center justify-center rounded-lg py-2"
+                        style={{ backgroundColor: '#10b981' }}
                         onPress={() => setShowTransferModal(true)}
                       >
                         <MoveRight size={16} color="white" />
-                        <Text className="text-white font-medium ml-2">
+                        <Text className="ml-2 font-medium text-white">
                           Chuyển nuôi cá bột
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        className="flex-1 py-2 items-center justify-center rounded-lg border border-gray-200 flex-row"
+                        className="flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
                         onPress={() => router.push(`/breeding/${breeding.id}`)}
                       >
                         <Eye size={16} color="#6b7280" />
-                        <Text className="text-sm text-gray-700 ml-2">
+                        <Text className="ml-2 text-sm text-gray-700">
                           Xem chi tiết
                         </Text>
                       </TouchableOpacity>
@@ -497,217 +497,218 @@ export default function BreedingScreen() {
                 </View>
               )}
 
-              {breeding.status === "Nuôi cá bột" && (
+              {breeding.status === 'Nuôi cá bột' && (
                 <View>
-                  <View className="bg-gray-50 rounded-lg p-3">
+                  <View className="rounded-lg bg-gray-50 p-3">
                     <Text className="text-sm text-gray-600">
-                      Cá bột:{" "}
+                      Cá bột:{' '}
                       <Text className="font-semibold text-gray-900">
                         {breeding.eggCount} con
-                      </Text>{" "}
-                      Tỷ lệ sống:{" "}
+                      </Text>{' '}
+                      Tỷ lệ sống:{' '}
                       <Text className="font-semibold text-gray-900">
                         {breeding.survivalRate}%
                       </Text>
                     </Text>
-                    <Text className="text-sm text-gray-600 mt-2">
-                      Tuổi:{" "}
+                    <Text className="mt-2 text-sm text-gray-600">
+                      Tuổi:{' '}
                       <Text className="font-semibold text-gray-900">
                         45 ngày
                       </Text>
                     </Text>
                   </View>
 
-                  <View className="mt-3 bg-white rounded-lg p-3 border border-gray-100">
-                    <View className="flex-row mb-2">
-                      <Text className="text-sm text-pink-600 flex-1 text-center">
+                  <View className="mt-3 rounded-lg border border-gray-100 bg-white p-3">
+                    <View className="mb-2 flex-row">
+                      <Text className="flex-1 text-center text-sm text-pink-600">
                         7 ngày
                       </Text>
-                      <Text className="text-sm text-orange-500 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-orange-500">
                         14 ngày
                       </Text>
-                      <Text className="text-sm text-yellow-500 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-yellow-500">
                         30 ngày
                       </Text>
-                      <Text className="text-sm text-blue-500 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-blue-500">
                         Hiện tại
                       </Text>
                     </View>
                     <View className="flex-row">
-                      <Text className="text-sm text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-gray-900">
                         92%
                       </Text>
-                      <Text className="text-sm text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-gray-900">
                         85%
                       </Text>
-                      <Text className="text-sm text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-gray-900">
                         78%
                       </Text>
-                      <Text className="text-sm text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-sm text-gray-900">
                         72%
                       </Text>
                     </View>
                   </View>
 
-                  <View className="mt-4 pt-2 border-t border-gray-200">
-                    <View className="flex-row space-x-2 mb-2">
+                  <View className="mt-4 border-t border-gray-200 pt-2">
+                    <View className="mb-2 flex-row space-x-2">
                       <TouchableOpacity
-                        className="flex-1 py-2 mr-2 rounded-lg bg-purple-600 flex-row items-center justify-center"
+                        className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-purple-600 py-2"
                         onPress={() => setShowFryUpdateModal(true)}
                       >
                         <Fish size={16} color="white" />
-                        <Text className="text-white font-medium ml-2">
+                        <Text className="ml-2 font-medium text-white">
                           Cập nhật cá bột
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        className="flex-1 py-2 rounded-lg bg-indigo-600 flex-row items-center justify-center"
+                        className="flex-1 flex-row items-center justify-center rounded-lg bg-indigo-600 py-2"
                         onPress={() => {
                           /* TODO: open camera counting flow */
                         }}
                       >
                         <Camera size={16} color="white" />
-                        <Text className="text-white font-medium ml-2">
+                        <Text className="ml-2 font-medium text-white">
                           Đếm bằng camera
                         </Text>
                       </TouchableOpacity>
                     </View>
                     <View>
                       <TouchableOpacity
-                        className="w-full py-2 rounded-lg border border-gray-200 flex-row items-center justify-center"
+                        className="w-full flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
                         onPress={() => router.push(`/breeding/${breeding.id}`)}
                       >
                         <Eye size={16} color="#6b7280" />
-                        <Text className="text-gray-700 ml-2">Chi tiết</Text>
+                        <Text className="ml-2 text-gray-700">Chi tiết</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 </View>
               )}
 
-              {breeding.status === "Tuyển chọn" && (
+              {breeding.status === 'Tuyển chọn' && (
                 <View>
-                  <View className="bg-gray-50 rounded-lg p-3">
+                  <View className="rounded-lg bg-gray-50 p-3">
                     <Text className="text-sm text-gray-600">
-                      Tuổi cá:{" "}
+                      Tuổi cá:{' '}
                       <Text className="font-semibold text-gray-900">
                         75 ngày
-                      </Text>{" "}
-                      Đã tuyển chọn:{" "}
+                      </Text>{' '}
+                      Đã tuyển chọn:{' '}
                       <Text className="font-semibold text-gray-900">0 đợt</Text>
                     </Text>
-                    <Text className="text-sm text-gray-600 mt-2">
-                      Số cá hiện tại:{" "}
+                    <Text className="mt-2 text-sm text-gray-600">
+                      Số cá hiện tại:{' '}
                       <Text className="font-semibold text-gray-900">
                         2200 con
                       </Text>
                     </Text>
                   </View>
 
-                  <View className="mt-3 bg-white rounded-lg p-3 border border-gray-100">
+                  <View className="mt-3 rounded-lg border border-gray-100 bg-white p-3">
                     {/* table simulated */}
-                    <View className="flex-row bg-gray-50 p-2 rounded mb-1">
-                      <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                    <View className="mb-1 flex-row rounded bg-gray-50 p-2">
+                      <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                         Lần
                       </Text>
-                      <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                         Show
                       </Text>
-                      <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                         High
                       </Text>
-                      <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                         Pond
                       </Text>
-                      <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                         Cull
                       </Text>
                     </View>
                     {[1, 2, 3, 4].map((i) => (
                       <View
                         key={i}
-                        className="flex-row py-1 border-b border-gray-100"
+                        className="flex-row border-b border-gray-100 py-1"
                       >
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           {i}
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           0
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           0
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           1000
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           1000
                         </Text>
                       </View>
                     ))}
 
-                    <View className="flex-row justify-center mt-3">
-                      <Text className="text-sm text-black mr-4 mt-1">
+                    <View className="mt-3 flex-row justify-center">
+                      <Text className="mr-4 mt-1 text-sm text-black">
                         Danh sách định danh
                       </Text>
                       <TouchableOpacity
-                        className="flex-row items-center border border-gray-300 rounded-lg px-3 py-1"
+                        className="flex-row items-center rounded-lg border border-gray-300 px-3 py-1"
                         onPress={() =>
-                          router.push(
-                            `/breeding/fish-list?from=breeding-detail&breedingId=${breeding.id}`
-                          )
+                          router.push(`/breeding/${breeding.id}/fish-list`)
                         }
                       >
                         <Eye size={16} color="black" />
-                        <Text className="text-sm text-black ml-1">
+                        <Text className="ml-1 text-sm text-black">
                           Xem chi tiết
                         </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
 
-                  <View className="flex-row mt-4 pt-2 border-t border-gray-200">
-                    <TouchableOpacity className="flex-1 py-2 mr-2 rounded-lg bg-yellow-400 flex-row items-center justify-center" onPress={() => setShowSelectionModal(true)}>
+                  <View className="mt-4 flex-row border-t border-gray-200 pt-2">
+                    <TouchableOpacity
+                      className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-yellow-400 py-2"
+                      onPress={() => setShowSelectionModal(true)}
+                    >
                       <Filter size={16} color="white" />
-                      <Text className="text-white font-medium ml-2">
+                      <Text className="ml-2 font-medium text-white">
                         Tuyển chọn lần 1
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className="flex-1 py-2 rounded-lg border border-gray-200 items-center flex-row justify-center"
+                      className="flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
                       onPress={() => router.push(`/breeding/${breeding.id}`)}
                     >
                       <Eye size={16} color="#6b7280" />
-                      <Text className="text-gray-700 ml-2">Xem chi tiết</Text>
+                      <Text className="ml-2 text-gray-700">Xem chi tiết</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
 
-              {breeding.status === "Hủy ghép cặp" && (
+              {breeding.status === 'Hủy ghép cặp' && (
                 <View>
-                  <View className="bg-gray-50 rounded-lg p-3">
+                  <View className="rounded-lg bg-gray-50 p-3">
                     <Text className="text-sm text-gray-600">
-                      Trạng thái:{" "}
+                      Trạng thái:{' '}
                       <Text className="font-semibold text-gray-900">
                         Đã hủy
                       </Text>
                     </Text>
-                    <Text className="text-sm text-gray-600 mt-2">
-                      Lý do:{" "}
+                    <Text className="mt-2 text-sm text-gray-600">
+                      Lý do:{' '}
                       <Text className="font-semibold text-gray-900">
                         Kỹ thuật
                       </Text>
                     </Text>
                   </View>
 
-                  <View className="mt-4 pt-2 border-t border-gray-200">
+                  <View className="mt-4 border-t border-gray-200 pt-2">
                     <TouchableOpacity
-                      className="py-2 rounded-lg border border-gray-200 items-center flex-row justify-center"
+                      className="flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
                       onPress={() => router.push(`/breeding/${breeding.id}`)}
                     >
                       <Eye size={16} color="#6b7280" />
-                      <Text className="text-gray-700 ml-2">Chi tiết</Text>
+                      <Text className="ml-2 text-gray-700">Chi tiết</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -724,12 +725,12 @@ export default function BreedingScreen() {
         animationType="slide"
         onRequestClose={() => setShowCountModal(false)}
       >
-        <View className="flex-1 bg-black/40 items-center justify-center px-4">
+        <View className="flex-1 items-center justify-center bg-black/40 px-4">
           <View
-            className="w-11/12 bg-white rounded-2xl"
-            style={{ maxHeight: "75%" }}
+            className="w-11/12 rounded-2xl bg-white"
+            style={{ maxHeight: '75%' }}
           >
-            <View className="p-4 border-b border-gray-100 flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
               <Text className="text-lg font-semibold">Đếm số lượng trứng</Text>
               <TouchableOpacity onPress={() => setShowCountModal(false)}>
                 <X size={20} color="#6b7280" />
@@ -737,24 +738,24 @@ export default function BreedingScreen() {
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 16 }}>
-              <Text className="text-sm text-gray-600 mb-2">
+              <Text className="mb-2 text-sm text-gray-600">
                 Chọn phương pháp đếm trứng phù hợp
               </Text>
               <ContextMenuField
                 label="Phương pháp đếm"
                 value={countMethod}
-                options={["Đếm theo mẫu", "Đếm theo trọng lượng"]}
+                options={['Đếm theo mẫu', 'Đếm theo trọng lượng']}
                 onSelect={(v) => setCountMethod(v)}
                 placeholder="Chọn phương pháp đếm"
               />
 
-              {countMethod === "Đếm theo mẫu" ? (
+              {countMethod === 'Đếm theo mẫu' ? (
                 <View>
                   <Text className="text-xs text-gray-500">
                     Tổng trọng lượng trứng (gram) *
                   </Text>
                   <TextInput
-                    className="border border-gray-200 rounded p-2 mb-2"
+                    className="mb-2 rounded border border-gray-200 p-2"
                     value={totalWeight}
                     onChangeText={setTotalWeight}
                     placeholder="VD: 500"
@@ -764,7 +765,7 @@ export default function BreedingScreen() {
                     Trọng lượng mẫu (gram) *
                   </Text>
                   <TextInput
-                    className="border border-gray-200 rounded p-2 mb-2"
+                    className="mb-2 rounded border border-gray-200 p-2"
                     value={sampleWeight}
                     onChangeText={setSampleWeight}
                     placeholder="VD: 10"
@@ -774,7 +775,7 @@ export default function BreedingScreen() {
                     Số trứng trong mẫu *
                   </Text>
                   <TextInput
-                    className="border border-gray-200 rounded p-2 mb-4"
+                    className="mb-4 rounded border border-gray-200 p-2"
                     value={sampleCount}
                     onChangeText={setSampleCount}
                     placeholder="VD: 150"
@@ -787,7 +788,7 @@ export default function BreedingScreen() {
                     Tổng trọng lượng trứng (gram) *
                   </Text>
                   <TextInput
-                    className="border border-gray-200 rounded p-2 mb-2"
+                    className="mb-2 rounded border border-gray-200 p-2"
                     value={totalWeight}
                     onChangeText={setTotalWeight}
                     placeholder="VD: 500"
@@ -797,7 +798,7 @@ export default function BreedingScreen() {
                     Trọng lượng trung bình 1 trứng (gram)
                   </Text>
                   <TextInput
-                    className="border border-gray-200 rounded p-2 mb-4"
+                    className="mb-4 rounded border border-gray-200 p-2"
                     value={avgWeight}
                     onChangeText={setAvgWeight}
                     placeholder="VD: 0.067"
@@ -807,15 +808,15 @@ export default function BreedingScreen() {
               )}
             </ScrollView>
 
-            <View className="p-4 border-t border-gray-100 flex-row justify-between">
+            <View className="flex-row justify-between border-t border-gray-100 p-4">
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg border border-gray-200"
+                className="rounded-lg border border-gray-200 px-4 py-2"
                 onPress={() => setShowCountModal(false)}
               >
                 <Text>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg bg-primary"
+                className="rounded-lg bg-primary px-4 py-2"
                 onPress={() => {
                   // TODO: compute and save result
                   setShowCountModal(false);
@@ -835,12 +836,12 @@ export default function BreedingScreen() {
         animationType="slide"
         onRequestClose={() => setShowTransferModal(false)}
       >
-        <View className="flex-1 bg-black/40 items-center justify-center p-4">
+        <View className="flex-1 items-center justify-center bg-black/40 p-4">
           <View
-            className="w-11/12 bg-white rounded-2xl"
-            style={{ maxHeight: "60%" }}
+            className="w-11/12 rounded-2xl bg-white"
+            style={{ maxHeight: '60%' }}
           >
-            <View className="p-4 border-b border-gray-100 flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
               <Text className="text-lg font-semibold">
                 Chuyển sang giai đoạn nuôi cá bột
               </Text>
@@ -850,14 +851,14 @@ export default function BreedingScreen() {
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 16 }}>
-              <Text className="text-xs text-gray-500 mb-2">
+              <Text className="mb-2 text-xs text-gray-500">
                 Xác nhận trứng đã nở và chuyển sang nuôi cá bột
               </Text>
               <Text className="text-xs text-gray-500">
                 Số lượng cá bột ước tính *
               </Text>
               <TextInput
-                className="border border-gray-200 rounded p-2 mb-3"
+                className="mb-3 rounded border border-gray-200 p-2"
                 value={transferCount}
                 onChangeText={setTransferCount}
                 placeholder="VD: 5000"
@@ -867,16 +868,16 @@ export default function BreedingScreen() {
               <ContextMenuField
                 label="Chọn hồ"
                 value={selectedPondForTransfer}
-                options={["Hồ A", "Hồ B", "Hồ C", "Hồ D"]}
+                options={['Hồ A', 'Hồ B', 'Hồ C', 'Hồ D']}
                 onSelect={(v) => setSelectedPondForTransfer(v)}
                 placeholder="Chọn hồ"
               />
             </ScrollView>
 
-            <View className="p-4 border-t border-gray-100 flex-row justify-between">
+            <View className="flex-row justify-between border-t border-gray-100 p-4">
               <View className="flex-row">
                 <TouchableOpacity
-                  className="px-4 py-2 rounded-lg bg-green-600 mr-2"
+                  className="mr-2 rounded-lg bg-green-600 px-4 py-2"
                   onPress={() => {
                     // TODO: perform transfer
                     setShowTransferModal(false);
@@ -885,7 +886,7 @@ export default function BreedingScreen() {
                   <Text className="text-white">Chuyển giai đoạn</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className="px-4 py-2 rounded-lg bg-indigo-600"
+                  className="rounded-lg bg-indigo-600 px-4 py-2"
                   onPress={() => {
                     // TODO: open camera flow
                   }}
@@ -905,12 +906,12 @@ export default function BreedingScreen() {
         animationType="slide"
         onRequestClose={() => setShowIncubationModal(false)}
       >
-        <View className="flex-1 bg-black/40 items-center justify-center p-4">
+        <View className="flex-1 items-center justify-center bg-black/40 p-4">
           <View
-            className="w-full max-w-2xl bg-white rounded-2xl"
-            style={{ maxHeight: "80%" }}
+            className="w-full max-w-2xl rounded-2xl bg-white"
+            style={{ maxHeight: '80%' }}
           >
-            <View className="p-4 border-b border-gray-100 flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
               <Text className="text-lg font-semibold">
                 Ghi nhận thông số ấp trứng
               </Text>
@@ -921,56 +922,56 @@ export default function BreedingScreen() {
 
             <ScrollView contentContainerStyle={{ padding: 16 }}>
               <View className="mb-3">
-                <View className="bg-green-50 rounded p-3 mb-2">
+                <View className="mb-2 rounded bg-green-50 p-3">
                   <Text className="text-sm text-green-700">
                     Số trứng khỏe mạnh
                   </Text>
                   <TextInput
-                    className="border border-green-200 rounded p-2 mt-2"
+                    className="mt-2 rounded border border-green-200 p-2"
                     value={healthyEggs}
                     onChangeText={setHealthyEggs}
                     keyboardType="numeric"
                   />
-                  <Text className="text-xs text-green-500 mt-1">
+                  <Text className="mt-1 text-xs text-green-500">
                     Trứng trong suốt, có phôi thai phát triển
                   </Text>
                 </View>
 
-                <View className="bg-orange-50 rounded p-3 mb-2">
+                <View className="mb-2 rounded bg-orange-50 p-3">
                   <Text className="text-sm text-orange-600">Số trứng hỏng</Text>
                   <TextInput
-                    className="border border-orange-200 rounded p-2 mt-2"
+                    className="mt-2 rounded border border-orange-200 p-2"
                     value={badEggs}
                     onChangeText={setBadEggs}
                     keyboardType="numeric"
                   />
-                  <Text className="text-xs text-orange-500 mt-1">
+                  <Text className="mt-1 text-xs text-orange-500">
                     Trứng đục, nằm mốc hoặc không phát triển
                   </Text>
                 </View>
 
-                <View className="bg-blue-50 rounded p-3 mb-2">
+                <View className="mb-2 rounded bg-blue-50 p-3">
                   <Text className="text-sm text-blue-700">Số trứng đã nở</Text>
                   <TextInput
-                    className="border border-blue-200 rounded p-2 mt-2"
+                    className="mt-2 rounded border border-blue-200 p-2"
                     value={hatchedEggs}
                     onChangeText={setHatchedEggs}
                     keyboardType="numeric"
                   />
-                  <Text className="text-xs text-blue-500 mt-1">
+                  <Text className="mt-1 text-xs text-blue-500">
                     Cá bột mới nở, còn túi noãn hoàng
                   </Text>
                 </View>
               </View>
 
-              <Text className="text-sm font-medium mb-1">
+              <Text className="mb-1 text-sm font-medium">
                 Điều kiện môi trường:
               </Text>
               <Text className="text-xs text-gray-500">
                 Nhiệt độ nước (°C) *
               </Text>
               <TextInput
-                className="border border-gray-200 rounded p-2 mb-2"
+                className="mb-2 rounded border border-gray-200 p-2"
                 value={waterTemp}
                 onChangeText={setWaterTemp}
                 placeholder="VD: 23"
@@ -978,7 +979,7 @@ export default function BreedingScreen() {
               />
               <Text className="text-xs text-gray-500">pH *</Text>
               <TextInput
-                className="border border-gray-200 rounded p-2 mb-2"
+                className="mb-2 rounded border border-gray-200 p-2"
                 value={ph}
                 onChangeText={setPh}
                 placeholder="VD: 7.2"
@@ -988,7 +989,7 @@ export default function BreedingScreen() {
                 Oxy hòa tan (mg/L) *
               </Text>
               <TextInput
-                className="border border-gray-200 rounded p-2 mb-4"
+                className="mb-4 rounded border border-gray-200 p-2"
                 value={oxygen}
                 onChangeText={setOxygen}
                 placeholder="VD: 6.5"
@@ -996,15 +997,15 @@ export default function BreedingScreen() {
               />
             </ScrollView>
 
-            <View className="p-4 border-t border-gray-100 flex-row justify-between">
+            <View className="flex-row justify-between border-t border-gray-100 p-4">
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg border border-gray-200"
+                className="rounded-lg border border-gray-200 px-4 py-2"
                 onPress={() => setShowIncubationModal(false)}
               >
                 <Text>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg bg-primary"
+                className="rounded-lg bg-primary px-4 py-2"
                 onPress={() => {
                   // TODO: validate & save incubation data
                   setShowIncubationModal(false);
@@ -1024,12 +1025,12 @@ export default function BreedingScreen() {
         animationType="slide"
         onRequestClose={() => setShowFryUpdateModal(false)}
       >
-        <View className="flex-1 bg-black/40 items-center justify-center px-4">
+        <View className="flex-1 items-center justify-center bg-black/40 px-4">
           <View
-            className="w-11/12 bg-white rounded-2xl"
-            style={{ maxHeight: "40%" }}
+            className="w-11/12 rounded-2xl bg-white"
+            style={{ maxHeight: '40%' }}
           >
-            <View className="p-4 border-b border-gray-100 flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
               <Text className="text-lg font-semibold">
                 Cập nhật thông tin cá bột
               </Text>
@@ -1039,12 +1040,12 @@ export default function BreedingScreen() {
             </View>
 
             <View className="p-4">
-              <Text className="text-sm text-gray-600 mb-2">
+              <Text className="mb-2 text-sm text-gray-600">
                 Ghi nhận tình trạng và số lượng cá bột
               </Text>
               <Text className="text-xs text-gray-500">Số lượng hiện tại *</Text>
               <TextInput
-                className="border border-gray-200 rounded p-2 mb-4"
+                className="mb-4 rounded border border-gray-200 p-2"
                 value={currentFryCount}
                 onChangeText={setCurrentFryCount}
                 placeholder="VD: 4500"
@@ -1052,15 +1053,15 @@ export default function BreedingScreen() {
               />
             </View>
 
-            <View className="p-4 border-t border-gray-100 flex-row justify-between">
+            <View className="flex-row justify-between border-t border-gray-100 p-4">
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg border border-gray-200"
+                className="rounded-lg border border-gray-200 px-4 py-2"
                 onPress={() => setShowFryUpdateModal(false)}
               >
                 <Text>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg bg-primary"
+                className="rounded-lg bg-primary px-4 py-2"
                 onPress={() => {
                   // TODO: save fry count to backend/state
                   setShowFryUpdateModal(false);
@@ -1079,9 +1080,12 @@ export default function BreedingScreen() {
         animationType="slide"
         onRequestClose={() => setShowSelectionModal(false)}
       >
-        <View className="flex-1 bg-black/40 items-center justify-center px-4">
-          <View className="w-11/12 bg-white rounded-2xl" style={{ maxHeight: '55%' }}>
-            <View className="p-4 border-b border-gray-100 flex-row items-center justify-between">
+        <View className="flex-1 items-center justify-center bg-black/40 px-4">
+          <View
+            className="w-11/12 rounded-2xl bg-white"
+            style={{ maxHeight: '55%' }}
+          >
+            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
               <Text className="text-lg font-semibold">Tuyển chọn cá</Text>
               <TouchableOpacity onPress={() => setShowSelectionModal(false)}>
                 <X size={20} color="#6b7280" />
@@ -1089,24 +1093,40 @@ export default function BreedingScreen() {
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 16 }}>
-              <View className="bg-blue-50 rounded p-3 mb-3">
-                <Text className="text-sm font-semibold text-blue-700">Thông tin hiện tại</Text>
-                <Text className="text-sm text-gray-700 mt-2">Số cá có sẵn: <Text className="font-semibold">2200 con</Text></Text>
-                <Text className="text-sm text-gray-700">Tuổi cá: <Text className="font-semibold">75 ngày</Text></Text>
+              <View className="mb-3 rounded bg-blue-50 p-3">
+                <Text className="text-sm font-semibold text-blue-700">
+                  Thông tin hiện tại
+                </Text>
+                <Text className="mt-2 text-sm text-gray-700">
+                  Số cá có sẵn: <Text className="font-semibold">2200 con</Text>
+                </Text>
+                <Text className="text-sm text-gray-700">
+                  Tuổi cá: <Text className="font-semibold">75 ngày</Text>
+                </Text>
               </View>
 
-              <View className="bg-green-50 rounded p-3">
-                <Text className="text-sm text-gray-700 mb-2">Số lượng tuyển chọn</Text>
-                <TextInput className="border border-green-200 rounded p-2" value={selectionCount} onChangeText={setSelectionCount} keyboardType="numeric" />
+              <View className="rounded bg-green-50 p-3">
+                <Text className="mb-2 text-sm text-gray-700">
+                  Số lượng tuyển chọn
+                </Text>
+                <TextInput
+                  className="rounded border border-green-200 p-2"
+                  value={selectionCount}
+                  onChangeText={setSelectionCount}
+                  keyboardType="numeric"
+                />
               </View>
             </ScrollView>
 
-            <View className="p-4 border-t border-gray-100 flex-row justify-between">
-              <TouchableOpacity className="px-4 py-2 rounded-lg border border-gray-200" onPress={() => setShowSelectionModal(false)}>
+            <View className="flex-row justify-between border-t border-gray-100 p-4">
+              <TouchableOpacity
+                className="rounded-lg border border-gray-200 px-4 py-2"
+                onPress={() => setShowSelectionModal(false)}
+              >
                 <Text>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg bg-primary"
+                className="rounded-lg bg-primary px-4 py-2"
                 onPress={() => {
                   // TODO: save selection results
                   setShowSelectionModal(false);

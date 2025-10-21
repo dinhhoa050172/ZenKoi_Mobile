@@ -1,18 +1,18 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
   Droplets,
   Eye,
-  Thermometer
-} from "lucide-react-native";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+  Thermometer,
+} from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
-} from "react-native-safe-area-context";
+} from 'react-native-safe-area-context';
 
 interface BreedingDetail {
   id: string;
@@ -29,11 +29,11 @@ interface BreedingDetail {
   survivalRate: number;
   daysLeft: number;
   status:
-    | "Đang ghép cặp"
-    | "Ấp trứng"
-    | "Nuôi cá bột"
-    | "Tuyển chọn"
-    | "Hủy ghép cặp";
+    | 'Đang ghép cặp'
+    | 'Ấp trứng'
+    | 'Nuôi cá bột'
+    | 'Tuyển chọn'
+    | 'Hủy ghép cặp';
   dailyProgress: {
     day: number;
     temperature: number;
@@ -52,6 +52,7 @@ interface BreedingDetail {
 export default function BreedingDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { id } = useLocalSearchParams(); // TODO: Use this id to fetch breeding detail from API
 
   // State cho việc đóng/mở các tab
   const [expandedSections, setExpandedSections] = useState({
@@ -71,70 +72,70 @@ export default function BreedingDetailScreen() {
 
   // Mock data - in real app, fetch based on id
   const breedingDetail: BreedingDetail = {
-    id: "1",
-    code: "BC-001",
-    name: "Sakura × Yuki",
-    maleFish: "Kohaku",
-    femaleFish: "Sanke",
-    pond: "Hồ A",
-    startDate: "15/03/2024",
-    expectedDate: "05/04/2024",
+    id: '1',
+    code: 'BC-001',
+    name: 'Sakura × Yuki',
+    maleFish: 'Kohaku',
+    femaleFish: 'Sanke',
+    pond: 'Hồ A',
+    startDate: '15/03/2024',
+    expectedDate: '05/04/2024',
     temperature: 22,
     phLevel: 7.2,
     eggCount: 1800,
     survivalRate: 85,
     daysLeft: 12,
-  status: "Đang ghép cặp",
+    status: 'Đang ghép cặp',
     dailyProgress: [
       {
         day: 1,
         temperature: 22,
         survival: 100,
-        notes: "Bắt đầu quá trình ấp trứng",
+        notes: 'Bắt đầu quá trình ấp trứng',
       },
       {
         day: 3,
         temperature: 22,
         survival: 98,
-        notes: "Phát hiện 2% trứng không phát triển",
+        notes: 'Phát hiện 2% trứng không phát triển',
       },
       {
         day: 7,
         temperature: 23,
         survival: 92,
-        notes: "Trứng bắt đầu nở, tỷ lệ sống tốt",
+        notes: 'Trứng bắt đầu nở, tỷ lệ sống tốt',
       },
       {
         day: 10,
         temperature: 22,
         survival: 85,
-        notes: "Cá con khỏe mạnh, ăn uống bình thường",
+        notes: 'Cá con khỏe mạnh, ăn uống bình thường',
       },
     ],
     fishData: [
-      { id: 1, type: "A", weight: 1500, length: 3500, health: "Tốt" },
-      { id: 2, type: "B", weight: 2000, length: 4000, health: "Tốt" },
-      { id: 3, type: "C", weight: 1800, length: 3800, health: "Trung bình" },
-      { id: 4, type: "A", weight: 1600, length: 3600, health: "Tốt" },
-      { id: 5, type: "B", weight: 2200, length: 4200, health: "Tốt" },
-      { id: 6, type: "C", weight: 1900, length: 3700, health: "Kém" },
+      { id: 1, type: 'A', weight: 1500, length: 3500, health: 'Tốt' },
+      { id: 2, type: 'B', weight: 2000, length: 4000, health: 'Tốt' },
+      { id: 3, type: 'C', weight: 1800, length: 3800, health: 'Trung bình' },
+      { id: 4, type: 'A', weight: 1600, length: 3600, health: 'Tốt' },
+      { id: 5, type: 'B', weight: 2200, length: 4200, health: 'Tốt' },
+      { id: 6, type: 'C', weight: 1900, length: 3700, health: 'Kém' },
     ],
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Đang ghép cặp":
-        return "#3b82f6";
-      case "Ấp trứng":
-        return "#f59e0b";
-      case "Nuôi cá bột":
-        return "#10b981";
-      case "Tuyển chọn":
-        return "#6366f1";
-      case "Hủy ghép cặp":
-        return "#ef4444";
+      case 'Đang ghép cặp':
+        return '#3b82f6';
+      case 'Ấp trứng':
+        return '#f59e0b';
+      case 'Nuôi cá bột':
+        return '#10b981';
+      case 'Tuyển chọn':
+        return '#6366f1';
+      case 'Hủy ghép cặp':
+        return '#ef4444';
       default:
-        return "#6b7280";
+        return '#6b7280';
     }
   };
 
@@ -146,14 +147,14 @@ export default function BreedingDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="flex-row items-center p-4 bg-white border-b border-gray-200">
+      <View className="flex-row items-center border-b border-gray-200 bg-white p-4">
         <TouchableOpacity
           className="mr-3"
-          onPress={() => router.push("/breeding")}
+          onPress={() => router.push('/breeding')}
         >
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-900 flex-1">
+        <Text className="flex-1 text-lg font-semibold text-gray-900">
           Chi tiết chu kỳ sinh sản
         </Text>
       </View>
@@ -164,8 +165,8 @@ export default function BreedingDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Basic Info Card */}
-        <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
+          <Text className="mb-4 text-lg font-semibold text-gray-900">
             Thông tin cơ bản
           </Text>
 
@@ -174,21 +175,21 @@ export default function BreedingDetailScreen() {
             {/* Left Column */}
             <View className="w-1/2 pr-4">
               <View className="mb-4">
-                <Text className="text-sm text-gray-600 mb-1">Mã chu kỳ:</Text>
+                <Text className="mb-1 text-sm text-gray-600">Mã chu kỳ:</Text>
                 <Text className="text-base font-medium text-gray-900">
                   {breedingDetail.code}
                 </Text>
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm text-gray-600 mb-1">Cá đực:</Text>
+                <Text className="mb-1 text-sm text-gray-600">Cá đực:</Text>
                 <Text className="text-base font-medium text-gray-900">
                   {breedingDetail.maleFish}
                 </Text>
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm text-gray-600 mb-1">Bể nuôi:</Text>
+                <Text className="mb-1 text-sm text-gray-600">Bể nuôi:</Text>
                 <Text className="text-base font-medium text-gray-900">
                   {breedingDetail.pond}
                 </Text>
@@ -198,12 +199,12 @@ export default function BreedingDetailScreen() {
             {/* Right Column */}
             <View className="w-1/2 pl-4">
               <View className="mb-4">
-                <Text className="text-sm text-gray-600 mb-1">Trạng thái:</Text>
+                <Text className="mb-1 text-sm text-gray-600">Trạng thái:</Text>
                 <View
-                  className="px-3 py-1 rounded-full self-start"
+                  className="self-start rounded-full px-3 py-1"
                   style={{
                     backgroundColor:
-                      getStatusColor(breedingDetail.status) + "20",
+                      getStatusColor(breedingDetail.status) + '20',
                   }}
                 >
                   <Text
@@ -216,14 +217,14 @@ export default function BreedingDetailScreen() {
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm text-gray-600 mb-1">Cá cái:</Text>
+                <Text className="mb-1 text-sm text-gray-600">Cá cái:</Text>
                 <Text className="text-base font-medium text-gray-900">
                   {breedingDetail.femaleFish}
                 </Text>
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm text-gray-600 mb-1">
+                <Text className="mb-1 text-sm text-gray-600">
                   Ngày bắt đầu:
                 </Text>
                 <Text className="text-base font-medium text-gray-900">
@@ -235,40 +236,40 @@ export default function BreedingDetailScreen() {
         </View>
 
         {/* Current Stats */}
-        <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
+          <Text className="mb-4 text-lg font-semibold text-gray-900">
             Tình trạng hồ hiện tại
           </Text>
 
           <View className="flex-row flex-wrap">
-            <View className="w-1/2 mb-4">
-              <View className="flex-row items-center mb-1">
+            <View className="mb-4 w-1/2">
+              <View className="mb-1 flex-row items-center">
                 <Thermometer size={16} color="#6b7280" />
-                <Text className="text-xs text-gray-500 ml-1">Nhiệt độ</Text>
+                <Text className="ml-1 text-xs text-gray-500">Nhiệt độ</Text>
               </View>
               <Text className="text-lg font-bold text-gray-900">
                 {breedingDetail.temperature}°C
               </Text>
             </View>
 
-            <View className="w-1/2 mb-4">
-              <View className="flex-row items-center mb-1">
+            <View className="mb-4 w-1/2">
+              <View className="mb-1 flex-row items-center">
                 <Droplets size={16} color="#6b7280" />
-                <Text className="text-xs text-gray-500 ml-1">Độ pH</Text>
+                <Text className="ml-1 text-xs text-gray-500">Độ pH</Text>
               </View>
               <Text className="text-lg font-bold text-gray-900">
                 {breedingDetail.phLevel}
               </Text>
             </View>
 
-            <View className="w-1/2 mb-4">
+            <View className="mb-4 w-1/2">
               <Text className="text-xs text-gray-500">Số trứng</Text>
               <Text className="text-lg font-bold text-gray-900">
                 {breedingDetail.eggCount.toLocaleString()}
               </Text>
             </View>
 
-            <View className="w-1/2 mb-4">
+            <View className="mb-4 w-1/2">
               <Text className="text-xs text-gray-500">Tỷ lệ sống</Text>
               <Text className="text-lg font-bold text-gray-900">
                 {breedingDetail.survivalRate}%
@@ -278,30 +279,30 @@ export default function BreedingDetailScreen() {
 
           {/* Progress Bar */}
           <View className="mt-2">
-            <View className="flex-row justify-between mb-2">
+            <View className="mb-2 flex-row justify-between">
               <Text className="text-sm text-gray-600">Tiến độ sinh sản</Text>
               <Text className="text-sm font-medium text-gray-900">
                 {Math.round(((21 - breedingDetail.daysLeft) / 21) * 100)}%
               </Text>
             </View>
-            <View className="h-3 bg-gray-200 rounded-full">
+            <View className="h-3 rounded-full bg-gray-200">
               <View
                 className="h-3 rounded-full"
                 style={{
-                  backgroundColor: "#10b981",
+                  backgroundColor: '#10b981',
                   width: `${((21 - breedingDetail.daysLeft) / 21) * 100}%`,
                 }}
               />
             </View>
-            <Text className="text-xs text-gray-500 mt-1">
+            <Text className="mt-1 text-xs text-gray-500">
               Còn lại {breedingDetail.daysLeft} ngày
             </Text>
           </View>
         </View>
 
         {/* Breeding Progress Sections */}
-        <View className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+        <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
+          <Text className="mb-4 text-lg font-semibold text-gray-900">
             Tiến trình sinh sản
           </Text>
 
@@ -309,10 +310,10 @@ export default function BreedingDetailScreen() {
           <View className="mb-4">
             <TouchableOpacity
               className="flex-row items-center justify-between py-2"
-              onPress={() => toggleSection("ghepCapThanhCong")}
+              onPress={() => toggleSection('ghepCapThanhCong')}
             >
               <View className="flex-row items-center">
-                <View className="w-3 h-3 bg-green-500 rounded-full mr-3" />
+                <View className="mr-3 h-3 w-3 rounded-full bg-green-500" />
                 <Text className="text-base font-medium text-gray-900">
                   Ghép cặp thành công
                 </Text>
@@ -326,13 +327,13 @@ export default function BreedingDetailScreen() {
 
             {expandedSections.ghepCapThanhCong && (
               <View>
-                <View className="ml-6 mt-2 pl-3 border-l border-gray-200 mb-1">
-                  <Text className="text-sm text-gray-600 mb-1">
+                <View className="mb-1 ml-6 mt-2 border-l border-gray-200 pl-3">
+                  <Text className="mb-1 text-sm text-gray-600">
                     15/03/2024 - Hoàn thành
                   </Text>
                 </View>
                 <View>
-                  <Text className="text-md text-black font-medium">
+                  <Text className="text-md font-medium text-black">
                     Ghép cặp thành công
                   </Text>
                 </View>
@@ -344,10 +345,10 @@ export default function BreedingDetailScreen() {
           <View className="mb-4">
             <TouchableOpacity
               className="flex-row items-center justify-between py-2"
-              onPress={() => toggleSection("beeTrung")}
+              onPress={() => toggleSection('beeTrung')}
             >
               <View className="flex-row items-center">
-                <View className="w-3 h-3 bg-green-500 rounded-full mr-3" />
+                <View className="mr-3 h-3 w-3 rounded-full bg-green-500" />
                 <Text className="text-base font-medium text-gray-900">
                   Đẻ trứng
                 </Text>
@@ -361,13 +362,13 @@ export default function BreedingDetailScreen() {
 
             {expandedSections.beeTrung && (
               <View>
-                <View className="ml-6 mt-2 pl-3 border-l border-gray-200 mb-1">
-                  <Text className="text-sm text-gray-600 mb-1">
+                <View className="mb-1 ml-6 mt-2 border-l border-gray-200 pl-3">
+                  <Text className="mb-1 text-sm text-gray-600">
                     22/03/2024 - Hoàn thành
                   </Text>
                 </View>
                 <View>
-                  <Text className="text-md text-black font-medium mb-2">
+                  <Text className="text-md mb-2 font-medium text-black">
                     Thông tin đẻ trứng
                   </Text>
                   <Text className="text-sm text-black">
@@ -385,10 +386,10 @@ export default function BreedingDetailScreen() {
           <View className="mb-4">
             <TouchableOpacity
               className="flex-row items-center justify-between py-2"
-              onPress={() => toggleSection("apTrung")}
+              onPress={() => toggleSection('apTrung')}
             >
               <View className="flex-row items-center">
-                <View className="w-3 h-3 bg-green-500 rounded-full mr-3" />
+                <View className="mr-3 h-3 w-3 rounded-full bg-green-500" />
                 <Text className="text-base font-medium text-gray-900">
                   Ấp trứng
                 </Text>
@@ -402,52 +403,52 @@ export default function BreedingDetailScreen() {
 
             {expandedSections.apTrung && (
               <View>
-                <View className="ml-6 mt-2 pl-3 border-l border-gray-200 mb-1">
-                  <Text className="text-sm text-gray-600 mb-1">
+                <View className="mb-1 ml-6 mt-2 border-l border-gray-200 pl-3">
+                  <Text className="mb-1 text-sm text-gray-600">
                     05/04/2024 - Hoàn thành
                   </Text>
                 </View>
                 <View>
-                  <Text className="text-md text-black font-medium mb-2">
+                  <Text className="text-md mb-2 font-medium text-black">
                     Thông tin ấp trứng
                   </Text>
                   <Text className="text-sm text-black">Cá bột: 1800 con</Text>
                   <Text className="text-sm text-black">Tỷ lệ sống: 72%</Text>
-                  <Text className="text-sm text-black mb-3">
+                  <Text className="mb-3 text-sm text-black">
                     Thời gian: 14 ngày
                   </Text>
 
                   {/* Theo dõi hàng ngày */}
-                  <Text className="text-md text-black font-medium mb-2">
+                  <Text className="text-md mb-2 font-medium text-black">
                     Theo dõi hàng ngày
                   </Text>
                   <View className="space-y-2">
                     <View className="flex-row items-center">
-                      <Text className="text-xs text-gray-600 w-12 text-center">
+                      <Text className="w-12 text-center text-xs text-gray-600">
                         Ngày
                       </Text>
-                      <Text className="text-xs text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-600">
                         Trong khỏe
                       </Text>
-                      <Text className="text-xs text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-600">
                         Trứng nở
                       </Text>
-                      <Text className="text-xs text-gray-600 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-600">
                         Trứng chết
                       </Text>
                     </View>
                     {[1, 2, 3, 4, 5].map((day) => (
                       <View key={day} className="flex-row items-center py-1">
-                        <Text className="text-xs text-gray-900 w-12 text-center">
+                        <Text className="w-12 text-center text-xs text-gray-900">
                           {day}
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           2000
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           2000
                         </Text>
-                        <Text className="text-xs text-gray-900 flex-1 text-center">
+                        <Text className="flex-1 text-center text-xs text-gray-900">
                           2000
                         </Text>
                       </View>
@@ -474,10 +475,10 @@ export default function BreedingDetailScreen() {
           <View className="mb-4">
             <TouchableOpacity
               className="flex-row items-center justify-between py-2"
-              onPress={() => toggleSection("nuoiCaBot")}
+              onPress={() => toggleSection('nuoiCaBot')}
             >
               <View className="flex-row items-center">
-                <View className="w-3 h-3 bg-green-500 rounded-full mr-3" />
+                <View className="mr-3 h-3 w-3 rounded-full bg-green-500" />
                 <Text className="text-base font-medium text-gray-900">
                   Nuôi cá bột
                 </Text>
@@ -491,41 +492,41 @@ export default function BreedingDetailScreen() {
 
             {expandedSections.nuoiCaBot && (
               <View>
-                <View className="ml-6 mt-2 pl-3 border-l border-gray-200 mb-1">
-                  <Text className="text-sm text-gray-600 mb-1">
+                <View className="mb-1 ml-6 mt-2 border-l border-gray-200 pl-3">
+                  <Text className="mb-1 text-sm text-gray-600">
                     20/05/2024 - Hoàn thành
                   </Text>
                 </View>
                 <View>
-                  <Text className="text-md text-black font-medium mb-2">
+                  <Text className="text-md mb-2 font-medium text-black">
                     Tỷ lệ sống theo thời gian
                   </Text>
 
-                  <View className="flex-row my-2">
-                    <Text className="text-sm font-medium text-red-500 flex-1 text-center">
+                  <View className="my-2 flex-row">
+                    <Text className="flex-1 text-center text-sm font-medium text-red-500">
                       7 ngày
                     </Text>
-                    <Text className="text-sm font-medium text-orange-500 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm font-medium text-orange-500">
                       15 ngày
                     </Text>
-                    <Text className="text-sm font-medium text-yellow-500 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm font-medium text-yellow-500">
                       30 ngày
                     </Text>
-                    <Text className="text-sm font-medium text-blue-500 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm font-medium text-blue-500">
                       Hiện tại
                     </Text>
                   </View>
                   <View className="flex-row">
-                    <Text className="text-sm text-gray-900 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm text-gray-900">
                       92%
                     </Text>
-                    <Text className="text-sm text-gray-900 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm text-gray-900">
                       85%
                     </Text>
-                    <Text className="text-sm text-gray-900 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm text-gray-900">
                       78%
                     </Text>
-                    <Text className="text-sm text-gray-900 flex-1 text-center">
+                    <Text className="flex-1 text-center text-sm text-gray-900">
                       72%
                     </Text>
                   </View>
@@ -550,10 +551,10 @@ export default function BreedingDetailScreen() {
           <View className="mb-4">
             <TouchableOpacity
               className="flex-row items-center justify-between py-2"
-              onPress={() => toggleSection("tuyenChon")}
+              onPress={() => toggleSection('tuyenChon')}
             >
               <View className="flex-row items-center">
-                <View className="w-3 h-3 bg-green-500 rounded-full mr-3" />
+                <View className="mr-3 h-3 w-3 rounded-full bg-green-500" />
                 <Text className="text-base font-medium text-gray-900">
                   Tuyển chọn
                 </Text>
@@ -567,31 +568,31 @@ export default function BreedingDetailScreen() {
 
             {expandedSections.tuyenChon && (
               <View>
-                <View className="ml-6 mt-2 pl-3 border-l border-gray-200 mb-1">
-                  <Text className="text-sm text-gray-600 mb-1">
+                <View className="mb-1 ml-6 mt-2 border-l border-gray-200 pl-3">
+                  <Text className="mb-1 text-sm text-gray-600">
                     14 ngày - Hoàn thành
                   </Text>
                 </View>
                 <View>
-                  <Text className="text-md text-black font-medium mb-2">
+                  <Text className="text-md mb-2 font-medium text-black">
                     Hiệu quả tuyển chọn
                   </Text>
 
                   {/* Table header */}
-                  <View className="flex-row bg-gray-50 p-2 rounded mb-1">
-                    <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                  <View className="mb-1 flex-row rounded bg-gray-50 p-2">
+                    <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                       Lần
                     </Text>
-                    <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                    <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                       Show
                     </Text>
-                    <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                    <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                       High
                     </Text>
-                    <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                    <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                       Pond
                     </Text>
-                    <Text className="text-xs font-medium text-gray-600 flex-1 text-center">
+                    <Text className="flex-1 text-center text-xs font-medium text-gray-600">
                       Cull
                     </Text>
                   </View>
@@ -605,36 +606,38 @@ export default function BreedingDetailScreen() {
                   ].map((row, index) => (
                     <View
                       key={index}
-                      className="flex-row py-1 border-b border-gray-100"
+                      className="flex-row border-b border-gray-100 py-1"
                     >
-                      <Text className="text-xs text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-900">
                         {row.lan}
                       </Text>
-                      <Text className="text-xs text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-900">
                         {row.show}
                       </Text>
-                      <Text className="text-xs text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-900">
                         {row.high}
                       </Text>
-                      <Text className="text-xs text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-900">
                         {row.pond}
                       </Text>
-                      <Text className="text-xs text-gray-900 flex-1 text-center">
+                      <Text className="flex-1 text-center text-xs text-gray-900">
                         {row.cull}
                       </Text>
                     </View>
                   ))}
 
-                  <View className="flex-row justify-center mt-3 space-x-3">
-                    <Text className="text-sm text-black mr-4 mt-1">
+                  <View className="mt-3 flex-row justify-center space-x-3">
+                    <Text className="mr-4 mt-1 text-sm text-black">
                       Danh sách định danh
                     </Text>
-                    <TouchableOpacity 
-                      className="flex-row items-center border border-gray-300 rounded-lg px-3 py-1"
-                      onPress={() => router.push(`/breeding/fish-list?from=breeding-detail&breedingId=${breedingDetail.id}`)}
+                    <TouchableOpacity
+                      className="flex-row items-center rounded-lg border border-gray-300 px-3 py-1"
+                      onPress={() =>
+                        router.push(`/breeding/${breedingDetail.id}/fish-list`)
+                      }
                     >
                       <Eye size={16} color="black" />
-                      <Text className="text-sm text-black ml-1">
+                      <Text className="ml-1 text-sm text-black">
                         Xem chi tiết
                       </Text>
                     </TouchableOpacity>

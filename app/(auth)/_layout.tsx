@@ -1,6 +1,6 @@
-import { useAuthStore } from "@/store/authStore";
-import { Stack, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useAuthStore } from '@/lib/store/authStore';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 
 export default function AuthLayout() {
   const { token } = useAuthStore();
@@ -9,7 +9,7 @@ export default function AuthLayout() {
   useEffect(() => {
     if (token) {
       // Nếu đã login thì không được vào auth nữa
-      router.push("/(home)");
+      router.push('/(home)');
     }
   }, [token]);
 
