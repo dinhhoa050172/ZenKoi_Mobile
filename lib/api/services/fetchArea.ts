@@ -1,4 +1,4 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
 
 export interface Area {
   id: number;
@@ -7,17 +7,34 @@ export interface Area {
   description: string;
 }
 
+export interface AreaSearchParams {
+  search?: string;
+  minTotalAreaSQM?: number;
+  maxTotalAreaSQM?: number;
+  pageIndex?: number;
+  pageSize?: number;
+}
+
 export interface AreaRequest {
   name: string;
   totalAreaSQM: number;
   description: string;
 }
 
+export interface AreaPagination {
+  pageIndex: number;
+  totalPages: number;
+  totalItems: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  data: Area[];
+}
+
 export interface AreaListResponse {
   statusCode: number;
   isSuccess: boolean;
   message: string;
-  result: Area[];
+  result: AreaPagination;
 }
 
 export interface AreaResponse {
@@ -27,10 +44,35 @@ export interface AreaResponse {
   result: Area;
 }
 
+// Convert AreaSearchParams to RequestParams
+export const convertAreaFilter = (
+  filters?: AreaSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.minTotalAreaSQM) params.minTotalAreaSQM = filters.minTotalAreaSQM;
+  if (filters.maxTotalAreaSQM) params.maxTotalAreaSQM = filters.maxTotalAreaSQM;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const areaServices = {
   // Fetch all areas
-  getAllAreas: async (): Promise<AreaListResponse> => {
-    const response = await apiService.get<AreaListResponse>('/api/area');
+  getAllAreas: async (
+    filters?: AreaSearchParams
+  ): Promise<AreaListResponse> => {
+    const params = convertAreaFilter(filters);
+
+    const response = await apiService.get<AreaListResponse>(
+      '/api/area',
+      params
+    );
     return response.data;
   },
 

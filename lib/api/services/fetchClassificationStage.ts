@@ -1,4 +1,4 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
 import { ClassificationRecord } from './fetchClassificationRecord';
 
 export enum ClassificationStatus {
@@ -12,18 +12,39 @@ export enum ClassificationStatus {
 export interface ClassificationStage {
   id: number;
   breedingProcessId: number;
-  pondId: number;
-  pondName: string;
   totalCount: number;
   status: ClassificationStatus;
+  highQualifiedCount: number;
+  qualifiedCount: number;
+  unqualifiedCount: number;
   notes: string;
   classificationRecords: ClassificationRecord[];
+}
+
+export interface ClassificationStageSearchParams {
+  search?: string;
+  breedingProcessId?: number;
+  pondId?: number;
+  status?: ClassificationStatus;
+  minTitalCount?: number;
+  maxTitalCount?: number;
+  minHighQualifiedCount?: number;
+  maxHighQualifiedCount?: number;
+  minQualifiedCount?: number;
+  maxQualifiedCount?: number;
+  minUnqualifiedCount?: number;
+  maxUnqualifiedCount?: number;
+  startDateFrom?: string;
+  startDateTo?: string;
+  endDateFrom?: string;
+  endDateTo?: string;
+  pageIndex?: number;
+  pageSize?: number;
 }
 
 export interface ClassificationStageRequest {
   breedingProcessId: number;
   pondId: number;
-  totalCount: number;
   notes: string;
 }
 
@@ -50,14 +71,54 @@ export interface ClassificationStageResponse {
   result: ClassificationStage;
 }
 
+// Convert ClassificationStageSearchParams to RequestParams
+export const convertClassificationStageFilter = (
+  filters?: ClassificationStageSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.breedingProcessId)
+    params.breedingProcessId = filters.breedingProcessId;
+  if (filters.pondId) params.pondId = filters.pondId;
+  if (filters.status) params.status = filters.status;
+  if (filters.minTitalCount) params.minTitalCount = filters.minTitalCount;
+  if (filters.maxTitalCount) params.maxTitalCount = filters.maxTitalCount;
+  if (filters.minHighQualifiedCount)
+    params.minHighQualifiedCount = filters.minHighQualifiedCount;
+  if (filters.maxHighQualifiedCount)
+    params.maxHighQualifiedCount = filters.maxHighQualifiedCount;
+  if (filters.minQualifiedCount)
+    params.minQualifiedCount = filters.minQualifiedCount;
+  if (filters.maxQualifiedCount)
+    params.maxQualifiedCount = filters.maxQualifiedCount;
+  if (filters.minUnqualifiedCount)
+    params.minUnqualifiedCount = filters.minUnqualifiedCount;
+  if (filters.maxUnqualifiedCount)
+    params.maxUnqualifiedCount = filters.maxUnqualifiedCount;
+  if (filters.startDateFrom) params.startDateFrom = filters.startDateFrom;
+  if (filters.startDateTo) params.startDateTo = filters.startDateTo;
+  if (filters.endDateFrom) params.endDateFrom = filters.endDateFrom;
+  if (filters.endDateTo) params.endDateTo = filters.endDateTo;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const classificationStageServices = {
   // Get all classification stages with pagination
   getAllClassificationStages: async (
-    pageIndex: number,
-    pageSize: number
+    filters?: ClassificationStageSearchParams
   ): Promise<ClassificationStageListResponse> => {
+    const params = convertClassificationStageFilter(filters);
+
     const response = await apiService.get<ClassificationStageListResponse>(
-      `/api/classificationstage?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/classificationstage`,
+      params
     );
     return response.data;
   },
@@ -68,6 +129,16 @@ export const classificationStageServices = {
   ): Promise<ClassificationStageResponse> => {
     const response = await apiService.get<ClassificationStageResponse>(
       `/api/classificationstage/${id}`
+    );
+    return response.data;
+  },
+
+  // Get classification stage by breeding process ID
+  getClassificationStageByBreedingProcessId: async (
+    breedingProcessId: number
+  ): Promise<ClassificationStageResponse> => {
+    const response = await apiService.get<ClassificationStageResponse>(
+      `/api/classificationstage/by-breeding/${breedingProcessId}`
     );
     return response.data;
   },

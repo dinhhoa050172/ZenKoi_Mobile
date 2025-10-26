@@ -1,9 +1,9 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
 
 export enum PondStatus {
-  Empty,
-  Active,
-  Maintenance,
+  EMPTY = 'Empty',
+  ACTIVE = 'Active',
+  MAINTENANCE = 'Maintenance',
 }
 
 export interface Pond {
@@ -17,15 +17,30 @@ export interface Pond {
   widthMeters: number;
   createdAt: string;
   pondTypeId: number;
-  // pondTypeName: string;
+  pondTypeName: string;
   areaId: number;
-  // areaName: string;
+  areaName: string;
+}
+
+export interface PondSearchParams {
+  search?: string;
+  status?: PondStatus;
+  areaId?: number;
+  pondTypeId?: number;
+  minCapacityLiters?: number;
+  maxCapacityLiters?: number;
+  minDepthMeters?: number;
+  maxDepthMeters?: number;
+  createdFrom?: string;
+  createdTo?: string;
+  pageIndex?: number;
+  pageSize?: number;
 }
 
 export interface PondRequest {
   areaId: number;
-  pondName: string;
   pondTypeId: number;
+  pondName: string;
   location: string;
   pondStatus: PondStatus;
   capacityLiters: number;
@@ -57,14 +72,43 @@ export interface PondResponse {
   result: Pond;
 }
 
+// Convert PondSearchParams to RequestParams
+export const convertPondFilter = (
+  filters?: PondSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.status) params.status = filters.status;
+  if (filters.areaId) params.areaId = filters.areaId;
+  if (filters.pondTypeId) params.pondTypeId = filters.pondTypeId;
+  if (filters.minCapacityLiters)
+    params.minCapacityLiters = filters.minCapacityLiters;
+  if (filters.maxCapacityLiters)
+    params.maxCapacityLiters = filters.maxCapacityLiters;
+  if (filters.minDepthMeters) params.minDepthMeters = filters.minDepthMeters;
+  if (filters.maxDepthMeters) params.maxDepthMeters = filters.maxDepthMeters;
+  if (filters.createdFrom) params.createdFrom = filters.createdFrom;
+  if (filters.createdTo) params.createdTo = filters.createdTo;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const pondServices = {
   // Get all ponds with pagination
   getAllPonds: async (
-    pageIndex: number,
-    pageSize: number
+    filters?: PondSearchParams
   ): Promise<PondListResponse> => {
+    const params = convertPondFilter(filters);
+
     const response = await apiService.get<PondListResponse>(
-      `/api/pond?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/pond`,
+      params
     );
     return response.data;
   },

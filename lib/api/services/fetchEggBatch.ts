@@ -1,4 +1,5 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
+import { IncubationDailyRecord } from './fetchIncubationDailyRecord';
 
 export enum EggBatchStatus {
   COLLECTED = 'Collected', // Lô trứng vừa được thu từ quá trình sinh sản
@@ -11,11 +12,29 @@ export enum EggBatchStatus {
 export interface EggBatch {
   id: number;
   breedingProcessId: number;
-  pondId: number;
-  pondName: string;
   quantity: number;
+  fertilizationRate: number;
   status: EggBatchStatus;
+  hatchingTime: string;
   spawnDate: string;
+  incubationDailyRecords: IncubationDailyRecord[];
+}
+
+export interface EggBatchSearchParams {
+  search?: string;
+  breedingProcessId?: number;
+  pondId?: number;
+  status?: EggBatchStatus;
+  minQuantity?: number;
+  maxQuantity?: number;
+  minFertilizationRate?: number;
+  maxFertilizationRate?: number;
+  spawnDateFrom?: string;
+  spawnDateTo?: string;
+  hatchingTimeFrom?: string;
+  hatchingTimeTo?: string;
+  pageIndex?: number;
+  pageSize?: number;
 }
 
 export interface EggBatchRequest {
@@ -47,14 +66,47 @@ export interface EggBatchResponse {
   result: EggBatch;
 }
 
+// Convert EggBatchSearchParams to RequestParams
+export const convertEggBatchFilter = (
+  filters?: EggBatchSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.breedingProcessId)
+    params.breedingProcessId = filters.breedingProcessId;
+  if (filters.pondId) params.pondId = filters.pondId;
+  if (filters.status) params.status = filters.status;
+  if (filters.minQuantity) params.minQuantity = filters.minQuantity;
+  if (filters.maxQuantity) params.maxQuantity = filters.maxQuantity;
+  if (filters.minFertilizationRate)
+    params.minFertilizationRate = filters.minFertilizationRate;
+  if (filters.maxFertilizationRate)
+    params.maxFertilizationRate = filters.maxFertilizationRate;
+  if (filters.spawnDateFrom) params.spawnDateFrom = filters.spawnDateFrom;
+  if (filters.spawnDateTo) params.spawnDateTo = filters.spawnDateTo;
+  if (filters.hatchingTimeFrom)
+    params.hatchingTimeFrom = filters.hatchingTimeFrom;
+  if (filters.hatchingTimeTo) params.hatchingTimeTo = filters.hatchingTimeTo;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const eggBatchServices = {
   // Get all egg batches with pagination
   getAllEggBatches: async (
-    pageIndex: number,
-    pageSize: number
+    filters?: EggBatchSearchParams
   ): Promise<EggBatchListResponse> => {
+    const params = convertEggBatchFilter(filters);
+
     const response = await apiService.get<EggBatchListResponse>(
-      `/api/eggbatch?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/eggbatch`,
+      params
     );
     return response.data;
   },
@@ -63,6 +115,16 @@ export const eggBatchServices = {
   getEggBatchById: async (id: number): Promise<EggBatchResponse> => {
     const response = await apiService.get<EggBatchResponse>(
       `/api/eggbatch/${id}`
+    );
+    return response.data;
+  },
+
+  // Get egg batch by breeding process ID
+  getEggBatchByBreedingProcessId: async (
+    breedingProcessId: number
+  ): Promise<EggBatchResponse> => {
+    const response = await apiService.get<EggBatchResponse>(
+      `/api/eggbatch/by-breeding/${breedingProcessId}`
     );
     return response.data;
   },

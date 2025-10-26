@@ -1,5 +1,5 @@
-import apiService from '../apiClient';
-import { BreedingProcess } from './fetchBreedingProcess';
+import apiService, { RequestParams } from '../apiClient';
+import { FrySurvivalRecord } from './fetchFrySurvivalRecord';
 
 export enum FryFishStatus {
   HATCHED = 'Hatched', // Vừa nở
@@ -12,14 +12,27 @@ export enum FryFishStatus {
 export interface FryFish {
   id: number;
   breedingProcessId: number;
-  pondId: number;
   initialCount: number;
   status: FryFishStatus;
-  breedingProcess: BreedingProcess;
-  pond: {
-    id: number;
-    pondName: string;
-  };
+  currentSurvivalRate: number;
+  frySurvivalRecords: FrySurvivalRecord[];
+}
+
+export interface FryFishSearchParams {
+  search?: string;
+  breedingProcessId?: number;
+  pondId?: number;
+  status?: FryFishStatus;
+  minInitialCount?: number;
+  maxInitialCount?: number;
+  minCurrentSurvivalRate?: number;
+  maxCurrentSurvivalRate?: number;
+  startDateFrom?: string;
+  startDateTo?: string;
+  endDateFrom?: string;
+  endDateTo?: string;
+  pageIndex?: number;
+  pageSize?: number;
 }
 
 export interface FryFishRequest {
@@ -50,14 +63,46 @@ export interface FryFishResponse {
   result: FryFish;
 }
 
+// Convert FryFishSearchParams to RequestParams
+export const convertFryFishFilter = (
+  filters?: FryFishSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.breedingProcessId)
+    params.breedingProcessId = filters.breedingProcessId;
+  if (filters.pondId) params.pondId = filters.pondId;
+  if (filters.status) params.status = filters.status;
+  if (filters.minInitialCount) params.minInitialCount = filters.minInitialCount;
+  if (filters.maxInitialCount) params.maxInitialCount = filters.maxInitialCount;
+  if (filters.minCurrentSurvivalRate)
+    params.minCurrentSurvivalRate = filters.minCurrentSurvivalRate;
+  if (filters.maxCurrentSurvivalRate)
+    params.maxCurrentSurvivalRate = filters.maxCurrentSurvivalRate;
+  if (filters.startDateFrom) params.startDateFrom = filters.startDateFrom;
+  if (filters.startDateTo) params.startDateTo = filters.startDateTo;
+  if (filters.endDateFrom) params.endDateFrom = filters.endDateFrom;
+  if (filters.endDateTo) params.endDateTo = filters.endDateTo;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const fryFishServices = {
   // Get all fry fish with pagination
   getAllFryFish: async (
-    pageIndex: number,
-    pageSize: number
+    filters?: FryFishSearchParams
   ): Promise<FryFishListResponse> => {
+    const params = convertFryFishFilter(filters);
+
     const response = await apiService.get<FryFishListResponse>(
-      `/api/fryfish?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/fryfish`,
+      params
     );
     return response.data;
   },
@@ -66,6 +111,16 @@ export const fryFishServices = {
   getFryFishById: async (id: number): Promise<FryFishResponse> => {
     const response = await apiService.get<FryFishResponse>(
       `/api/fryfish/${id}`
+    );
+    return response.data;
+  },
+
+  // Get fry fish by breeding process ID
+  getFryFishByBreedingProcessId: async (
+    breedingProcessId: number
+  ): Promise<FryFishResponse> => {
+    const response = await apiService.get<FryFishResponse>(
+      `/api/fryfish/by-breeding/${breedingProcessId}`
     );
     return response.data;
   },
