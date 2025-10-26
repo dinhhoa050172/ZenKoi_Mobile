@@ -1,4 +1,4 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
 
 export interface PondType {
   id: number;
@@ -7,17 +7,34 @@ export interface PondType {
   recommendedCapacity: number;
 }
 
+export interface PondTypeSearchParams {
+  search?: string;
+  minRecommendedCapacity?: number;
+  maxRecommendedCapacity?: number;
+  pageIndex?: number;
+  pageSize?: number;
+}
+
 export interface PondTypeRequest {
   typeName: string;
   description: string;
   recommendedCapacity: number;
 }
 
+export interface PondTypePagination {
+  pageIndex: number;
+  totalPages: number;
+  totalItems: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  data: PondType[];
+}
+
 export interface PondTypeListResponse {
   statusCode: number;
   isSuccess: boolean;
   message: string;
-  result: PondType[];
+  result: PondTypePagination;
 }
 
 export interface PondTypeResponse {
@@ -27,11 +44,37 @@ export interface PondTypeResponse {
   result: PondType;
 }
 
+// Convert PondTypeSearchParams to RequestParams
+export const convertPondTypeFilter = (
+  filters?: PondTypeSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.minRecommendedCapacity)
+    params.minRecommendedCapacity = filters.minRecommendedCapacity;
+  if (filters.maxRecommendedCapacity)
+    params.maxRecommendedCapacity = filters.maxRecommendedCapacity;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const pondTypeServices = {
   // Get all pond types
-  getAllPondType: async (): Promise<PondTypeListResponse> => {
-    const response =
-      await apiService.get<PondTypeListResponse>('/api/pondtype');
+  getAllPondType: async (
+    filters?: PondTypeSearchParams
+  ): Promise<PondTypeListResponse> => {
+    const params = convertPondTypeFilter(filters);
+
+    const response = await apiService.get<PondTypeListResponse>(
+      '/api/pondtype',
+      params
+    );
     return response.data;
   },
 

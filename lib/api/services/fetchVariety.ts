@@ -1,10 +1,17 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
 
 export interface Variety {
   id: number;
   varietyName: string;
   characteristic: string;
   originCountry: string;
+}
+
+export interface VarietySearchParams {
+  search?: string;
+  originCountry?: string;
+  pageIndex?: number;
+  pageSize?: number;
 }
 
 export interface VarietyRequest {
@@ -36,28 +43,49 @@ export interface VarietyResponse {
   result: Variety;
 }
 
+// Convert VarietySearchParams to RequestParams
+export const convertVarietyFilter = (
+  filters?: VarietySearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.originCountry) params.originCountry = filters.originCountry;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const varietyServices = {
   // Get all varieties with pagination
   getAllVarieties: async (
-    pageIndex: number,
-    pageSize: number
+    filters: VarietySearchParams
   ): Promise<VarietyListResponse> => {
+    const params = convertVarietyFilter(filters);
+
     const response = await apiService.get<VarietyListResponse>(
-      `/variety?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/variety`,
+      params
     );
     return response.data;
   },
 
   // Get variety by ID
   getVarietyById: async (id: number): Promise<VarietyResponse> => {
-    const response = await apiService.get<VarietyResponse>(`/variety/${id}`);
+    const response = await apiService.get<VarietyResponse>(
+      `/api/variety/${id}`
+    );
     return response.data;
   },
 
   // Create a new variety
   createVariety: async (variety: VarietyRequest): Promise<VarietyResponse> => {
     const response = await apiService.post<VarietyResponse, VarietyRequest>(
-      '/variety',
+      `/api/variety`,
       variety
     );
     return response.data;
@@ -69,7 +97,7 @@ export const varietyServices = {
     variety: VarietyRequest
   ): Promise<VarietyResponse> => {
     const response = await apiService.put<VarietyResponse, VarietyRequest>(
-      `/variety/${id}`,
+      `/api/variety/${id}`,
       variety
     );
     return response.data;
@@ -77,7 +105,9 @@ export const varietyServices = {
 
   // Delete a variety by ID
   deleteVariety: async (id: number): Promise<VarietyResponse> => {
-    const response = await apiService.delete<VarietyResponse>(`/variety/${id}`);
+    const response = await apiService.delete<VarietyResponse>(
+      `/api/variety/${id}`
+    );
     return response.data;
   },
 };

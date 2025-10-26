@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
-import FishSvg from "./icons/FishSvg";
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
+import FishSvg from './icons/FishSvg';
 
 const Loading: React.FC = () => {
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -18,7 +18,7 @@ const Loading: React.FC = () => {
 
   const spin = spinValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ["360deg", "0deg"],
+    outputRange: ['360deg', '0deg'],
   });
 
   return (
@@ -33,9 +33,9 @@ const Loading: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "white", // có thể đổi tuỳ app
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: "white",
   },
 });
 

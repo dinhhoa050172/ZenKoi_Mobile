@@ -1,3 +1,4 @@
+import { ClassificationRecordSearchParams } from '@/lib/api/services/fetchClassificationRecord';
 import {
   ClassificationStage,
   ClassificationStagePagination,
@@ -11,7 +12,7 @@ import Toast from 'react-native-toast-message';
 export const classificationStageKeys = {
   all: ['classificationStages'] as const,
   lists: () => [...classificationStageKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: ClassificationRecordSearchParams) =>
     [...classificationStageKeys.lists(), params] as const,
   details: () => [...classificationStageKeys.all, 'detail'] as const,
   detail: (id: number | string) =>
@@ -22,17 +23,14 @@ export const classificationStageKeys = {
  * Hook to get list of Classification Stages with pagination
  */
 export function useGetClassificationStages(
-  pageIndex = 1,
-  pageSize = 20,
+  filters: ClassificationRecordSearchParams,
   enabled = true
 ) {
   return useQuery({
-    queryKey: classificationStageKeys.list({ pageIndex, pageSize }),
+    queryKey: classificationStageKeys.list(filters),
     queryFn: async (): Promise<ClassificationStagePagination> => {
-      const resp = await classificationStageServices.getAllClassificationStages(
-        pageIndex,
-        pageSize
-      );
+      const resp =
+        await classificationStageServices.getAllClassificationStages(filters);
       if (!resp.isSuccess)
         throw new Error(
           resp.message || 'Không thể tải danh sách giai đoạn phân loại'
@@ -60,6 +58,33 @@ export function useGetClassificationStageById(id: number, enabled = true) {
       return resp.result;
     },
     enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Get Classification Stage by Breeding Process ID
+ */
+export function useGetClassificationStageByBreedingProcessId(
+  breedingProcessId: number,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['classificationStage', 'by-breeding-process', breedingProcessId],
+    queryFn: async (): Promise<ClassificationStage> => {
+      const resp =
+        await classificationStageServices.getClassificationStageByBreedingProcessId(
+          breedingProcessId
+        );
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể tải giai đoạn phân loại cho quy trình này'
+        );
+      return resp.result;
+    },
+    enabled: enabled && !!breedingProcessId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -196,17 +221,16 @@ export function usePrefetchClassificationStageById(id: number) {
 /*
  * Hook to prefetch list of Classification Stages with pagination
  */
-export function usePrefetchClassificationStages(pageIndex = 1, pageSize = 20) {
+export function usePrefetchClassificationStages(
+  filters: ClassificationRecordSearchParams
+) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: classificationStageKeys.list({ pageIndex, pageSize }),
+      queryKey: classificationStageKeys.list(filters),
       queryFn: async (): Promise<ClassificationStagePagination> => {
         const resp =
-          await classificationStageServices.getAllClassificationStages(
-            pageIndex,
-            pageSize
-          );
+          await classificationStageServices.getAllClassificationStages(filters);
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

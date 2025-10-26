@@ -2,6 +2,7 @@ import {
   EggBatch,
   EggBatchPagination,
   EggBatchRequest,
+  EggBatchSearchParams,
   eggBatchServices,
 } from '@/lib/api/services/fetchEggBatch';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import Toast from 'react-native-toast-message';
 export const eggBatchKeys = {
   all: ['eggBatches'] as const,
   lists: () => [...eggBatchKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: EggBatchSearchParams) =>
     [...eggBatchKeys.lists(), params] as const,
   details: () => [...eggBatchKeys.all, 'detail'] as const,
   detail: (id: number | string) => [...eggBatchKeys.details(), id] as const,
@@ -20,11 +21,14 @@ export const eggBatchKeys = {
 /*
  * Hook to get list of Egg Batches with pagination
  */
-export function useGetEggBatches(pageIndex = 1, pageSize = 20, enabled = true) {
+export function useGetEggBatches(
+  filters?: EggBatchSearchParams,
+  enabled = true
+) {
   return useQuery({
-    queryKey: eggBatchKeys.list({ pageIndex, pageSize }),
+    queryKey: eggBatchKeys.list(filters || {}),
     queryFn: async (): Promise<EggBatchPagination> => {
-      const resp = await eggBatchServices.getAllEggBatches(pageIndex, pageSize);
+      const resp = await eggBatchServices.getAllEggBatches(filters || {});
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải danh sách lô trứng');
       return resp.result;
@@ -49,6 +53,33 @@ export function useGetEggBatchById(id: number, enabled = true) {
       return resp.result;
     },
     enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Get Egg Batch by Breeding Process ID
+ */
+export function useGetEggBatchByBreedingProcessId(
+  breedingProcessId: number,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['eggBatch', 'by-breeding-process', breedingProcessId],
+    queryFn: async (): Promise<EggBatch> => {
+      const resp =
+        await eggBatchServices.getEggBatchByBreedingProcessId(
+          breedingProcessId
+        );
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể tải lô trứng cho quy trình này'
+        );
+      return resp.result;
+    },
+    enabled: enabled && !!breedingProcessId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -169,16 +200,13 @@ export function usePrefetchEggBatchById(id: number) {
 /*
  * Hook to prefetch list of Egg Batches
  */
-export function usePrefetchEggBatches(pageIndex = 1, pageSize = 20) {
+export function usePrefetchEggBatches(filters?: EggBatchSearchParams) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: eggBatchKeys.list({ pageIndex, pageSize }),
+      queryKey: eggBatchKeys.list(filters || {}),
       queryFn: async (): Promise<EggBatchPagination> => {
-        const resp = await eggBatchServices.getAllEggBatches(
-          pageIndex,
-          pageSize
-        );
+        const resp = await eggBatchServices.getAllEggBatches(filters || {});
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

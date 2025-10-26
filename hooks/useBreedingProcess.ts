@@ -1,18 +1,25 @@
 import {
   BreedingProcess,
+  BreedingProcessDetail,
   BreedingProcessPagination,
   BreedingProcessRequest,
+  BreedingProcessSearchParams,
   breedingProcessServices,
   InbreedingLevel,
 } from '@/lib/api/services/fetchBreedingProcess';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
 // Query keys
 export const breedingProcessKeys = {
   all: ['breedingProcesses'] as const,
   lists: () => [...breedingProcessKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: BreedingProcessSearchParams) =>
     [...breedingProcessKeys.lists(), params] as const,
   details: () => [...breedingProcessKeys.all, 'detail'] as const,
   detail: (id: number | string) =>
@@ -23,17 +30,22 @@ export const breedingProcessKeys = {
  * Hook to get list of Breeding Processes with pagination
  */
 export function useGetBreedingProcesses(
-  pageIndex = 1,
-  pageSize = 20,
+  filters?: BreedingProcessSearchParams,
   enabled = true
 ) {
-  return useQuery({
-    queryKey: breedingProcessKeys.list({ pageIndex, pageSize }),
-    queryFn: async (): Promise<BreedingProcessPagination> => {
-      const res = await breedingProcessServices.getAllBreedingProcesses(
-        pageIndex,
-        pageSize
-      );
+  // create a stable key based on filters except pagination fields
+  const filterKey = { ...(filters || {}) } as any;
+  delete filterKey.pageIndex;
+  delete filterKey.pageSize;
+
+  return useInfiniteQuery({
+    queryKey: breedingProcessKeys.list(filterKey || {}),
+    initialPageParam: 1,
+    queryFn: async ({ pageParam = 1 }): Promise<BreedingProcessPagination> => {
+      const f: BreedingProcessSearchParams = { ...(filters || {}) };
+      f.pageIndex = Number(pageParam) || 1;
+      if (!f.pageSize) f.pageSize = 50;
+      const res = await breedingProcessServices.getAllBreedingProcesses(f);
       if (!res.isSuccess)
         throw new Error(
           res.message || 'Không thể tải danh sách quy trình sinh sản'
@@ -41,6 +53,22 @@ export function useGetBreedingProcesses(
       return res.result;
     },
     enabled,
+    getNextPageParam: (lastPage) => {
+      // Attempt multiple possible pagination fields for robustness
+      const current = Number(
+        (lastPage as any).pageIndex ?? (lastPage as any).page ?? 1
+      );
+      const totalPages = Number(
+        (lastPage as any).totalPages ??
+          (lastPage as any).totalPage ??
+          (lastPage as any).total ??
+          0
+      );
+      if (totalPages && current < totalPages) return current + 1;
+      // fallback: if server returns hasNextPage
+      if ((lastPage as any).hasNextPage) return current + 1;
+      return undefined;
+    },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -55,6 +83,26 @@ export function useGetBreedingProcessById(id: number, enabled = true) {
     queryKey: breedingProcessKeys.detail(id),
     queryFn: async (): Promise<BreedingProcess> => {
       const res = await breedingProcessServices.getBreedingProcessById(id);
+      if (!res.isSuccess)
+        throw new Error(res.message || 'Không thể tải quy trình sinh sản');
+      return res.result;
+    },
+    enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Hook to get Breeding Process detail full information by ID
+ */
+export function useGetBreedingProcessDetailById(id: number, enabled = true) {
+  return useQuery({
+    queryKey: breedingProcessKeys.detail(id),
+    queryFn: async (): Promise<BreedingProcessDetail> => {
+      const res =
+        await breedingProcessServices.getBreedingProcessDetailById(id);
       if (!res.isSuccess)
         throw new Error(res.message || 'Không thể tải quy trình sinh sản');
       return res.result;
@@ -123,6 +171,39 @@ export function useCheckInbreedingLevel() {
 }
 
 /*
+ * Hook to update processing status to Spawned
+ */
+export function useMarkBreedingProcessAsSpawned() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await breedingProcessServices.markAsSpawned(id);
+      if (!res.isSuccess)
+        throw new Error(res.message || 'Không thể cập nhật trạng thái');
+      return res.result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.all });
+      Toast.show({
+        type: 'success',
+        text1: 'Cập nhật trạng thái thành công',
+        position: 'top',
+      });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Cập nhật trạng thái thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
  * Prefetch Breeding Process by ID
  */
 export function usePrefetchBreedingProcessById(id: number) {
@@ -142,15 +223,16 @@ export function usePrefetchBreedingProcessById(id: number) {
 /*
  * Prefetch Breeding Processes with pagination
  */
-export function usePrefetchBreedingProcesses(pageIndex = 1, pageSize = 20) {
+export function usePrefetchBreedingProcesses(
+  filters?: BreedingProcessSearchParams
+) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: breedingProcessKeys.list({ pageIndex, pageSize }),
+      queryKey: breedingProcessKeys.list(filters || {}),
       queryFn: async (): Promise<BreedingProcessPagination> => {
         const resp = await breedingProcessServices.getAllBreedingProcesses(
-          pageIndex,
-          pageSize
+          filters || {}
         );
         return resp.result;
       },

@@ -153,6 +153,22 @@ export default function TabLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="koi/add/index"
+        options={{
+          href: null,
+          title: 'Thêm cá Koi',
+        }}
+      />
+
+      <Tabs.Screen
+        name="koi/edit/index"
+        options={{
+          href: null,
+          title: 'Chi tiết cá Koi',
+        }}
+      />
+
       {/* Scan QR */}
       <Tabs.Screen
         name="scan/index"

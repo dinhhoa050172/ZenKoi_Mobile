@@ -1,4 +1,4 @@
-import apiService from '../apiClient';
+import apiService, { RequestParams } from '../apiClient';
 
 export interface FrySurvivalRecord {
   id: number;
@@ -6,13 +6,29 @@ export interface FrySurvivalRecord {
   dayNumber: number;
   survivalRate: number;
   countAlive: number;
-  note: string;
+  note: string | null;
   createdAt: string;
+  initialCount: number | null;
+}
+
+export interface FrySurvivalRecordSearchParams {
+  search?: string;
+  fryFishId?: number;
+  minDayNumber?: number;
+  maxDayNumber?: number;
+  minSurvivalRate?: number;
+  maxSurvivalRate?: number;
+  minCountAlive?: number;
+  maxCountAlive?: number;
+  success?: boolean;
+  createdFrom?: string;
+  createdTo?: string;
+  pageIndex?: number;
+  pageSize?: number;
 }
 
 export interface FrySurvivalRecordRequest {
   fryFishId: number;
-  dayNumber: number;
   countAlive: number;
   note: string;
   success: boolean;
@@ -41,14 +57,42 @@ export interface FrySurvivalRecordResponse {
   result: FrySurvivalRecord;
 }
 
+// Convert FrySurvivalRecordSearchParams to RequestParams
+export const convertFrySurvivalRecordFilter = (
+  filters?: FrySurvivalRecordSearchParams
+): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  // Basic parameters
+  if (filters.search) params.search = filters.search;
+  if (filters.fryFishId) params.fryFishId = filters.fryFishId;
+  if (filters.minDayNumber) params.minDayNumber = filters.minDayNumber;
+  if (filters.maxDayNumber) params.maxDayNumber = filters.maxDayNumber;
+  if (filters.minSurvivalRate) params.minSurvivalRate = filters.minSurvivalRate;
+  if (filters.maxSurvivalRate) params.maxSurvivalRate = filters.maxSurvivalRate;
+  if (filters.minCountAlive) params.minCountAlive = filters.minCountAlive;
+  if (filters.maxCountAlive) params.maxCountAlive = filters.maxCountAlive;
+  if (filters.success !== undefined) params.success = filters.success;
+  if (filters.createdFrom) params.createdFrom = filters.createdFrom;
+  if (filters.createdTo) params.createdTo = filters.createdTo;
+  if (filters.pageIndex) params.pageIndex = filters.pageIndex;
+  if (filters.pageSize) params.pageSize = filters.pageSize;
+
+  return params;
+};
+
 export const frySurvivalRecordServices = {
   // Get all fry survival records with pagination
   getAllFrySurvivalRecords: async (
-    pageIndex: number,
-    pageSize: number
+    filters?: FrySurvivalRecordSearchParams
   ): Promise<FrySurvivalRecordListResponse> => {
+    const params = convertFrySurvivalRecordFilter(filters);
+
     const response = await apiService.get<FrySurvivalRecordListResponse>(
-      `/api/frysurvivalrecord?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/frysurvivalrecord`,
+      params
     );
     return response.data;
   },

@@ -1,17 +1,24 @@
 import {
   KoiFish,
+  KoiFishFamily,
   KoiFishPagination,
   KoiFishRequest,
+  KoiFishSearchParams,
   koiFishServices,
 } from '@/lib/api/services/fetchKoiFish';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
 // Query keys
 export const koiFishKeys = {
   all: ['koiFish'] as const,
   lists: () => [...koiFishKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: KoiFishSearchParams) =>
     [...koiFishKeys.lists(), params] as const,
   details: () => [...koiFishKeys.all, 'detail'] as const,
   detail: (id: number | string) => [...koiFishKeys.details(), id] as const,
@@ -20,20 +27,52 @@ export const koiFishKeys = {
 /*
  * Hook to get list of Koi Fish with pagination
  */
-export function useGetKoiFish(pageIndex = 1, pageSize = 20, enabled = true) {
-  return useQuery({
-    queryKey: koiFishKeys.list({ pageIndex, pageSize }),
-    queryFn: async (): Promise<KoiFishPagination> => {
-      const resp = await koiFishServices.getAllKoiFish(pageIndex, pageSize);
+export function useGetKoiFish(
+  filters?: KoiFishSearchParams,
+  enabled = true,
+  pageSize = 30
+) {
+  const iq = useInfiniteQuery<any, Error>({
+    queryKey: koiFishKeys.list(filters || {}),
+    queryFn: async (ctx) => {
+      const pageParam = (ctx?.pageParam as number) ?? 1;
+      const resp = await koiFishServices.getAllKoiFish({
+        ...(filters || {}),
+        pageIndex: pageParam,
+        pageSize,
+      });
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải danh sách cá koi');
       return resp.result;
     },
     enabled,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNextPage ? lastPage.pageIndex + 1 : undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const merged: KoiFishPagination | undefined = iq.data
+    ? ((): KoiFishPagination => {
+        const pages = (iq.data as any).pages as KoiFishPagination[];
+        const last = pages[pages.length - 1] ?? ({} as KoiFishPagination);
+        return {
+          pageIndex: last.pageIndex ?? 1,
+          totalPages: last.totalPages ?? 1,
+          totalItems: last.totalItems ?? 0,
+          hasNextPage: !!iq.hasNextPage,
+          hasPreviousPage: (pages[0]?.pageIndex ?? 1) > 1,
+          data: pages.flatMap((p) => p.data ?? []),
+        };
+      })()
+    : undefined;
+
+  return {
+    ...iq,
+    data: merged,
+  } as any;
 }
 
 /*
@@ -46,6 +85,25 @@ export function useGetKoiFishById(id: number, enabled = true) {
       const resp = await koiFishServices.getKoiFishById(id);
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải thông tin cá');
+      return resp.result;
+    },
+    enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Get Koi Fish Family by ID
+ */
+export function useGetKoiFishFamilyById(id: number, enabled = true) {
+  return useQuery({
+    queryKey: koiFishKeys.detail(`family-${id}`),
+    queryFn: async (): Promise<KoiFishFamily> => {
+      const resp = await koiFishServices.getKoiFishFamilyById(id);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải thông tin gia phả cá');
       return resp.result;
     },
     enabled: enabled && !!id,
@@ -167,13 +225,13 @@ export function usePrefetchKoiFishById(id: number) {
 /*
  * Hook to prefetch list of Koi Fish with pagination
  */
-export function usePrefetchKoiFish(pageIndex = 1, pageSize = 20) {
+export function usePrefetchKoiFish(filters?: KoiFishSearchParams) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: koiFishKeys.list({ pageIndex, pageSize }),
+      queryKey: koiFishKeys.list(filters || {}),
       queryFn: async (): Promise<KoiFishPagination> => {
-        const resp = await koiFishServices.getAllKoiFish(pageIndex, pageSize);
+        const resp = await koiFishServices.getAllKoiFish(filters || {});
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

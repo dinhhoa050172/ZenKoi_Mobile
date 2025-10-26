@@ -2,6 +2,7 @@ import {
   ClassificationRecord,
   ClassificationRecordPagination,
   ClassificationRecordRequest,
+  ClassificationRecordSearchParams,
   classificationRecordServices,
 } from '@/lib/api/services/fetchClassificationRecord';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import Toast from 'react-native-toast-message';
 export const classificationRecordKeys = {
   all: ['classificationRecords'] as const,
   lists: () => [...classificationRecordKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: ClassificationRecordSearchParams) =>
     [...classificationRecordKeys.lists(), params] as const,
   details: () => [...classificationRecordKeys.all, 'detail'] as const,
   detail: (id: number | string) =>
@@ -22,18 +23,14 @@ export const classificationRecordKeys = {
  * Hook to get list of Classification Records with pagination
  */
 export function useGetClassificationRecords(
-  pageIndex = 1,
-  pageSize = 20,
+  filters?: ClassificationRecordSearchParams,
   enabled = true
 ) {
   return useQuery({
-    queryKey: classificationRecordKeys.list({ pageIndex, pageSize }),
+    queryKey: classificationRecordKeys.list(filters || {}),
     queryFn: async (): Promise<ClassificationRecordPagination> => {
       const resp =
-        await classificationRecordServices.getAllClassificationRecords(
-          pageIndex,
-          pageSize
-        );
+        await classificationRecordServices.getAllClassificationRecords(filters);
       if (!resp.isSuccess)
         throw new Error(
           resp.message || 'Không thể tải danh sách bản ghi phân loại'
@@ -193,16 +190,17 @@ export function usePrefetchClassificationRecordById(id: number) {
 /*
  * Hook to prefetch list of Classification Records with pagination
  */
-export function usePrefetchClassificationRecords(pageIndex = 1, pageSize = 20) {
+export function usePrefetchClassificationRecords(
+  filters?: ClassificationRecordSearchParams
+) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: classificationRecordKeys.list({ pageIndex, pageSize }),
+      queryKey: classificationRecordKeys.list(filters || {}),
       queryFn: async (): Promise<ClassificationRecordPagination> => {
         const resp =
           await classificationRecordServices.getAllClassificationRecords(
-            pageIndex,
-            pageSize
+            filters
           );
         return resp.result;
       },
