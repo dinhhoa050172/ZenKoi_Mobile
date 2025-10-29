@@ -2,7 +2,7 @@ import apiService, { RequestParams } from '../apiClient';
 
 export interface Area {
   id: number;
-  name: string;
+  areaName: string;
   totalAreaSQM: number;
   description: string;
 }
