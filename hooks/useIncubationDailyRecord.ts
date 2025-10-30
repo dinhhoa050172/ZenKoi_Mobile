@@ -2,7 +2,10 @@ import {
   IncubationDailyRecord,
   IncubationDailyRecordPagination,
   IncubationDailyRecordRequest,
+  IncubationDailyRecordRequestV2,
   incubationDailyRecordServices,
+  UpdateIncubationDailyRecordRequest,
+  UpdateIncubationDailyRecordRequestV2,
 } from '@/lib/api/services/fetchIncubationDailyRecord';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -76,6 +79,31 @@ export function useGetIncubationDailyRecordById(id: number, enabled = true) {
 }
 
 /*
+ * Get incubation daily record summary by egg batch ID
+ */
+export function useGetIncubationDailyRecordSummaryByEggBatchId(
+  eggBatchId: number,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['incubationDailyRecordSummary', eggBatchId],
+    queryFn: async (): Promise<any> => {
+      const resp =
+        await incubationDailyRecordServices.getIncubationDailyRecordSummaryByEggBatchId(
+          eggBatchId
+        );
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải tóm tắt bản ghi ương');
+      return resp.result;
+    },
+    enabled: enabled && !!eggBatchId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
  * Hook to create a new Incubation Daily Record
  */
 export function useCreateIncubationDailyRecord() {
@@ -91,6 +119,45 @@ export function useCreateIncubationDailyRecord() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: incubationDailyRecordKeys.lists() });
       qc.invalidateQueries({ queryKey: incubationDailyRecordKeys.all });
+      qc.invalidateQueries({ queryKey: ['incubationDailyRecordSummary'] });
+      qc.invalidateQueries({ queryKey: ['breedingProcesses'] });
+      qc.invalidateQueries({ queryKey: ['eggBatch'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Tạo bản ghi thành công',
+        position: 'top',
+      });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Tạo thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to create a new Incubation Daily Record V2
+ */
+export function useCreateIncubationDailyRecordV2() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: IncubationDailyRecordRequestV2) => {
+      const resp =
+        await incubationDailyRecordServices.createIncubationDailyRecordV2(data);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tạo bản ghi');
+      return resp.result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: incubationDailyRecordKeys.lists() });
+      qc.invalidateQueries({ queryKey: incubationDailyRecordKeys.all });
+      qc.invalidateQueries({ queryKey: ['incubationDailyRecordSummary'] });
+      qc.invalidateQueries({ queryKey: ['breedingProcesses'] });
+      qc.invalidateQueries({ queryKey: ['eggBatch'] });
       Toast.show({
         type: 'success',
         text1: 'Tạo bản ghi thành công',
@@ -119,10 +186,56 @@ export function useUpdateIncubationDailyRecord() {
       data,
     }: {
       id: number;
-      data: IncubationDailyRecordRequest;
+      data: UpdateIncubationDailyRecordRequest;
     }) => {
       const resp =
         await incubationDailyRecordServices.updateIncubationDailyRecord(
+          id,
+          data
+        );
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể cập nhật bản ghi');
+      return resp.result;
+    },
+    onSuccess: (_, vars) => {
+      Toast.show({
+        type: 'success',
+        text1: 'Cập nhật thành công',
+        position: 'top',
+      });
+      qc.invalidateQueries({ queryKey: incubationDailyRecordKeys.details() });
+      if (vars?.id)
+        qc.invalidateQueries({
+          queryKey: incubationDailyRecordKeys.detail(vars.id),
+        });
+      qc.invalidateQueries({ queryKey: incubationDailyRecordKeys.lists() });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Cập nhật thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to update an existing Incubation Daily Record V2
+ */
+export function useUpdateIncubationDailyRecordV2() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: UpdateIncubationDailyRecordRequestV2;
+    }) => {
+      const resp =
+        await incubationDailyRecordServices.updateIncubationDailyRecordV2(
           id,
           data
         );

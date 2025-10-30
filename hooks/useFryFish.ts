@@ -82,6 +82,31 @@ export function useGetFryFishByBreedingProcessId(
 }
 
 /*
+ * Hook to get Fry Fish Summary by Fry Fish ID
+ */
+export function useGetFryFishSummaryByFryFishId(
+  fryFishId: number,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['fryFish', 'summary', fryFishId],
+    queryFn: async (): Promise<any> => {
+      const resp =
+        await fryFishServices.getFryFishSummaryByFryFishId(fryFishId);
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể tải tóm tắt cá bột cho cá bột này'
+        );
+      return resp.result;
+    },
+    enabled: enabled && !!fryFishId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
  * Hook to create a new Fry Fish
  */
 export function useCreateFryFish() {
@@ -98,14 +123,14 @@ export function useCreateFryFish() {
       qc.invalidateQueries({ queryKey: fryFishKeys.all });
       Toast.show({
         type: 'success',
-        text1: 'Tạo fry fish thành công',
+        text1: 'Chuyển sang nuôi cá bột thành công',
         position: 'top',
       });
     },
     onError: (err: any) => {
       Toast.show({
         type: 'error',
-        text1: 'Tạo thất bại',
+        text1: 'Chuyển sang nuôi cá bột thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });

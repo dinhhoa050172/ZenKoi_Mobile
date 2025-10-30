@@ -1,5 +1,4 @@
 import apiService, { RequestParams } from '../apiClient';
-import { BreedingProcess } from './fetchBreedingProcess';
 
 export enum Gender {
   MALE = 'Male',
@@ -31,18 +30,31 @@ export enum KoiType {
   SHOW = 'Show',
 }
 
+export enum SaleStatus {
+  NOT_FOR_SALE = 'NotForSale', // Không bán
+  AVAILABLE = 'Available', // Có sẵn
+  RESERVED = 'Reserved', // Đã đặt trước
+  SOLD = 'Sold', // Đã bán
+}
+
 export interface KoiFishSearchParams {
   search?: string;
   gender?: Gender;
   health?: HealthStatus;
   varietyId?: number;
   fishSize?: FishSize;
+  saleStatus?: SaleStatus;
   pondId?: number;
   origin?: string;
   minPrice?: number;
   maxPrice?: number;
   pageIndex?: number;
   pageSize?: number;
+}
+
+export interface BreedingProcess {
+  id: number;
+  code: string;
 }
 
 export interface KoiFish {
@@ -53,6 +65,7 @@ export interface KoiFish {
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
+  saleStatus: SaleStatus;
   images: string[];
   videos: string[];
   sellingPrice: number;
@@ -85,6 +98,7 @@ export interface KoiFishRequest {
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
+  saleStatus: SaleStatus;
   origin: string;
   images: string[];
   videos: string[];
@@ -147,6 +161,7 @@ export const convertKoiFishFilter = (
   if (filters.health) params.health = filters.health;
   if (filters.varietyId) params.varietyId = filters.varietyId;
   if (filters.fishSize) params.fishSize = filters.fishSize;
+  if (filters.saleStatus) params.saleStatus = filters.saleStatus;
   if (filters.pondId) params.pondId = filters.pondId;
   if (filters.origin) params.origin = filters.origin;
   if (filters.minPrice) params.minPrice = filters.minPrice;

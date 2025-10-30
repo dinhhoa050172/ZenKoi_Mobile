@@ -3,10 +3,11 @@ import apiService, { RequestParams } from '../apiClient';
 export interface ClassificationRecord {
   id: number;
   classificationStageId: number;
-  stageName: string | null;
-  highQualifiedCount: number;
-  qualifiedCount: number;
-  unqualifiedCount: number;
+  stageNumber: string | null;
+  highQualifiedCount: number | null;
+  showQualifiedCount: number | null;
+  pondQualifiedCount: number | null;
+  cullQualifiedCount: number | null;
   notes: string | null;
 }
 
@@ -27,11 +28,29 @@ export interface ClassificationRecordSearchParams {
   pageSize?: number;
 }
 
-export interface ClassificationRecordRequest {
+export interface UpdateClassificationRecordRequest {
+  highQualifiedCount: number;
+  showQualifiedCount: number;
+  pondQualifiedCount: number;
+  cullQualifiedCount: number;
+  notes: string;
+}
+
+export interface ClassificationRecordV1Request {
+  classificationStageId: number;
+  cullQualifiedCount: number;
+  notes: string;
+}
+
+export interface ClassificationRecordV2Request {
   classificationStageId: number;
   highQualifiedCount: number;
-  qualifiedCount: number;
-  unqualifiedCount: number;
+  notes: string;
+}
+
+export interface ClassificationRecordV3Request {
+  classificationStageId: number;
+  showQualifiedCount: number;
   notes: string;
 }
 
@@ -56,6 +75,22 @@ export interface ClassificationRecordResponse {
   isSuccess: boolean;
   message: string;
   result: ClassificationRecord;
+}
+
+export interface ClassificationRecordSummary {
+  classificationStageId: number;
+  currentFish: number;
+  totalHighQualified: number;
+  totalShowQualified: number;
+  totalPondQualified: number;
+  totalCullQualified: number;
+}
+
+export interface ClassificationRecordSummaryResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: ClassificationRecordSummary;
 }
 
 // Convert ClassificationRecordSearchParams to RequestParams
@@ -116,25 +151,57 @@ export const classificationRecordServices = {
     return response.data;
   },
 
-  // Create new classification record
-  createClassificationRecord: async (
-    data: ClassificationRecordRequest
+  // Get classification record summary
+  getClassificationRecordSummary: async (
+    classificationStageId: number
+  ): Promise<ClassificationRecordSummaryResponse> => {
+    const response = await apiService.get<ClassificationRecordSummaryResponse>(
+      `/api/classificationrecord/summary/${classificationStageId}`
+    );
+    return response.data;
+  },
+
+  // Create new classification record - V1
+  createClassificationRecordV1: async (
+    data: ClassificationRecordV1Request
   ): Promise<ClassificationRecordResponse> => {
     const response = await apiService.post<
       ClassificationRecordResponse,
-      ClassificationRecordRequest
-    >('/api/classificationrecord', data);
+      ClassificationRecordV1Request
+    >('/api/classificationrecord/create-v1', data);
+    return response.data;
+  },
+
+  // Create new classification record - V2
+  createClassificationRecordV2: async (
+    data: ClassificationRecordV2Request
+  ): Promise<ClassificationRecordResponse> => {
+    const response = await apiService.post<
+      ClassificationRecordResponse,
+      ClassificationRecordV2Request
+    >('/api/classificationrecord/create-v2', data);
+    return response.data;
+  },
+
+  // Create new classification record - V3
+  createClassificationRecordV3: async (
+    data: ClassificationRecordV3Request
+  ): Promise<ClassificationRecordResponse> => {
+    const response = await apiService.post<
+      ClassificationRecordResponse,
+      ClassificationRecordV3Request
+    >('/api/classificationrecord/create-v3', data);
     return response.data;
   },
 
   // Update existing classification record
   updateClassificationRecord: async (
     id: number,
-    data: ClassificationRecordRequest
+    data: UpdateClassificationRecordRequest
   ): Promise<ClassificationRecordResponse> => {
     const response = await apiService.put<
       ClassificationRecordResponse,
-      ClassificationRecordRequest
+      UpdateClassificationRecordRequest
     >(`/api/classificationrecord/${id}`, data);
     return response.data;
   },

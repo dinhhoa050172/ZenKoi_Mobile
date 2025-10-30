@@ -12,6 +12,7 @@ import {
   FishSize,
   Gender,
   HealthStatus,
+  SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import { formatKoiAge } from '@/lib/utils/formatKoiAge';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
@@ -52,7 +53,6 @@ export default function KoiManagementScreen() {
   // Applied filters
   const [appliedFilters, setAppliedFilters] = useState<KoiFishSearchParams>({});
 
-  // Modal-local filter states (map to KoiFishSearchParams)
   const [modalSearch, setModalSearch] = useState<string>('');
   const [modalGender, setModalGender] = useState<Gender | undefined>(undefined);
   const [modalHealth, setModalHealth] = useState<HealthStatus | undefined>(
@@ -64,9 +64,11 @@ export default function KoiManagementScreen() {
   const [modalFishSize, setModalFishSize] = useState<FishSize | undefined>(
     undefined
   );
+  const [modalSaleStatus, setModalSaleStatus] = useState<
+    SaleStatus | undefined
+  >(undefined);
   const [modalPondId, setModalPondId] = useState<number | undefined>(undefined);
   const [modalOrigin, setModalOrigin] = useState<string>('');
-  // Price sliders (numbers)
   const PRICE_MIN = 0;
   const PRICE_MAX = 100000000;
   const PRICE_STEP = 1000;
@@ -79,6 +81,7 @@ export default function KoiManagementScreen() {
     setModalHealth(undefined);
     setModalVarietyId(undefined);
     setModalFishSize(undefined);
+    setModalSaleStatus(undefined);
     setModalPondId(undefined);
     setModalOrigin('');
     setModalMinPrice(PRICE_MIN);
@@ -93,7 +96,6 @@ export default function KoiManagementScreen() {
     }
   };
 
-  // Fetch koi list (supports infinite loading)
   const {
     data: koiPagination,
     isLoading,
@@ -149,6 +151,8 @@ export default function KoiManagementScreen() {
         return 'Khỏe mạnh';
       case HealthStatus.WARNING:
         return 'Cảnh báo';
+      case HealthStatus.WEAK:
+        return 'Yếu';
       case HealthStatus.SICK:
         return 'Bệnh';
       case HealthStatus.DEAD:
@@ -158,11 +162,28 @@ export default function KoiManagementScreen() {
     }
   };
 
-  // Fetch ponds and varieties for filters
-  const { data: pondsPage, isLoading: pondsLoading } = useGetPonds(true, {
-    pageIndex: 1,
-    pageSize: 100,
-  });
+  const saleStatusToLabel = (s: SaleStatus) => {
+    switch (s) {
+      case SaleStatus.NOT_FOR_SALE:
+        return 'Không bán';
+      case SaleStatus.AVAILABLE:
+        return 'Có sẵn';
+      case SaleStatus.RESERVED:
+        return 'Đã đặt trước';
+      case SaleStatus.SOLD:
+        return 'Đã bán';
+      default:
+        return s;
+    }
+  };
+
+  const { data: pondsPage, isLoading: pondsLoading } = useGetPonds(
+    {
+      pageIndex: 1,
+      pageSize: 100,
+    },
+    true
+  );
 
   const { data: varietiesPage, isLoading: varietiesLoading } = useGetVarieties(
     { pageIndex: 1, pageSize: 100 },
@@ -176,6 +197,7 @@ export default function KoiManagementScreen() {
   const genderOptions = useMemo(() => Object.values(Gender), []);
   const healthOptions = useMemo(() => Object.values(HealthStatus), []);
   const sizeOptions = useMemo(() => Object.values(FishSize), []);
+  const saleStatusOptions = useMemo(() => Object.values(SaleStatus), []);
 
   return (
     <>
@@ -184,7 +206,6 @@ export default function KoiManagementScreen() {
           {/* Search */}
           <View className="mb-4">
             <View className="flex-row items-center rounded-2xl border border-gray-200 bg-white px-4">
-              {/* <Search size={20} color="#6b7280" /> */}
               <TextInput
                 className="flex-1 text-gray-900"
                 placeholder="Tìm kiếm ..."
@@ -239,7 +260,6 @@ export default function KoiManagementScreen() {
           </View>
         </View>
 
-        {/* Use FlatList for virtualization and infinite loading */}
         <FlatList
           data={koiList}
           contentContainerStyle={{
@@ -316,15 +336,14 @@ export default function KoiManagementScreen() {
           renderItem={({ item: koi }) => (
             <View className="mb-4 rounded-2xl bg-white p-2 shadow-sm">
               <View className="flex-row">
-                {/* Fish Image (first image or placeholder) */}
                 {koi.images && koi.images.length > 0 ? (
                   <Image
                     source={{ uri: koi.images[0] }}
                     style={{
-                      width: 80,
-                      height: 80,
+                      width: 100,
+                      height: 100,
                       borderRadius: 12,
-                      marginRight: 16,
+                      marginRight: 14,
                     }}
                     resizeMode="cover"
                   />
@@ -338,7 +357,7 @@ export default function KoiManagementScreen() {
                     {koi.rfid}
                   </Text>
                   <Text className="mb-2 text-sm text-gray-600">
-                    {koi.variety?.varietyName} • {koi.gender}
+                    {koi.variety?.varietyName} • {genderToLabel(koi.gender)}
                   </Text>
 
                   <View className="mb-2 flex-row items-center">
@@ -376,6 +395,7 @@ export default function KoiManagementScreen() {
                   <Eye size={16} color="#6b7280" />
                   <Text className="ml-2 text-sm text-gray-600">Xem</Text>
                 </TouchableOpacity>
+                <Text className="self-stretch border-l border-gray-200" />
                 <TouchableOpacity
                   className="ml-2 flex-1 flex-row items-center justify-center py-2"
                   onPress={() =>
@@ -410,7 +430,7 @@ export default function KoiManagementScreen() {
         />
       </SafeAreaView>
 
-      {/* Filter Sheet Modal - Outside SafeAreaView */}
+      {/* Filter Sheet Modal */}
       <Modal
         visible={showFilterSheet}
         animationType="slide"
@@ -431,7 +451,7 @@ export default function KoiManagementScreen() {
 
           <ScrollView className="flex-1 p-4">
             <View>
-              {/* Bể cá (Context menu) */}
+              {/* Bể cá */}
               <ContextMenuField
                 label="Bể cá"
                 value={modalPondId ? String(modalPondId) : undefined}
@@ -447,7 +467,7 @@ export default function KoiManagementScreen() {
                 placeholder="Chọn bể cá"
               />
 
-              {/* Giống (Context menu) */}
+              {/* Giống */}
               <ContextMenuField
                 label="Giống"
                 value={modalVarietyId ? String(modalVarietyId) : undefined}
@@ -563,6 +583,40 @@ export default function KoiManagementScreen() {
                 </View>
               </View>
 
+              {/* Sale Status */}
+              <View className="mb-2">
+                <Text className="mb-1 text-base font-medium text-gray-900">
+                  Trạng thái bán
+                </Text>
+                <View className="flex-row flex-wrap">
+                  {saleStatusOptions.map((s) => {
+                    const isSelected = modalSaleStatus === s;
+                    return (
+                      <TouchableOpacity
+                        key={s}
+                        className={`mb-2 mr-2 rounded-lg border border-gray-200 px-3 py-2 ${isSelected ? 'border-blue-500' : ''}`}
+                        style={{
+                          backgroundColor: isSelected ? '#0A3D62' : '#f3f4f6',
+                        }}
+                        onPress={() =>
+                          setModalSaleStatus(
+                            isSelected ? undefined : (s as SaleStatus)
+                          )
+                        }
+                      >
+                        <Text
+                          className={
+                            isSelected ? 'text-white' : 'text-gray-700'
+                          }
+                        >
+                          {saleStatusToLabel(s)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
               {/* Origin */}
               <View className="mb-2">
                 <Text className="mb-1 text-base font-medium text-gray-900">
@@ -632,6 +686,7 @@ export default function KoiManagementScreen() {
                     if (modalHealth) filters.health = modalHealth;
                     if (modalVarietyId) filters.varietyId = modalVarietyId;
                     if (modalFishSize) filters.fishSize = modalFishSize;
+                    if (modalSaleStatus) filters.saleStatus = modalSaleStatus;
                     if (modalPondId) filters.pondId = modalPondId;
                     if (modalOrigin) filters.origin = modalOrigin;
                     if (modalMinPrice) filters.minPrice = Number(modalMinPrice);

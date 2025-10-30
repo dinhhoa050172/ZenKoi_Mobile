@@ -69,9 +69,10 @@ export function useGetBreedingProcesses(
       if ((lastPage as any).hasNextPage) return current + 1;
       return undefined;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }
 
@@ -108,9 +109,10 @@ export function useGetBreedingProcessDetailById(id: number, enabled = true) {
       return res.result;
     },
     enabled: enabled && !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }
 
@@ -180,7 +182,9 @@ export function useMarkBreedingProcessAsSpawned() {
     mutationFn: async (id: number) => {
       const res = await breedingProcessServices.markAsSpawned(id);
       if (!res.isSuccess)
-        throw new Error(res.message || 'Không thể cập nhật trạng thái');
+        throw new Error(
+          res.message || 'Không thể chuyển trạng thái sang Đã đẻ'
+        );
       return res.result;
     },
     onSuccess: () => {
@@ -188,18 +192,76 @@ export function useMarkBreedingProcessAsSpawned() {
       qc.invalidateQueries({ queryKey: breedingProcessKeys.all });
       Toast.show({
         type: 'success',
-        text1: 'Cập nhật trạng thái thành công',
+        text1: 'Chuyển trạng thái sang Đã đẻ thành công',
         position: 'top',
       });
     },
     onError: (err: any) => {
       Toast.show({
         type: 'error',
-        text1: 'Cập nhật trạng thái thất bại',
+        text1: 'Chuyển trạng thái sang Đã đẻ thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });
     },
+  });
+}
+
+/*
+ * Hook to update processing status to Cancelled
+ */
+export function useMarkBreedingProcessAsCancelled() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await breedingProcessServices.markAsCancelled(id);
+      if (!res.isSuccess)
+        throw new Error(res.message || 'Không thể hủy quy trình sinh sản');
+      return res.result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.all });
+      Toast.show({
+        type: 'success',
+        text1: 'Hủy quy trình sinh sản thành công',
+        position: 'top',
+      });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Hủy quy trình sinh sản thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to get all Koi Fish by Breeding Process ID
+ */
+export function useGetKoiFishByBreedingProcessId(
+  breedingProcessId: number,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['breedingProcess', breedingProcessId, 'koiFishes'],
+    queryFn: async () => {
+      const res =
+        await breedingProcessServices.getKoiFishByBreedingProcessId(
+          breedingProcessId
+        );
+      if (!res.isSuccess)
+        throw new Error(res.message || 'Không thể tải danh sách cá Koi');
+      return res.result;
+    },
+    enabled: enabled && !!breedingProcessId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -20,7 +20,7 @@ export const pondKeys = {
 /*
  * Hook to get list of Ponds with pagination
  */
-export function useGetPonds(enabled = true, filters?: PondSearchParams) {
+export function useGetPonds(filters?: PondSearchParams, enabled = true) {
   return useQuery({
     queryKey: pondKeys.list(filters || {}),
     queryFn: async (): Promise<PondPagination> => {
