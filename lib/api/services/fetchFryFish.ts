@@ -63,6 +63,26 @@ export interface FryFishResponse {
   result: FryFish;
 }
 
+export interface FryFishSummary {
+  breedingProcessCode: string;
+  pondName: string | null;
+  maleKoi: number;
+  femaleKoi: number;
+  startDate: string;
+  initialCount: number;
+  survivalRate7Days: number | null;
+  survivalRate14Days: number | null;
+  survivalRate30Days: number | null;
+  currentRate: number | null;
+}
+
+export interface FryFishSummaryResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: FryFishSummary;
+}
+
 // Convert FryFishSearchParams to RequestParams
 export const convertFryFishFilter = (
   filters?: FryFishSearchParams
@@ -121,6 +141,16 @@ export const fryFishServices = {
   ): Promise<FryFishResponse> => {
     const response = await apiService.get<FryFishResponse>(
       `/api/fryfish/by-breeding/${breedingProcessId}`
+    );
+    return response.data;
+  },
+
+  // Get fry fish summary by fry fish ID
+  getFryFishSummaryByFryFishId: async (
+    fryFishId: number
+  ): Promise<FryFishSummaryResponse> => {
+    const response = await apiService.get<FryFishSummaryResponse>(
+      `/api/fryfish/${fryFishId}/summary`
     );
     return response.data;
   },

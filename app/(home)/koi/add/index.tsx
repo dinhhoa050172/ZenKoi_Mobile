@@ -9,6 +9,7 @@ import {
   Gender,
   HealthStatus,
   KoiType,
+  SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -44,10 +45,12 @@ const initialForm: KoiFishRequest = {
   birthDate: '',
   gender: Gender.MALE,
   healthStatus: HealthStatus.HEALTHY,
+  saleStatus: SaleStatus.NOT_FOR_SALE,
   images: [],
   videos: [],
   sellingPrice: 0,
   bodyShape: '',
+  colorPattern: '',
   description: '',
 };
 
@@ -55,6 +58,7 @@ export default function AddKoiPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const redirect = (params?.redirect as string) || undefined;
+  const breedingId = params?.breedingId ? Number(params.breedingId) : null;
   const insets = useSafeAreaInsets();
 
   const [formData, setFormData] = useState<KoiFishRequest>(initialForm);
@@ -66,16 +70,22 @@ export default function AddKoiPage() {
 
   useFocusEffect(
     React.useCallback(() => {
-      setFormData(initialForm);
+      setFormData({
+        ...initialForm,
+        breedingProcessId: breedingId,
+      });
       setErrors({});
       return undefined;
-    }, [])
+    }, [breedingId])
   );
 
-  const { data: pondsPage, isLoading: pondsLoading } = useGetPonds(true, {
-    pageIndex: 1,
-    pageSize: 100,
-  });
+  const { data: pondsPage, isLoading: pondsLoading } = useGetPonds(
+    {
+      pageIndex: 1,
+      pageSize: 100,
+    },
+    true
+  );
   const { data: varietiesPage, isLoading: varietiesLoading } = useGetVarieties(
     { pageIndex: 1, pageSize: 100 },
     true
@@ -129,19 +139,23 @@ export default function AddKoiPage() {
     }
   };
 
-  const koiTypeToLabel = (t: KoiType) => {
-    switch (t) {
-      case KoiType.HIGH:
-        return 'Thương phẩm';
-      case KoiType.SHOW:
-        return 'Triển lãm';
+  const saleStatusToLabel = (s: SaleStatus) => {
+    switch (s) {
+      case SaleStatus.NOT_FOR_SALE:
+        return 'Không bán';
+      case SaleStatus.AVAILABLE:
+        return 'Có sẵn';
+      case SaleStatus.RESERVED:
+        return 'Đã đặt trước';
+      case SaleStatus.SOLD:
+        return 'Đã bán';
       default:
-        return t;
+        return s;
     }
   };
 
   const typeOptionsVN = Object.values(KoiType).map((t) => ({
-    label: koiTypeToLabel(t),
+    label: t,
     value: t,
   }));
 
@@ -152,6 +166,10 @@ export default function AddKoiPage() {
   const healthOptionsVN = Object.values(HealthStatus).map((h) => ({
     label: healthToLabel(h),
     value: h,
+  }));
+  const saleStatusOptionsVN = Object.values(SaleStatus).map((s) => ({
+    label: saleStatusToLabel(s),
+    value: s,
   }));
 
   const fishSizeToLabel = (s: FishSize) => {
@@ -323,6 +341,8 @@ export default function AddKoiPage() {
       nextErrors.sellingPrice = 'Vui lòng nhập giá bán > 0';
     if (!formData.bodyShape.trim())
       nextErrors.bodyShape = 'Vui lòng nhập hình dáng cá';
+    if (!formData.colorPattern.trim())
+      nextErrors.colorPattern = 'Vui lòng nhập màu sắc';
     if (!formData.description.trim())
       nextErrors.description = 'Vui lòng nhập mô tả';
 
@@ -340,10 +360,12 @@ export default function AddKoiPage() {
       birthDate: formData.birthDate || new Date().toISOString(),
       gender: formData.gender as Gender,
       healthStatus: formData.healthStatus as HealthStatus,
+      saleStatus: formData.saleStatus as SaleStatus,
       images: formData.images ?? [],
       videos: formData.videos ?? [],
       sellingPrice: Number(formData.sellingPrice ?? 0),
       bodyShape: String(formData.bodyShape ?? ''),
+      colorPattern: String(formData.colorPattern ?? ''),
       description: String(formData.description ?? ''),
     };
 
@@ -632,6 +654,19 @@ export default function AddKoiPage() {
           </View>
         </View>
 
+        {/* Sale Status */}
+        <View className="mb-4">
+          <ContextMenuField
+            label="Trạng thái bán"
+            value={formData.saleStatus}
+            options={saleStatusOptionsVN}
+            onSelect={(v: string) =>
+              setFormData({ ...formData, saleStatus: v as SaleStatus })
+            }
+            placeholder="Chọn trạng thái bán"
+          />
+        </View>
+
         {/* BirthDate + SellingPrice */}
         <View className="mb-4 flex-row">
           <View className="mr-2 flex-1">
@@ -724,6 +759,24 @@ export default function AddKoiPage() {
             </Text>
           )}
         </View>
+
+        <View className="mb-4">
+          <Text className="mb-2 text-base font-medium text-gray-900">
+            Màu sắc
+          </Text>
+          <TextInput
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+            placeholder="Mô tả màu sắc và hoa văn"
+            value={formData.colorPattern}
+            onChangeText={(t) => setFormData({ ...formData, colorPattern: t })}
+          />
+          {errors.colorPattern && (
+            <Text className="mt-1 text-sm text-red-500">
+              {errors.colorPattern}
+            </Text>
+          )}
+        </View>
+
         <View className="mb-4">
           <Text className="mb-2 text-base font-medium text-gray-900">
             Giới thiệu

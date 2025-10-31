@@ -24,8 +24,19 @@ export interface IncubationDailyRecordRequest {
   success: boolean;
 }
 
+export interface UpdateIncubationDailyRecordRequest {
+  healthyEggs: number;
+  hatchedEggs: number;
+  success: boolean;
+}
+
 export interface IncubationDailyRecordRequestV2 {
   eggBatchId: number;
+  hatchedEggs: number;
+  success: boolean;
+}
+
+export interface UpdateIncubationDailyRecordRequestV2 {
   hatchedEggs: number;
   success: boolean;
 }
@@ -68,7 +79,7 @@ export const incubationDailyRecordServices = {
     eggBatchId: number
   ): Promise<IncubationDailyRecordListResponse> => {
     const response = await apiService.get<IncubationDailyRecordListResponse>(
-      `/api/incubationdailyrecord/eggbatch/${eggBatchId}?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/incubationdailyrecord/egg-batch/${eggBatchId}?pageIndex=${pageIndex}&pageSize=${pageSize}`
     );
     return response.data;
   },
@@ -118,12 +129,24 @@ export const incubationDailyRecordServices = {
   // Update an existing incubation daily record
   updateIncubationDailyRecord: async (
     id: number,
-    data: IncubationDailyRecordRequest
+    data: UpdateIncubationDailyRecordRequest
   ): Promise<IncubationDailyRecordResponse> => {
     const response = await apiService.put<
       IncubationDailyRecordResponse,
-      IncubationDailyRecordRequest
+      UpdateIncubationDailyRecordRequest
     >(`/api/incubationdailyrecord/${id}`, data);
+    return response.data;
+  },
+
+  // Update an existing incubation daily record V2
+  updateIncubationDailyRecordV2: async (
+    id: number,
+    data: UpdateIncubationDailyRecordRequestV2
+  ): Promise<IncubationDailyRecordResponse> => {
+    const response = await apiService.put<
+      IncubationDailyRecordResponse,
+      UpdateIncubationDailyRecordRequestV2
+    >(`/api/incubationdailyrecord/v2/${id}`, data);
     return response.data;
   },
 

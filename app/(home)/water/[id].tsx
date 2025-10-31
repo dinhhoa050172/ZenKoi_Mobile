@@ -8,7 +8,7 @@ import { PondStatus } from '@/lib/api/services/fetchPond';
 import { formatCapacity } from '@/lib/utils/capacityLiters';
 import { formatDate } from '@/lib/utils/formatDate';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, MapPin } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   RefreshControl,
@@ -132,7 +132,7 @@ export default function PondDetailScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -150,61 +150,79 @@ export default function PondDetailScreen() {
               </Text>
             </View>
 
-            <View className="mb-4 flex-row justify-between">
-              <View>
-                <Text className="flex-row items-center text-sm text-gray-600">
-                  <MapPin size={14} color="#6b7280" />
-                  <Text className="ml-1">Vị trí</Text>
-                </Text>
-                <Text className="font-medium text-gray-900">
+            <View className="mb-4 flex-row gap-x-4">
+              <View style={{ flex: 2 }}>
+                <Text className="text-sm text-gray-600">Vị trí</Text>
+                <Text
+                  className="font-medium text-gray-900"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {pond.location}
                 </Text>
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text className="text-sm text-gray-600">Dung tích</Text>
-                <Text className="font-medium text-gray-900">
+                <Text
+                  className="font-medium text-gray-900"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {formatCapacity(pond.capacityLiters)}
                 </Text>
               </View>
             </View>
 
-            <View className="mb-4 flex-row justify-between">
-              <View>
+            <View className="mb-4 flex-row gap-x-4">
+              <View style={{ flex: 2 }}>
                 <Text className="text-sm text-gray-600">Kích thước</Text>
-                <Text className="font-medium text-gray-900">
+                <Text
+                  className="font-medium text-gray-900"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {pond.lengthMeters}m × {pond.widthMeters}m ×{' '}
                   {pond.depthMeters}m
                 </Text>
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text className="text-sm text-gray-600">Trạng thái</Text>
                 <Text
                   className={`font-medium ${getStatusColor(pond.pondStatus).replace('bg-', 'text-')}`}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {getStatusText(pond.pondStatus)}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row justify-between">
-              <View>
+            <View className="flex-row gap-x-4">
+              <View style={{ flex: 2 }}>
                 <Text className="text-sm text-gray-600">Khu vực</Text>
-                <Text className="font-medium text-gray-900">
+                <Text
+                  className="font-medium text-gray-900"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {pond.areaName}
                 </Text>
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text className="text-sm text-gray-600">Loại hồ</Text>
-                <Text className="font-medium text-gray-900">
+                <Text
+                  className="font-medium text-gray-900"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {pond.pondTypeName}
                 </Text>
               </View>
             </View>
 
             <View className="mt-4 border-t border-gray-200 pt-4">
-              <Text className="text-sm text-gray-600">Ngày tạo</Text>
               <Text className="font-medium text-gray-900">
-                {formatDate(pond.createdAt)}
+                Ngày tạo: {formatDate(pond.createdAt, 'dd/MM/yyyy')}
               </Text>
             </View>
           </View>

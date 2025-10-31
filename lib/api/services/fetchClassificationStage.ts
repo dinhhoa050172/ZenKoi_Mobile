@@ -6,6 +6,7 @@ export enum ClassificationStatus {
   STAGE1 = 'Stage1',
   STAGE2 = 'Stage2',
   STAGE3 = 'Stage3',
+  STAGE4 = 'Stage4',
   SUCCESS = 'Success',
 }
 
@@ -172,6 +173,16 @@ export const classificationStageServices = {
   ): Promise<ClassificationStageResponse> => {
     const response = await apiService.delete<ClassificationStageResponse>(
       `/api/classificationstage/${id}`
+    );
+    return response.data;
+  },
+
+  // Change classification stage status to completed
+  completeClassificationStage: async (
+    id: number
+  ): Promise<ClassificationStageResponse> => {
+    const response = await apiService.post<ClassificationStageResponse>(
+      `/api/classificationstage/complete/${id}`
     );
     return response.data;
   },

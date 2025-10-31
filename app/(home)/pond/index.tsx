@@ -1,10 +1,8 @@
-import Loading from '@/components/Loading';
 import { useDeletePondType, useGetPondTypes } from '@/hooks/usePondType';
 import { PondType } from '@/lib/api/services/fetchPondType';
-import { Edit, Plus, Search, Trash2 } from 'lucide-react-native';
+import { Edit, Plus, Search, Trash2, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   RefreshControl,
   ScrollView,
   Text,
@@ -12,11 +10,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import { CustomAlert } from '../../../components/CustomAlert';
 import CreatePondTypeModal from '../../../components/pond/CreatePondTypeModal';
 import EditPondTypeModal from '../../../components/pond/EditPondTypeModal';
 
 export default function PondTypeManagementScreen() {
+  const insets = useSafeAreaInsets();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPondTypeId, setEditingPondTypeId] = useState<number | null>(
@@ -25,6 +28,10 @@ export default function PondTypeManagementScreen() {
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [pondTypeToDelete, setPondTypeToDelete] = useState<PondType | null>(
+    null
+  );
 
   // Debounce search input
   useEffect(() => {
@@ -71,18 +78,16 @@ export default function PondTypeManagementScreen() {
   };
 
   const handleDeletePondType = (pondType: PondType) => {
-    Alert.alert(
-      'Xác nhận xóa',
-      `Bạn có chắc chắn muốn xóa loại hồ "${pondType.typeName}"?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: () => deletePondTypeMutation.mutate(pondType.id),
-        },
-      ]
-    );
+    setPondTypeToDelete(pondType);
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDelete = () => {
+    if (pondTypeToDelete) {
+      deletePondTypeMutation.mutate(pondTypeToDelete.id);
+    }
+    setShowDeleteAlert(false);
+    setPondTypeToDelete(null);
   };
 
   if (error) {
@@ -106,8 +111,8 @@ export default function PondTypeManagementScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="border-b border-gray-200 bg-white px-4 py-3">
-        <View className="flex-row items-center justify-between">
+      <View className="border-b border-gray-200 bg-white">
+        <View className="flex-row items-center justify-between p-4">
           <Text className="text-xl font-bold text-gray-900">
             Quản lý loại hồ
           </Text>
@@ -121,14 +126,24 @@ export default function PondTypeManagementScreen() {
         </View>
 
         {/* Search Bar */}
-        <View className="mt-3 flex-row items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-          <Search size={20} color="#6b7280" />
-          <TextInput
-            placeholder="Tìm kiếm loại hồ..."
-            value={searchText}
-            onChangeText={setSearchText}
-            className="ml-2 flex-1 text-base"
-          />
+        <View className="px-4 pb-4">
+          <View className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3">
+            <Search size={20} color="#6b7280" />
+            <TextInput
+              placeholder="Tìm kiếm loại hồ..."
+              value={searchText}
+              onChangeText={setSearchText}
+              className="ml-2 flex-1 py-2 text-base"
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                className="ml-2 rounded-full bg-gray-200 p-1"
+              >
+                <X size={16} color="#6b7280" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -138,35 +153,72 @@ export default function PondTypeManagementScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 40,
+        }}
       >
         <View className="p-4">
           {/* Statistics */}
-          <View className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <Text className="mb-2 text-lg font-semibold text-gray-900">
-              Thống kê
-            </Text>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1">
-                <Text className="text-2xl font-bold text-primary">
-                  {pondTypesData?.totalItems || 0}
-                </Text>
-                <Text className="text-sm text-gray-600">Tổng số loại hồ</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-2xl font-bold text-green-600">
-                  {pondTypes.length}
-                </Text>
-                <Text className="text-sm text-gray-600">Hiển thị</Text>
-              </View>
-            </View>
+          <View className="mb-4 flex-row gap-3">
+            {isLoading ? (
+              <>
+                {/* Skeleton for stats */}
+                <View className="flex-1 rounded-2xl bg-white p-4 shadow-sm">
+                  <View className="mb-1 h-4 w-16 rounded bg-gray-200" />
+                  <View className="h-8 w-12 rounded bg-gray-300" />
+                </View>
+                <View className="flex-1 rounded-2xl bg-white p-4 shadow-sm">
+                  <View className="mb-1 h-4 w-16 rounded bg-gray-200" />
+                  <View className="h-8 w-12 rounded bg-gray-300" />
+                </View>
+              </>
+            ) : (
+              <>
+                <View className="flex-1 rounded-2xl bg-white p-4 shadow-sm">
+                  <Text className="mb-1 text-sm text-gray-600">Tổng số</Text>
+                  <Text className="text-2xl font-bold text-primary">
+                    {pondTypesData?.totalItems || 0}
+                  </Text>
+                </View>
+                <View className="flex-1 rounded-2xl bg-white p-4 shadow-sm">
+                  <Text className="mb-1 text-sm text-gray-600">Hiển thị</Text>
+                  <Text className="text-2xl font-bold text-green-600">
+                    {pondTypes.length}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           {/* Loading State */}
-          {isLoading && <Loading />}
+          {isLoading ? (
+            <View className="gap-3">
+              {/* Skeleton Cards */}
+              {[1, 2, 3].map((item) => (
+                <View
+                  key={item}
+                  className="overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
+                >
+                  <View className="mb-3 flex-row items-center justify-between">
+                    <View className="h-6 w-32 rounded bg-gray-200" />
+                    <View className="flex-row gap-2">
+                      <View className="h-9 w-9 rounded-lg bg-gray-100" />
+                      <View className="h-9 w-9 rounded-lg bg-gray-100" />
+                    </View>
+                  </View>
+                  <View className="mb-3 h-10 rounded bg-gray-100" />
+                  <View className="rounded-lg bg-gray-50 p-3">
+                    <View className="mb-1 h-3 w-32 rounded bg-gray-200" />
+                    <View className="h-7 w-24 rounded bg-gray-300" />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {/* Empty State */}
           {!isLoading && pondTypes.length === 0 && (
-            <View className="items-center justify-center py-12">
+            <View className="items-center justify-center rounded-2xl bg-white py-12">
               <Text className="mb-2 text-lg font-medium text-gray-600">
                 {searchText
                   ? 'Không tìm thấy loại hồ phù hợp'
@@ -177,7 +229,14 @@ export default function PondTypeManagementScreen() {
                   ? 'Thử tìm kiếm với từ khóa khác'
                   : 'Hãy tạo loại hồ đầu tiên của bạn'}
               </Text>
-              {!searchText && (
+              {searchText ? (
+                <TouchableOpacity
+                  onPress={() => setSearchText('')}
+                  className="rounded-lg bg-gray-500 px-6 py-3"
+                >
+                  <Text className="font-medium text-white">Xóa bộ lọc</Text>
+                </TouchableOpacity>
+              ) : (
                 <TouchableOpacity
                   onPress={() => setShowCreateModal(true)}
                   className="rounded-lg bg-primary px-6 py-3"
@@ -189,7 +248,7 @@ export default function PondTypeManagementScreen() {
           )}
 
           {/* Pond Type List */}
-          <View>
+          <View className="gap-3">
             {pondTypes.map((pondType) => (
               <PondTypeCard
                 key={pondType.id}
@@ -214,6 +273,20 @@ export default function PondTypeManagementScreen() {
         pondTypeId={editingPondTypeId}
         onClose={handleCloseEditModal}
       />
+
+      {/* Delete Confirmation Alert */}
+      <CustomAlert
+        visible={showDeleteAlert}
+        title="Xác nhận xóa"
+        message={`Bạn có chắc chắn muốn xóa loại hồ "${pondTypeToDelete?.typeName}"?`}
+        onCancel={() => {
+          setShowDeleteAlert(false);
+          setPondTypeToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        cancelText="Hủy"
+        confirmText="Xóa"
+      />
     </SafeAreaView>
   );
 }
@@ -226,28 +299,26 @@ interface PondTypeCardProps {
 
 function PondTypeCard({ pondType, onEdit, onDelete }: PondTypeCardProps) {
   return (
-    <View className="mb-3 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <View className="overflow-hidden rounded-2xl bg-white shadow-sm">
       <View className="p-4">
         {/* Header Row */}
-        <View className="mb-3 flex-row items-start justify-between">
-          <View className="flex-1">
-            <Text className="text-lg font-semibold text-gray-900">
-              {pondType.typeName}
-            </Text>
-          </View>
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="flex-1 text-lg font-bold text-gray-900">
+            {pondType.typeName}
+          </Text>
 
-          <View className="flex-row items-center">
+          <View className="flex-row gap-2">
             <TouchableOpacity
-              className="mr-2 rounded-lg bg-blue-50 p-2"
+              className="rounded-lg bg-blue-50 p-2"
               onPress={() => onEdit(pondType.id)}
             >
-              <Edit size={16} color="#3b82f6" />
+              <Edit size={18} color="#3b82f6" />
             </TouchableOpacity>
             <TouchableOpacity
               className="rounded-lg bg-red-50 p-2"
               onPress={() => onDelete(pondType)}
             >
-              <Trash2 size={16} color="#ef4444" />
+              <Trash2 size={18} color="#ef4444" />
             </TouchableOpacity>
           </View>
         </View>
@@ -255,18 +326,18 @@ function PondTypeCard({ pondType, onEdit, onDelete }: PondTypeCardProps) {
         {/* Description */}
         {pondType.description && (
           <View className="mb-3">
-            <Text className="text-sm leading-5 text-gray-700">
+            <Text className="text-sm leading-5 text-gray-600">
               {pondType.description}
             </Text>
           </View>
         )}
 
         {/* Recommended Capacity */}
-        <View className="rounded-lg bg-green-50 p-3">
-          <Text className="text-xs font-medium uppercase tracking-wide text-green-700">
+        <View className="rounded-lg bg-gradient-to-r from-green-50 to-emerald-50">
+          <Text className="mb-1 text-xs font-medium text-gray-600">
             Dung tích khuyến nghị
           </Text>
-          <Text className="mt-1 text-lg font-bold text-green-800">
+          <Text className="text-xl font-bold text-green-600">
             {pondType.recommendedCapacity.toLocaleString('vi-VN')} L
           </Text>
         </View>

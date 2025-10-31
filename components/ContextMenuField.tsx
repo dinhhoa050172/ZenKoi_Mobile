@@ -17,12 +17,14 @@ export default function ContextMenuField({
   options,
   onSelect,
   placeholder,
+  onPress,
 }: {
   label: string;
   value?: string | undefined;
   options: Option[];
   onSelect: (v: string) => void;
   placeholder?: string;
+  onPress?: () => void;
 }) {
   const [showDialog, setShowDialog] = useState(false);
 
@@ -34,7 +36,10 @@ export default function ContextMenuField({
         </Text>
         <TouchableOpacity
           className="flex-row items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-          onPress={() => setShowDialog(true)}
+          onPress={() => {
+            onPress?.();
+            setShowDialog(true);
+          }}
         >
           <Text className={`${value ? 'text-gray-900' : 'text-gray-500'}`}>
             {options.find((o) => o.value === value)?.label ||

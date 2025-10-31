@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Clock } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 interface HistoryItem {
@@ -20,6 +20,8 @@ export default function ActivityHistory({
   isExpanded,
   onToggle,
 }: ActivityHistoryProps) {
+  const [showAll, setShowAll] = useState(false);
+
   // Mock data - replace with real API call later
   const historyData: HistoryItem[] = [
     {
@@ -46,7 +48,16 @@ export default function ActivityHistory({
       time: '3 ngày trước',
       details: 'Thay 20% nước, vệ sinh bộ lọc',
     },
+    {
+      id: '5',
+      action: 'Kiểm tra sức khỏe cá',
+      time: '5 ngày trước',
+      details: 'Cá đều khỏe mạnh, không có dấu hiệu bệnh tật',
+    },
   ];
+
+  // Chỉ hiển thị 4 item đầu tiên nếu không showAll
+  const displayedHistory = showAll ? historyData : historyData.slice(0, 4);
 
   return (
     <View className="mb-4 rounded-2xl bg-white shadow-sm">
@@ -67,9 +78,9 @@ export default function ActivityHistory({
       {isExpanded && (
         <View className="px-4 pb-4">
           <View className="space-y-3">
-            {historyData.map((item) => (
-              <View key={item.id} className="flex-row items-start space-x-3">
-                <View className="mt-1 h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+            {displayedHistory.map((item) => (
+              <View key={item.id} className="mb-2 flex-row items-start">
+                <View className="mr-3 mt-1 h-8 w-8 items-center justify-center rounded-full bg-blue-100">
                   <Clock size={14} color="#3b82f6" />
                 </View>
                 <View className="flex-1">
@@ -77,19 +88,33 @@ export default function ActivityHistory({
                     {item.action}
                   </Text>
                   <Text className="text-sm text-gray-600">{item.details}</Text>
-                  <Text className="mt-1 text-xs text-gray-500">
-                    {item.time}
-                  </Text>
                 </View>
+                <Text className="text-sm text-gray-500">{item.time}</Text>
               </View>
             ))}
           </View>
 
-          <TouchableOpacity className="mt-4 py-2">
-            <Text className="text-center font-medium text-blue-500">
-              Xem tất cả lịch sử
-            </Text>
-          </TouchableOpacity>
+          {!showAll && historyData.length > 4 && (
+            <TouchableOpacity
+              onPress={() => setShowAll(true)}
+              className="mt-4 py-2"
+            >
+              <Text className="text-center font-medium text-blue-500">
+                Xem tất cả lịch sử
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {showAll && (
+            <TouchableOpacity
+              onPress={() => setShowAll(false)}
+              className="mt-4 py-2"
+            >
+              <Text className="text-center font-medium text-blue-500">
+                Thu gọn
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>

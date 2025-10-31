@@ -101,7 +101,9 @@ export function useCreateClassificationStage() {
       const resp =
         await classificationStageServices.createClassificationStage(data);
       if (!resp.isSuccess)
-        throw new Error(resp.message || 'Không thể tạo giai đoạn phân loại');
+        throw new Error(
+          resp.message || 'Không thể chuyển sang giai đoạn tuyển chọn'
+        );
       return resp.result;
     },
     onSuccess: () => {
@@ -109,14 +111,14 @@ export function useCreateClassificationStage() {
       qc.invalidateQueries({ queryKey: classificationStageKeys.all });
       Toast.show({
         type: 'success',
-        text1: 'Tạo giai đoạn thành công',
+        text1: 'Chuyển sang giai đoạn tuyển chọn thành công',
         position: 'top',
       });
     },
     onError: (err: any) => {
       Toast.show({
         type: 'error',
-        text1: 'Tạo thất bại',
+        text1: 'Chuyển giai đoạn tuyển chọn thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });
@@ -143,7 +145,7 @@ export function useUpdateClassificationStage() {
       );
       if (!resp.isSuccess)
         throw new Error(
-          resp.message || 'Không thể cập nhật giai đoạn phân loại'
+          resp.message || 'Không thể cập nhật giai đoạn tuyển chọn'
         );
       return resp.result;
     },
@@ -181,7 +183,7 @@ export function useDeleteClassificationStage() {
       const resp =
         await classificationStageServices.deleteClassificationStage(id);
       if (!resp.isSuccess)
-        throw new Error(resp.message || 'Không thể xóa giai đoạn phân loại');
+        throw new Error(resp.message || 'Không thể xóa giai đoạn tuyển chọn');
       return resp.result;
     },
     onSuccess: () => {
@@ -193,6 +195,41 @@ export function useDeleteClassificationStage() {
       Toast.show({
         type: 'error',
         text1: 'Xóa thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to complete a Classification Stage
+ */
+export function useCompleteClassificationStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const resp =
+        await classificationStageServices.completeClassificationStage(id);
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể hoàn tất giai đoạn tuyển chọn'
+        );
+      return resp.result;
+    },
+    onSuccess: () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Hoàn tất giai đoạn tuyển chọn thành công',
+        position: 'top',
+      });
+      qc.invalidateQueries({ queryKey: classificationStageKeys.lists() });
+      qc.invalidateQueries({ queryKey: classificationStageKeys.all });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Hoàn tất giai đoạn tuyển chọn thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });

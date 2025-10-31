@@ -13,12 +13,11 @@ import {
 export default function KoiDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, redirect } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<'info' | 'health'>('info');
 
   const koiId = Number(id);
-  const { data: koiResp, isLoading } = useGetKoiFishById(koiId, !!koiId);
-  const koi = koiResp as any;
+  const { data: koi, isLoading } = useGetKoiFishById(koiId, !!koiId);
 
   const getHealthColor = (health?: HealthStatus | string) => {
     switch (health) {
@@ -63,6 +62,17 @@ export default function KoiDetailScreen() {
     }
   };
 
+  const typeToLabel = (type?: string) => {
+    switch (type) {
+      case 'High':
+        return 'High';
+      case 'Show':
+        return 'Show';
+      default:
+        return type ?? '-';
+    }
+  };
+
   const getSizeLabel = (size?: KoiFish['size']) => {
     switch (size) {
       case 'Under10cm':
@@ -97,7 +107,16 @@ export default function KoiDetailScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="flex-row items-center border-b border-gray-200 bg-white p-4">
-        <TouchableOpacity className="mr-3" onPress={() => router.push('/koi')}>
+        <TouchableOpacity
+          className="mr-3"
+          onPress={() => {
+            if (redirect) {
+              router.push(redirect as any);
+            } else {
+              router.push('/koi');
+            }
+          }}
+        >
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
         <Text className="flex-1 text-lg font-semibold text-gray-900">
@@ -112,7 +131,7 @@ export default function KoiDetailScreen() {
             onPress={() => {
               if (koiId)
                 router.push(
-                  `/koi/edit?id=${koiId}&redirect=${encodeURIComponent(`/koi/${koiId}`)}`
+                  `/koi/edit?id=${koiId}&redirect=${encodeURIComponent((redirect as string) ?? `/koi/${koiId}`)}`
                 );
             }}
           >
@@ -152,9 +171,11 @@ export default function KoiDetailScreen() {
             <Text className="mb-1 text-2xl font-bold text-gray-900">
               RFID: {koi?.rfid ?? ''}
             </Text>
-            {/* <Text className="mb-2 text-base text-gray-600">
-                {koi?.variety?.varietyName ? koi?.variety?.varietyName : ''}
-              </Text> */}
+            {koi?.variety?.varietyName && (
+              <Text className="mb-2 text-base text-gray-600">
+                {koi.variety.varietyName}
+              </Text>
+            )}
             <View
               className="rounded-full px-3 py-1"
               style={{
@@ -165,7 +186,8 @@ export default function KoiDetailScreen() {
                 className="text-sm font-medium"
                 style={{ color: getHealthColor(koi?.healthStatus) }}
               >
-                Sức khỏe: {healthToLabel(koi?.healthStatus) ?? 'Không rõ'}
+                Sức khỏe:{' '}
+                {healthToLabel(koi?.healthStatus as HealthStatus) ?? 'Không rõ'}
               </Text>
             </View>
           </View>
@@ -211,11 +233,31 @@ export default function KoiDetailScreen() {
                 <View>
                   <View className="flex-row items-start py-2">
                     <Text className="w-36 text-sm text-gray-600">
+                      Giống cá:
+                    </Text>
+                    <View className="ml-2 flex-1">
+                      <Text className="text-sm font-medium text-gray-900">
+                        {koi?.variety?.varietyName ?? '-'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-start py-2">
+                    <Text className="w-36 text-sm text-gray-600">Loại:</Text>
+                    <View className="ml-2 flex-1">
+                      <Text className="text-sm font-medium text-gray-900">
+                        {typeToLabel(koi?.type)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-start py-2">
+                    <Text className="w-36 text-sm text-gray-600">
                       Giới tính:
                     </Text>
                     <View className="ml-2 flex-1">
                       <Text className="text-sm font-medium text-gray-900">
-                        {genderToLabel(koi?.gender) ?? '-'}
+                        {genderToLabel(koi?.gender as Gender) ?? '-'}
                       </Text>
                     </View>
                   </View>
@@ -283,6 +325,15 @@ export default function KoiDetailScreen() {
                   </View>
 
                   <View className="flex-row items-start py-2">
+                    <Text className="w-36 text-sm text-gray-600">Màu sắc:</Text>
+                    <View className="ml-2 flex-1">
+                      <Text className="text-sm font-medium text-gray-900">
+                        {koi?.colorPattern ?? '-'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-start py-2">
                     <Text className="w-36 text-sm text-gray-600">
                       Giới thiệu:
                     </Text>
@@ -302,7 +353,7 @@ export default function KoiDetailScreen() {
                   Lịch sử sức khỏe
                 </Text>
 
-                {(koi?.healthHistory || []).map(
+                {/* {(koi?.healthHistory || []).map(
                   (record: any, index: number) => (
                     <View
                       key={index}
@@ -334,7 +385,7 @@ export default function KoiDetailScreen() {
                       </View>
                     </View>
                   )
-                )}
+                )} */}
               </View>
             )}
           </View>

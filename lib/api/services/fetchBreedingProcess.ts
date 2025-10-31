@@ -129,8 +129,9 @@ export interface EggBatchBreeding {
   quantity: number;
   fertilizationRate: number;
   status: EggBatchStatus;
-  hatchingTime: string;
+  hatchingTime: string | null;
   spawnDate: string;
+  endDate?: string;
   incubationDailyRecords: IncubationDailyReordBreeding[];
 }
 
@@ -142,7 +143,7 @@ export interface FrySurvivalRecordsBreeding {
   countAlive: number;
   note: string | null;
   initialCount: number | null;
-  createAt: string;
+  createdAt: string;
 }
 
 export interface FryFishBreeding {
@@ -151,16 +152,19 @@ export interface FryFishBreeding {
   initialCount: number;
   status: FryFishStatus;
   currentSurvivalRate: number;
+  startDate: string;
+  endDate?: string;
   frySurvivalRecords: FrySurvivalRecordsBreeding[];
 }
 
 export interface ClassificationRecordBreeding {
   id: number;
   classificationStageId: number;
-  stageName: string | null;
-  highQualifiedCount: number;
-  qualifiedCount: number;
-  unqualifiedCount: number;
+  stageNumber: string | null;
+  highQualifiedCount: number | null;
+  showQualifiedCount: number | null;
+  pondQualifiedCount: number | null;
+  cullQualifiedCount: number | null;
   notes: string | null;
 }
 
@@ -169,10 +173,13 @@ export interface ClassificationStageBreeding {
   breedingProcessId: number;
   totalCount: number;
   status: ClassificationStatus;
-  highQualifiedCount: number;
-  qualifiedCount: number;
-  unqualifiedCount: number;
-  notes: string;
+  highQualifiedCount: number | null;
+  showQualifiedCount: number | null;
+  pondQualifiedCount: number | null;
+  cullQualifiedCount: number | null;
+  notes: string | null;
+  startDate: string;
+  endDate?: string;
   classificationRecords: ClassificationRecordBreeding[];
 }
 
@@ -198,9 +205,9 @@ export interface BreedingProcessDetail {
   fertilizationRate: number;
   currentSurvivalRate: number | null;
   koiFishes: KoiFish[];
-  batch: EggBatchBreeding[];
-  fryFish: FryFishBreeding[];
-  classificationStage: ClassificationStageBreeding[];
+  batch: EggBatchBreeding | null;
+  fryFish: FryFishBreeding | null;
+  classificationStage: ClassificationStageBreeding | null;
 }
 
 export interface BreedingProcessDetailResponse {
@@ -208,6 +215,13 @@ export interface BreedingProcessDetailResponse {
   isSuccess: boolean;
   message: string;
   result: BreedingProcessDetail;
+}
+
+export interface ListKoiFishByBreedingProcessResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiFish[];
 }
 
 // Convert BreedingProcessSearchParams to RequestParams
@@ -311,7 +325,25 @@ export const breedingProcessServices = {
   // Change breeding process status from Pairing to Spawned
   markAsSpawned: async (id: number): Promise<BreedingProcessResponse> => {
     const response = await apiService.put<BreedingProcessResponse>(
-      `/api/breedingprocess/${id}`
+      `/api/breedingprocess/spawned/${id}`
+    );
+    return response.data;
+  },
+
+  // Change breeding process status to Cancel
+  markAsCancelled: async (id: number): Promise<BreedingProcessResponse> => {
+    const response = await apiService.put<BreedingProcessResponse>(
+      `/api/breedingprocess/cancel/${id}`
+    );
+    return response.data;
+  },
+
+  // Get list of Koi fish by breeding process ID
+  getKoiFishByBreedingProcessId: async (
+    breedingProcessId: number
+  ): Promise<ListKoiFishByBreedingProcessResponse> => {
+    const response = await apiService.get<ListKoiFishByBreedingProcessResponse>(
+      `/api/breedingprocess/${breedingProcessId}/koi-fishes`
     );
     return response.data;
   },

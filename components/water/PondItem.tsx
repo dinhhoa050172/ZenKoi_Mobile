@@ -16,7 +16,6 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
 
   const handleNavigation = () => {
     try {
-      console.log('PondItem: Navigating to pond', pond.id);
       router.push(`/water/${pond.id}?redirect=/water`);
     } catch (error) {
       console.error('PondItem: Navigation error:', error);
@@ -30,7 +29,7 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
       case PondStatus.MAINTENANCE:
         return 'bg-yellow-500';
       case PondStatus.EMPTY:
-        return 'bg-red-500';
+        return 'bg-blue-500';
       default:
         return 'bg-gray-500';
     }
@@ -43,7 +42,7 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
       case PondStatus.MAINTENANCE:
         return 'bg-yellow-50';
       case PondStatus.EMPTY:
-        return 'bg-red-50';
+        return 'bg-blue-50';
       default:
         return 'bg-gray-50';
     }
@@ -56,9 +55,9 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
       case PondStatus.MAINTENANCE:
         return 'text-yellow-700';
       case PondStatus.EMPTY:
-        return 'text-gray-700';
+        return 'text-blue-700';
       default:
-        return 'text-red-700';
+        return 'text-gray-700';
     }
   };
 
@@ -96,7 +95,7 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
 
           <View className="flex-row items-center">
             <View
-              className={`rounded-md px-2 py-1 ${getStatusBgColor(pond.pondStatus)}`}
+              className={`rounded-2xl px-2 py-1 ${getStatusBgColor(pond.pondStatus)}`}
             >
               <Text
                 className={`text-xs font-medium ${getStatusTextColor(pond.pondStatus)}`}
@@ -119,8 +118,12 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
 
         {/* Main Info Row */}
         <View className="mb-3 flex-row items-center justify-between">
-          <View className="flex-1">
-            <Text className="text-sm text-gray-600">
+          <View className="mr-2 flex-1">
+            <Text
+              className="text-sm text-gray-600"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               Khu vực: {pond.areaName}
             </Text>
             <Text className="font-medium text-gray-900">
@@ -129,7 +132,11 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
           </View>
 
           <View className="flex-1">
-            <Text className="text-sm text-gray-600">
+            <Text
+              className="items-end text-sm text-gray-600"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               Loại: {pond.pondTypeName}
             </Text>
             <Text className="font-medium text-gray-900">
@@ -140,15 +147,19 @@ export default function PondItem({ pond, onEditPond }: PondItemProps) {
 
         {/* Location and Created Date Row */}
         <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-sm text-gray-600">
+          <View className="mr-2 flex-1">
+            <Text
+              className="text-sm text-gray-600"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               Vị trí: {pond.location}
             </Text>
           </View>
 
-          <View className="flex-1 items-end">
+          <View className="flex-shrink-0">
             <Text className="text-xs text-gray-500">
-              Tạo: {formatDate(pond.createdAt)}
+              Ngày tạo: {formatDate(pond.createdAt, 'dd/MM/yyyy')}
             </Text>
           </View>
         </View>
