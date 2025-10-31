@@ -1,0 +1,400 @@
+import ContextMenuField from '@/components/ContextMenuField';
+import { useGetAreas } from '@/hooks/useArea';
+import { useGetPondById, useUpdatePond } from '@/hooks/usePond';
+import { useGetPondTypes } from '@/hooks/usePondType';
+import { PondRequest, PondStatus } from '@/lib/api/services/fetchPond';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface EditPondModalProps {
+  visible: boolean;
+  pondId: number | null;
+  onClose: () => void;
+}
+
+export default function EditPondModal({
+  visible,
+  pondId,
+  onClose,
+}: EditPondModalProps) {
+  // Form states
+  const [formData, setFormData] = useState<Partial<PondRequest>>({
+    pondName: '',
+    location: '',
+    pondStatus: PondStatus.EMPTY,
+    capacityLiters: 0,
+    depthMeters: 0,
+    lengthMeters: 0,
+    widthMeters: 0,
+    areaId: 0,
+    pondTypeId: 0,
+  });
+
+  // API hooks
+  const { data: pondData, isLoading: isPondLoading } = useGetPondById(
+    pondId || 0,
+    !!pondId && visible
+  );
+
+  const { data: pondTypesData } = useGetPondTypes(true, {
+    pageIndex: 1,
+    pageSize: 100,
+  });
+
+  const { data: areasData } = useGetAreas(true, {
+    pageIndex: 1,
+    pageSize: 100,
+  });
+
+  const updatePondMutation = useUpdatePond();
+
+  const pondTypes = pondTypesData?.data || [];
+  const areas = areasData?.data || [];
+
+  const statusOptions = [
+    { value: PondStatus.EMPTY, label: 'Trống' },
+    { value: PondStatus.ACTIVE, label: 'Hoạt động' },
+    { value: PondStatus.MAINTENANCE, label: 'Bảo trì' },
+  ];
+
+  // Load pond data when modal opens
+  useEffect(() => {
+    if (pondData && visible) {
+      setFormData({
+        pondName: pondData.pondName,
+        location: pondData.location,
+        pondStatus: pondData.pondStatus,
+        capacityLiters: pondData.capacityLiters,
+        depthMeters: pondData.depthMeters,
+        lengthMeters: pondData.lengthMeters,
+        widthMeters: pondData.widthMeters,
+        areaId: pondData.areaId,
+        pondTypeId: pondData.pondTypeId,
+      });
+    }
+  }, [pondData, visible]);
+
+  const resetForm = () => {
+    setFormData({
+      pondName: '',
+      location: '',
+      pondStatus: PondStatus.EMPTY,
+      capacityLiters: 0,
+      depthMeters: 0,
+      lengthMeters: 0,
+      widthMeters: 0,
+      areaId: 0,
+      pondTypeId: 0,
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const validateForm = () => {
+    if (!formData.pondName?.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên hồ');
+      return false;
+    }
+    if (!formData.pondTypeId) {
+      Alert.alert('Lỗi', 'Vui lòng chọn loại hồ');
+      return false;
+    }
+    if (!formData.areaId) {
+      Alert.alert('Lỗi', 'Vui lòng chọn khu vực');
+      return false;
+    }
+    if (!formData.location?.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập vị trí');
+      return false;
+    }
+    if (!formData.capacityLiters || formData.capacityLiters <= 0) {
+      Alert.alert('Lỗi', 'Vui lòng nhập dung tích hợp lệ');
+      return false;
+    }
+    if (!formData.depthMeters || formData.depthMeters <= 0) {
+      Alert.alert('Lỗi', 'Vui lòng nhập độ sâu hợp lệ');
+      return false;
+    }
+    if (!formData.lengthMeters || formData.lengthMeters <= 0) {
+      Alert.alert('Lỗi', 'Vui lòng nhập chiều dài hợp lệ');
+      return false;
+    }
+    if (!formData.widthMeters || formData.widthMeters <= 0) {
+      Alert.alert('Lỗi', 'Vui lòng nhập chiều rộng hợp lệ');
+      return false;
+    }
+
+    // Validate capacity against dimensions
+    const maxCapacityLiters =
+      formData.depthMeters *
+      formData.lengthMeters *
+      formData.widthMeters *
+      1000;
+    if (formData.capacityLiters > maxCapacityLiters) {
+      Alert.alert(
+        'Lỗi',
+        `Dung tích hồ (${formData.capacityLiters}L) không thể lớn hơn thể tích tính toán (${maxCapacityLiters.toFixed(0)}L) từ kích thước hồ.`
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm() || !pondId) return;
+
+    try {
+      await updatePondMutation.mutateAsync({
+        id: pondId,
+        data: formData as PondRequest,
+      });
+      handleClose();
+    } catch (error) {
+      console.error('Error updating pond:', error);
+    }
+  };
+
+  if (isPondLoading) {
+    return (
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView className="flex-1 bg-gray-50">
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-lg text-gray-600">Đang tải...</Text>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <View className="flex-row items-center justify-between border-b border-gray-200 bg-white p-4">
+          <TouchableOpacity onPress={handleClose}>
+            <Text className="font-medium text-primary">Hủy</Text>
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold">Chỉnh sửa hồ</Text>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={updatePondMutation.isPending}
+          >
+            <Text
+              className={`font-medium ${updatePondMutation.isPending ? 'text-gray-400' : 'text-primary'}`}
+            >
+              {updatePondMutation.isPending ? 'Đang lưu...' : 'Lưu'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView className="flex-1 p-4">
+          <Text className="mb-4 text-lg font-semibold">Thông tin cơ bản</Text>
+
+          {/* Pond Name */}
+          <View className="mb-4">
+            <Text className="mb-2 font-medium text-gray-700">
+              Tên hồ <Text className="text-red-500">*</Text>
+            </Text>
+            <TextInput
+              placeholder="VD: Hồ số 1, Hồ chính..."
+              value={formData.pondName}
+              onChangeText={(text) =>
+                setFormData((prev) => ({ ...prev, pondName: text }))
+              }
+              className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+            />
+          </View>
+
+          {/* Pond Type */}
+          <View className="mb-4">
+            <ContextMenuField
+              label="Loại hồ"
+              value={formData.pondTypeId?.toString() || ''}
+              placeholder="Chọn loại hồ"
+              options={
+                pondTypes?.map((type) => ({
+                  label: type.typeName,
+                  value: type.id.toString(),
+                })) || []
+              }
+              onSelect={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  pondTypeId: parseInt(value),
+                }))
+              }
+            />
+          </View>
+
+          {/* Area */}
+          <View className="mb-4">
+            <ContextMenuField
+              label="Khu vực"
+              value={formData.areaId?.toString() || ''}
+              placeholder="Chọn khu vực"
+              options={
+                areas?.map((area) => ({
+                  label: area.areaName,
+                  value: area.id.toString(),
+                })) || []
+              }
+              onSelect={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  areaId: parseInt(value),
+                }))
+              }
+            />
+          </View>
+
+          {/* Location */}
+          <View className="mb-4">
+            <Text className="mb-2 font-medium text-gray-700">
+              Vị trí <Text className="text-red-500">*</Text>
+            </Text>
+            <TextInput
+              placeholder="VD: Góc phía Đông, Gần cây to..."
+              value={formData.location}
+              onChangeText={(text) =>
+                setFormData((prev) => ({ ...prev, location: text }))
+              }
+              className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+            />
+          </View>
+
+          {/* Status */}
+          <View className="mb-4">
+            <ContextMenuField
+              label="Trạng thái"
+              value={formData.pondStatus || ''}
+              placeholder="Chọn trạng thái"
+              options={statusOptions.map((status) => ({
+                label: status.label,
+                value: status.value,
+              }))}
+              onSelect={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  pondStatus: value as PondStatus,
+                }))
+              }
+            />
+          </View>
+
+          {/* Dimensions Section */}
+          <Text className="mb-4 mt-6 text-lg font-semibold">Kích thước hồ</Text>
+
+          <View className="mb-4 flex-row">
+            <View className="mr-2 flex-1">
+              <Text className="mb-2 font-medium text-gray-700">
+                Chiều dài (m) <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                placeholder="VD: 10"
+                value={formData.lengthMeters?.toString() || ''}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    lengthMeters: parseFloat(text) || 0,
+                  }))
+                }
+                className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+              />
+            </View>
+            <View className="ml-2 flex-1">
+              <Text className="mb-2 font-medium text-gray-700">
+                Chiều rộng (m) <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                placeholder="VD: 5"
+                value={formData.widthMeters?.toString() || ''}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    widthMeters: parseFloat(text) || 0,
+                  }))
+                }
+                className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+              />
+            </View>
+          </View>
+
+          <View className="mb-4 flex-row">
+            <View className="mr-2 flex-1">
+              <Text className="mb-2 font-medium text-gray-700">
+                Độ sâu (m) <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                placeholder="VD: 1.5"
+                value={formData.depthMeters?.toString() || ''}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    depthMeters: parseFloat(text) || 0,
+                  }))
+                }
+                className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+              />
+            </View>
+            <View className="ml-2 flex-1">
+              <Text className="mb-2 font-medium text-gray-700">
+                Dung tích (L) <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                placeholder="VD: 5000"
+                value={formData.capacityLiters?.toString() || ''}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    capacityLiters: parseFloat(text) || 0,
+                  }))
+                }
+                className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            className={`mb-8 rounded-2xl py-4 ${updatePondMutation.isPending ? 'bg-gray-400' : 'bg-primary'}`}
+            onPress={handleSubmit}
+            disabled={updatePondMutation.isPending}
+          >
+            <Text className="text-center text-lg font-semibold text-white">
+              {updatePondMutation.isPending
+                ? 'Đang cập nhật...'
+                : 'Cập nhật hồ'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}

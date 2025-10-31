@@ -2,6 +2,7 @@ import {
   Variety,
   VarietyPagination,
   VarietyRequest,
+  VarietySearchParams,
   varietyServices,
 } from '@/lib/api/services/fetchVariety';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import Toast from 'react-native-toast-message';
 export const varietyKeys = {
   all: ['varieties'] as const,
   lists: () => [...varietyKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: VarietySearchParams) =>
     [...varietyKeys.lists(), params] as const,
   details: () => [...varietyKeys.all, 'detail'] as const,
   detail: (id: number | string) => [...varietyKeys.details(), id] as const,
@@ -20,11 +21,11 @@ export const varietyKeys = {
 /*
  * Hook to get list of Varieties with pagination
  */
-export function useGetVarieties(pageIndex = 1, pageSize = 20, enabled = true) {
+export function useGetVarieties(filters?: VarietySearchParams, enabled = true) {
   return useQuery({
-    queryKey: varietyKeys.list({ pageIndex, pageSize }),
+    queryKey: varietyKeys.list(filters || {}),
     queryFn: async (): Promise<VarietyPagination> => {
-      const resp = await varietyServices.getAllVarieties(pageIndex, pageSize);
+      const resp = await varietyServices.getAllVarieties(filters || {});
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải danh sách giống');
       return resp.result;
@@ -169,13 +170,13 @@ export function usePrefetchVarietyById(id: number) {
 /*
  * Hook to prefetch list of Varieties
  */
-export function usePrefetchVarieties(pageIndex = 1, pageSize = 20) {
+export function usePrefetchVarieties(filters?: VarietySearchParams) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: varietyKeys.list({ pageIndex, pageSize }),
+      queryKey: varietyKeys.list(filters || {}),
       queryFn: async (): Promise<VarietyPagination> => {
-        const resp = await varietyServices.getAllVarieties(pageIndex, pageSize);
+        const resp = await varietyServices.getAllVarieties(filters || {});
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

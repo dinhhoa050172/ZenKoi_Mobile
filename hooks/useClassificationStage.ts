@@ -1,3 +1,4 @@
+import { ClassificationRecordSearchParams } from '@/lib/api/services/fetchClassificationRecord';
 import {
   ClassificationStage,
   ClassificationStagePagination,
@@ -11,7 +12,7 @@ import Toast from 'react-native-toast-message';
 export const classificationStageKeys = {
   all: ['classificationStages'] as const,
   lists: () => [...classificationStageKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: ClassificationRecordSearchParams) =>
     [...classificationStageKeys.lists(), params] as const,
   details: () => [...classificationStageKeys.all, 'detail'] as const,
   detail: (id: number | string) =>
@@ -22,17 +23,14 @@ export const classificationStageKeys = {
  * Hook to get list of Classification Stages with pagination
  */
 export function useGetClassificationStages(
-  pageIndex = 1,
-  pageSize = 20,
+  filters: ClassificationRecordSearchParams,
   enabled = true
 ) {
   return useQuery({
-    queryKey: classificationStageKeys.list({ pageIndex, pageSize }),
+    queryKey: classificationStageKeys.list(filters),
     queryFn: async (): Promise<ClassificationStagePagination> => {
-      const resp = await classificationStageServices.getAllClassificationStages(
-        pageIndex,
-        pageSize
-      );
+      const resp =
+        await classificationStageServices.getAllClassificationStages(filters);
       if (!resp.isSuccess)
         throw new Error(
           resp.message || 'Không thể tải danh sách giai đoạn phân loại'
@@ -67,6 +65,33 @@ export function useGetClassificationStageById(id: number, enabled = true) {
 }
 
 /*
+ * Get Classification Stage by Breeding Process ID
+ */
+export function useGetClassificationStageByBreedingProcessId(
+  breedingProcessId: number,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: ['classificationStage', 'by-breeding-process', breedingProcessId],
+    queryFn: async (): Promise<ClassificationStage> => {
+      const resp =
+        await classificationStageServices.getClassificationStageByBreedingProcessId(
+          breedingProcessId
+        );
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể tải giai đoạn phân loại cho quy trình này'
+        );
+      return resp.result;
+    },
+    enabled: enabled && !!breedingProcessId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
  * Hook to create a new Classification Stage
  */
 export function useCreateClassificationStage() {
@@ -76,7 +101,9 @@ export function useCreateClassificationStage() {
       const resp =
         await classificationStageServices.createClassificationStage(data);
       if (!resp.isSuccess)
-        throw new Error(resp.message || 'Không thể tạo giai đoạn phân loại');
+        throw new Error(
+          resp.message || 'Không thể chuyển sang giai đoạn tuyển chọn'
+        );
       return resp.result;
     },
     onSuccess: () => {
@@ -84,14 +111,14 @@ export function useCreateClassificationStage() {
       qc.invalidateQueries({ queryKey: classificationStageKeys.all });
       Toast.show({
         type: 'success',
-        text1: 'Tạo giai đoạn thành công',
+        text1: 'Chuyển sang giai đoạn tuyển chọn thành công',
         position: 'top',
       });
     },
     onError: (err: any) => {
       Toast.show({
         type: 'error',
-        text1: 'Tạo thất bại',
+        text1: 'Chuyển giai đoạn tuyển chọn thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });
@@ -118,7 +145,7 @@ export function useUpdateClassificationStage() {
       );
       if (!resp.isSuccess)
         throw new Error(
-          resp.message || 'Không thể cập nhật giai đoạn phân loại'
+          resp.message || 'Không thể cập nhật giai đoạn tuyển chọn'
         );
       return resp.result;
     },
@@ -156,7 +183,7 @@ export function useDeleteClassificationStage() {
       const resp =
         await classificationStageServices.deleteClassificationStage(id);
       if (!resp.isSuccess)
-        throw new Error(resp.message || 'Không thể xóa giai đoạn phân loại');
+        throw new Error(resp.message || 'Không thể xóa giai đoạn tuyển chọn');
       return resp.result;
     },
     onSuccess: () => {
@@ -168,6 +195,41 @@ export function useDeleteClassificationStage() {
       Toast.show({
         type: 'error',
         text1: 'Xóa thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to complete a Classification Stage
+ */
+export function useCompleteClassificationStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const resp =
+        await classificationStageServices.completeClassificationStage(id);
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể hoàn tất giai đoạn tuyển chọn'
+        );
+      return resp.result;
+    },
+    onSuccess: () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Hoàn tất giai đoạn tuyển chọn thành công',
+        position: 'top',
+      });
+      qc.invalidateQueries({ queryKey: classificationStageKeys.lists() });
+      qc.invalidateQueries({ queryKey: classificationStageKeys.all });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Hoàn tất giai đoạn tuyển chọn thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });
@@ -196,17 +258,16 @@ export function usePrefetchClassificationStageById(id: number) {
 /*
  * Hook to prefetch list of Classification Stages with pagination
  */
-export function usePrefetchClassificationStages(pageIndex = 1, pageSize = 20) {
+export function usePrefetchClassificationStages(
+  filters: ClassificationRecordSearchParams
+) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: classificationStageKeys.list({ pageIndex, pageSize }),
+      queryKey: classificationStageKeys.list(filters),
       queryFn: async (): Promise<ClassificationStagePagination> => {
         const resp =
-          await classificationStageServices.getAllClassificationStages(
-            pageIndex,
-            pageSize
-          );
+          await classificationStageServices.getAllClassificationStages(filters);
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

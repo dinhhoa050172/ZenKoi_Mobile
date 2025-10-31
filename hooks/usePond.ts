@@ -2,17 +2,22 @@ import {
   Pond,
   PondPagination,
   PondRequest,
+  PondSearchParams,
   pondServices,
 } from '@/lib/api/services/fetchPond';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
 // Query keys
 export const pondKeys = {
   all: ['ponds'] as const,
   lists: () => [...pondKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
-    [...pondKeys.lists(), params] as const,
+  list: (params: PondSearchParams) => [...pondKeys.lists(), params] as const,
   details: () => [...pondKeys.all, 'detail'] as const,
   detail: (id: number | string) => [...pondKeys.details(), id] as const,
 };
@@ -20,11 +25,11 @@ export const pondKeys = {
 /*
  * Hook to get list of Ponds with pagination
  */
-export function useGetPonds(pageIndex = 1, pageSize = 20, enabled = true) {
+export function useGetPonds(filters?: PondSearchParams, enabled = true) {
   return useQuery({
-    queryKey: pondKeys.list({ pageIndex, pageSize }),
+    queryKey: pondKeys.list(filters || {}),
     queryFn: async (): Promise<PondPagination> => {
-      const resp = await pondServices.getAllPonds(pageIndex, pageSize);
+      const resp = await pondServices.getAllPonds(filters || {});
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải danh sách ao');
       return resp.result;
@@ -33,6 +38,37 @@ export function useGetPonds(pageIndex = 1, pageSize = 20, enabled = true) {
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Hook to get list of Ponds with infinite scroll
+ */
+export function useGetPondsInfinite(
+  filters?: Omit<PondSearchParams, 'pageIndex'>,
+  enabled = true
+) {
+  return useInfiniteQuery({
+    queryKey: [...pondKeys.lists(), 'infinite', filters || {}],
+    queryFn: async ({ pageParam = 1 }): Promise<PondPagination> => {
+      const resp = await pondServices.getAllPonds({
+        ...filters,
+        pageIndex: pageParam,
+        pageSize: filters?.pageSize || 20,
+      });
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải danh sách ao');
+      return resp.result;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const currentPage = allPages.length;
+      const totalPages = lastPage.totalPages || 1;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -167,13 +203,13 @@ export function usePrefetchPondById(id: number) {
 /*
  * Hook to prefetch list of Ponds
  */
-export function usePrefetchPonds(pageIndex = 1, pageSize = 20) {
+export function usePrefetchPonds(filters?: PondSearchParams) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: pondKeys.list({ pageIndex, pageSize }),
+      queryKey: pondKeys.list(filters || {}),
       queryFn: async (): Promise<PondPagination> => {
-        const resp = await pondServices.getAllPonds(pageIndex, pageSize);
+        const resp = await pondServices.getAllPonds(filters || {});
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

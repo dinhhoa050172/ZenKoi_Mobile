@@ -1,4 +1,6 @@
 import { useLogout } from '@/hooks/useAuth';
+import { useUploadImage } from '@/hooks/useUpload';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import {
   Calendar,
@@ -13,7 +15,10 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Image,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -24,6 +29,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 interface UserInfo {
   name: string;
@@ -33,6 +39,7 @@ interface UserInfo {
   birthday: string;
   joinDate: string;
   address: string;
+  avatar?: string;
 }
 
 export default function ProfileScreen() {
@@ -40,6 +47,7 @@ export default function ProfileScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: 'Nguyễn Văn A',
     email: 'nguyenvana@zenkoi.com',
@@ -51,6 +59,7 @@ export default function ProfileScreen() {
   });
   const [editForm, setEditForm] = useState<UserInfo>(userInfo);
   const { logout } = useLogout();
+  const uploadImage = useUploadImage();
 
   const handleSaveProfile = () => {
     setUserInfo(editForm);
@@ -73,6 +82,80 @@ export default function ProfileScreen() {
         router.replace('/(auth)/login');
       }
     })();
+  };
+
+  const handleChangeAvatar = async () => {
+    try {
+      // Request permissions
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Toast.show({
+          type: 'error',
+          text1: 'Quyền truy cập bị từ chối',
+          text2: 'Vui lòng cho phép truy cập ảnh để chọn ảnh đại diện',
+          position: 'top',
+        });
+        return;
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const uri = result.assets[0].uri;
+      setIsUploadingAvatar(true);
+
+      // Prepare file for upload
+      const filename = uri.split('/').pop() || 'avatar.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      const file = {
+        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        name: filename,
+        type: type,
+      } as any;
+
+      // Upload image
+      uploadImage.mutate(
+        { file },
+        {
+          onSuccess: (data) => {
+            if (data.result?.url) {
+              setUserInfo({ ...userInfo, avatar: data.result.url });
+              setShowSuccessAlert(true);
+            }
+            setIsUploadingAvatar(false);
+          },
+          onError: (error) => {
+            console.error('Upload failed:', error);
+            setIsUploadingAvatar(false);
+            Toast.show({
+              type: 'error',
+              text1: 'Lỗi',
+              text2: 'Không thể tải ảnh lên. Vui lòng thử lại sau.',
+              position: 'top',
+            });
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error picking image:', error);
+      setIsUploadingAvatar(false);
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Có lỗi xảy ra khi chọn ảnh. Vui lòng thử lại.',
+        position: 'top',
+      });
+    }
   };
 
   const ProfileInfoItem = ({
@@ -125,11 +208,27 @@ export default function ProfileScreen() {
           {/* Profile Avatar */}
           <View className="mb-6 items-center">
             <View className="relative">
-              <View className="h-24 w-24 items-center justify-center rounded-full bg-primary">
-                <User size={40} color="white" />
-              </View>
-              <TouchableOpacity className="absolute -bottom-2 -right-2 rounded-full border border-gray-200 bg-white p-2 shadow-md">
-                <Camera size={16} color="#6b7280" />
+              {userInfo.avatar ? (
+                <Image
+                  source={{ uri: userInfo.avatar }}
+                  className="h-24 w-24 rounded-full"
+                  resizeMode="cover"
+                />
+              ) : (
+                <View className="h-24 w-24 items-center justify-center rounded-full bg-primary">
+                  <User size={40} color="white" />
+                </View>
+              )}
+              <TouchableOpacity
+                className="absolute -bottom-2 -right-2 rounded-full border border-gray-200 bg-white p-2 shadow-md"
+                onPress={handleChangeAvatar}
+                disabled={isUploadingAvatar}
+              >
+                {isUploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#6b7280" />
+                ) : (
+                  <Camera size={16} color="#6b7280" />
+                )}
               </TouchableOpacity>
             </View>
             <Text className="mt-3 text-xl font-bold text-gray-900">
@@ -176,7 +275,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Logout Button */}
-          <View className="px-4">
+          <View>
             <TouchableOpacity
               onPress={handleLogout}
               className="flex-row items-center justify-center rounded-2xl bg-red-500 py-4 shadow-sm"

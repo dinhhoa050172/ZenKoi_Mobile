@@ -1,11 +1,18 @@
-import { Area, AreaRequest, areaServices } from '@/lib/api/services/fetchArea';
+import {
+  Area,
+  AreaPagination,
+  AreaRequest,
+  AreaSearchParams,
+  areaServices,
+} from '@/lib/api/services/fetchArea';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
 // Query keys
 export const areaKeys = {
   all: ['areas'] as const,
-  lists: () => [...areaKeys.all, 'list'] as const,
+  lists: (filters?: AreaSearchParams) =>
+    [...areaKeys.all, 'list', filters] as const,
   list: () => [...areaKeys.lists(), 'all'] as const,
   details: () => [...areaKeys.all, 'detail'] as const,
   detail: (id: number | string) => [...areaKeys.details(), id] as const,
@@ -14,11 +21,11 @@ export const areaKeys = {
 /**
  * Hook to fetch all areas
  */
-export function useGetAreas(enabled = true) {
+export function useGetAreas(enabled = true, filters?: AreaSearchParams) {
   return useQuery({
-    queryKey: areaKeys.lists(),
-    queryFn: async (): Promise<Area[]> => {
-      const resp = await areaServices.getAllAreas();
+    queryKey: areaKeys.lists(filters),
+    queryFn: async (): Promise<AreaPagination> => {
+      const resp = await areaServices.getAllAreas(filters);
       if (!resp.isSuccess) {
         throw new Error(resp.message || 'Không thể tải danh sách khu vực');
       }
@@ -179,7 +186,7 @@ export function usePrefetchAreas() {
   return () => {
     queryClient.prefetchQuery({
       queryKey: areaKeys.lists(),
-      queryFn: async (): Promise<Area[]> => {
+      queryFn: async (): Promise<AreaPagination> => {
         const resp = await areaServices.getAllAreas();
         return resp.result;
       },

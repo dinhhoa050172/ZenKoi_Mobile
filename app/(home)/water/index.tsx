@@ -1,520 +1,417 @@
-import { router } from "expo-router";
-import { ChevronDown, Plus, Search, Settings } from "lucide-react-native";
-import React, { useState } from "react";
+import ContextMenuField from '@/components/ContextMenuField';
+import Loading from '@/components/Loading';
+import CreatePondModal from '@/components/water/CreatePondModal';
+import EditPondModal from '@/components/water/EditPondModal';
+import PondItem from '@/components/water/PondItem';
+import PondStats from '@/components/water/PondStats';
+import { useGetAreas } from '@/hooks/useArea';
+import { useGetPondsInfinite } from '@/hooks/usePond';
+import { useGetPondTypes } from '@/hooks/usePondType';
+import { PondSearchParams, PondStatus } from '@/lib/api/services/fetchPond';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { Filter, Plus, Search, X } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  FlatList,
   Modal,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
-} from "react-native-safe-area-context";
-
-interface PondData {
-  id: string;
-  name: string;
-  area: string;
-  volume: string;
-  status: "healthy" | "warning" | "critical";
-  temperature: string;
-  ph: string;
-  lastCheck: string;
-  fishCount: number;
-  errorCount: number;
-}
+} from 'react-native-safe-area-context';
 
 export default function PondManagementScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [showAddModal, setShowAddModal] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [selectedPondType, setSelectedPondType] = useState("");
-  const [selectedFishType, setSelectedFishType] = useState("");
-  const [showPondTypeDropdown, setShowPondTypeDropdown] = useState(false);
-  const [showFishTypeDropdown, setShowFishTypeDropdown] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [editingPondId, setEditingPondId] = useState<number | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
 
-  const pondTypes = ["Giao phối", "Cá bột", "Ấp trứng", "Nuôi"];
-  const fishTypes = ["Show", "High", "Pond"];
+  // Applied filters
+  const [appliedFilters, setAppliedFilters] = useState<PondSearchParams>({});
 
-  const pondData: PondData[] = [
-    {
-      id: "1",
-      name: "Hồ số 1",
-      area: "Khu vực A",
-      volume: "5.000 L",
-      status: "warning",
-      temperature: "24°C",
-      ph: "7.2",
-      lastCheck: "2025-09-24 07:30",
-      fishCount: 25,
-      errorCount: 0,
-    },
-    {
-      id: "2",
-      name: "Hồ số 2",
-      area: "Khu vực B",
-      volume: "8.000 L",
-      status: "healthy",
-      temperature: "25°C",
-      ph: "7.0",
-      lastCheck: "",
-      fishCount: 40,
-      errorCount: 0,
-    },
-    {
-      id: "3",
-      name: "Hồ số 3",
-      area: "Khu vực C",
-      volume: "3.500 L",
-      status: "critical",
-      temperature: "28°C",
-      ph: "6.5",
-      lastCheck: "",
-      fishCount: 18,
-      errorCount: 2,
-    },
-    {
-      id: "4",
-      name: "Hồ số 4",
-      area: "Khu vực D",
-      volume: "6.000 L",
-      status: "healthy",
-      temperature: "24°C",
-      ph: "7.3",
-      lastCheck: "",
-      fishCount: 32,
-      errorCount: 0,
-    },
-    {
-      id: "5",
-      name: "Hồ số 5",
-      area: "Khu vực E",
-      volume: "4.200 L",
-      status: "warning",
-      temperature: "23°C",
-      ph: "7.8",
-      lastCheck: "",
-      fishCount: 22,
-      errorCount: 0,
-    },
-  ];
+  // Modal filter states (without search)
+  const [modalStatus, setModalStatus] = useState<PondStatus | undefined>(
+    undefined
+  );
+  const [modalAreaId, setModalAreaId] = useState<number | undefined>(undefined);
+  const [modalPondTypeId, setModalPondTypeId] = useState<number | undefined>(
+    undefined
+  );
 
-  const getStatusText = (status: string) => {
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // Fetch areas and pond types for filters
+  const { data: areasPage } = useGetAreas(true, {
+    pageIndex: 1,
+    pageSize: 100,
+  });
+  const { data: pondTypesPage } = useGetPondTypes(true, {
+    pageIndex: 1,
+    pageSize: 100,
+  });
+
+  const areaOptions = areasPage?.data ?? [];
+  const pondTypeOptions = pondTypesPage?.data ?? [];
+  const statusOptions = useMemo(() => Object.values(PondStatus), []);
+
+  const resetModalFilters = () => {
+    setModalStatus(undefined);
+    setModalAreaId(undefined);
+    setModalPondTypeId(undefined);
+  };
+
+  const statusToLabel = (status: PondStatus) => {
     switch (status) {
-      case "healthy":
-        return "Ổn định";
-      case "warning":
-        return "Cần kiểm tra";
-      case "critical":
-        return "Cảnh báo";
+      case PondStatus.ACTIVE:
+        return 'Hoạt động';
+      case PondStatus.MAINTENANCE:
+        return 'Bảo trì';
+      case PondStatus.EMPTY:
+        return 'Trống';
       default:
-        return "Không xác định";
+        return status;
     }
   };
 
+  // Fetch ponds data with infinite scroll
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isRefetching,
+  } = useGetPondsInfinite(
+    {
+      pageSize: 20,
+      search: debouncedSearchText || undefined,
+      ...appliedFilters,
+    },
+    true
+  );
+
+  // Flatten all pages into single array
+  const ponds = data?.pages.flatMap((page) => page.data) || [];
+  const totalPonds = data?.pages[0]?.totalItems || 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  const handleEditPond = (pondId: number) => {
+    setEditingPondId(pondId);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingPondId(null);
+  };
+
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <View className="flex-1 items-center justify-center p-4">
+          <Text className="mb-4 text-center text-red-600">
+            Lỗi khi tải danh sách hồ cá: {error.message}
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            className="rounded-lg bg-primary px-4 py-2"
+          >
+            <Text className="font-medium text-white">Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="p-4">
+    <>
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <View className="bg-gray-50 px-4 pt-4">
           {/* Header */}
-          <View className="flex-row items-center justify-between mb-4">
+          <View className="mb-4 flex-row items-center justify-between">
             <Text className="text-2xl font-bold text-gray-900">
               Danh sách hồ cá
             </Text>
-            <TouchableOpacity
-              onPress={() => setShowAddModal(true)}
-              className="bg-primary rounded-lg px-4 py-2"
-            >
-              <Plus size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Stats */}
-          <View className="flex-row mb-4">
-            <View className="flex-1 bg-white rounded-2xl p-4 mr-2 shadow-sm items-center">
-              <Text className="text-2xl font-bold text-primary">5</Text>
-              <Text className="text-gray-600 text-sm">Tổng hồ</Text>
-            </View>
-            <View className="flex-1 bg-white rounded-2xl p-4 mx-1 shadow-sm items-center">
-              <Text className="text-2xl font-bold text-green-600">2</Text>
-              <Text className="text-gray-600 text-sm">Tình trạng tốt</Text>
-            </View>
-            <View className="flex-1 bg-white rounded-2xl p-4 ml-2 shadow-sm items-center">
-              <Text className="text-2xl font-bold text-red-600">6</Text>
-              <Text className="text-gray-600 text-sm">Cảnh báo</Text>
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={() => router.push('/pond')}
+                className="mr-2 rounded-lg bg-primary px-3 py-2"
+              >
+                <Text className="text-sm font-medium text-white">Loại hồ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(true)}
+                className="rounded-lg bg-primary px-4 py-2"
+              >
+                <Plus size={16} color="white" />
+              </TouchableOpacity>
             </View>
           </View>
 
           {/* Search */}
-          <View className="mb-4">
-            <View className="flex-row items-center bg-white rounded-2xl px-4 py-1 shadow-sm">
+          <View className="mb-2 flex-row items-center">
+            <View className="mr-2 flex-1 flex-row items-center rounded-2xl bg-white px-4 shadow-sm">
               <Search size={20} color="#9ca3af" />
               <TextInput
                 placeholder="Tìm kiếm hồ cá..."
                 value={searchText}
                 onChangeText={setSearchText}
-                className="flex-1 ml-3 text-gray-900"
+                className="ml-3 flex-1 text-gray-900"
                 placeholderTextColor="#9ca3af"
               />
             </View>
-          </View>
-
-          {/* Pond List */}
-          <View>
-            {pondData.map((pond) => (
-              <View
-                key={pond.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-3 relative overflow-hidden"
-              >
-                {/* Status Color Indicator */}
-                <View
-                  className={`absolute left-0 top-0 bottom-0 w-1 ${
-                    pond.status === "healthy"
-                      ? "bg-green-500"
-                      : pond.status === "warning"
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                />
-
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(home)/water/[id]",
-                      params: { id: pond.id },
-                    })
-                  }
-                  className="p-4 pl-6"
-                >
-                  {/* Header Row */}
-                  <View className="flex-row items-center justify-between mb-3">
-                    <View className="flex-row items-center flex-1">
-                      <View
-                        className={`w-2 h-2 rounded-full mr-2 ${
-                          pond.status === "healthy"
-                            ? "bg-green-500"
-                            : pond.status === "warning"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        }`}
-                      />
-                      <Text className="font-semibold text-gray-900 text-base">
-                        {pond.name}
-                      </Text>
-                    </View>
-                    
-                    <View className="flex-row items-center">
-                      <View
-                        className={`px-2 py-1 rounded-md ${
-                          pond.status === "healthy"
-                            ? "bg-green-50"
-                            : pond.status === "warning"
-                              ? "bg-yellow-50"
-                              : "bg-red-50"
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-medium ${
-                            pond.status === "healthy"
-                              ? "text-green-700"
-                              : pond.status === "warning"
-                                ? "text-yellow-700"
-                                : "text-red-700"
-                          }`}
-                        >
-                          {pond.errorCount > 0 && `${pond.errorCount}`} {getStatusText(pond.status)}
-                        </Text>
-                      </View>
-                      
-                      <TouchableOpacity 
-                        className="p-1 ml-2"
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          // TODO: Open edit pond parameters modal
-                          console.log('Edit pond parameters for:', pond.id);
-                        }}
-                      >
-                        <Settings size={16} color="#6b7280" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Main Info Row */}
-                  <View className="flex-row justify-between items-center mb-3">
-                    <View className="flex-1">
-                      <Text className="text-gray-600 text-sm">{pond.area}</Text>
-                      <Text className="text-gray-900 font-medium">
-                        {pond.volume}
-                      </Text>
-                    </View>
-
-                    <View className="flex-1">
-                      <Text className="text-gray-600 text-sm">
-                        Số lượng: {pond.fishCount} con
-                      </Text>
-                      <Text className="text-gray-900 font-medium">
-                        pH {pond.ph} • {pond.temperature}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Status and Last Check Row */}
-                  <View className="flex-row justify-between items-center">
-                    <View>
-                      <View
-                        className={`px-2 py-1 rounded-2xl inline-block ${
-                          pond.status === "healthy"
-                            ? "bg-green-100"
-                            : pond.status === "warning"
-                              ? "bg-orange-100"
-                              : "bg-red-100"
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs ${
-                            pond.status === "healthy"
-                              ? "text-green-800"
-                              : pond.status === "warning"
-                                ? "text-orange-800"
-                                : "text-red-800"
-                          }`}
-                        >
-                          {pond.status === "healthy"
-                            ? "Tốt"
-                            : pond.status === "warning"
-                              ? "Cảnh báo nhẹ"
-                              : "Nguy hiểm"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-1 items-end">
-                      <Text className="text-gray-500 text-xs">
-                        {pond.lastCheck
-                          ? `Kiểm tra: ${pond.lastCheck.split(" ")[1]}`
-                          : pond.status === "healthy"
-                            ? "Kiểm tra: hôm qua"
-                            : pond.status === "warning"
-                              ? "Kiểm tra: 2 giờ trước"
-                              : "Kiểm tra: 30 phút trước"}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ))}
+            <TouchableOpacity
+              onPress={() => setShowFilterSheet(true)}
+              className="rounded-2xl bg-white p-3 shadow-sm"
+            >
+              <Filter size={20} color="#6b7280" />
+            </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
 
-      {/* Add Pond Modal */}
-      <Modal
+        <FlatList
+          data={ponds}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 20,
+            paddingHorizontal: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) => String(item.id)}
+          ListHeaderComponent={() => (
+            <PondStats ponds={ponds} isLoading={isLoading} />
+          )}
+          ListEmptyComponent={() => {
+            const hasActiveFilters =
+              Object.keys(appliedFilters || {}).length > 0 ||
+              debouncedSearchText;
+            return (
+              <>
+                {isLoading ? (
+                  <View className="h-[50vh] w-full items-center justify-center">
+                    <Loading />
+                  </View>
+                ) : (
+                  <View className="items-center py-8">
+                    <Text className="mb-4 text-center text-gray-500">
+                      {hasActiveFilters
+                        ? 'Không tìm thấy hồ cá phù hợp với bộ lọc'
+                        : 'Chưa có hồ cá nào'}
+                    </Text>
+                    {hasActiveFilters ? (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setAppliedFilters({});
+                          setSearchText('');
+                          setDebouncedSearchText('');
+                          resetModalFilters();
+                        }}
+                        className="rounded-lg bg-gray-600 px-4 py-2"
+                      >
+                        <Text className="font-medium text-white">
+                          Xóa bộ lọc
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => setShowAddModal(true)}
+                        className="rounded-lg bg-primary px-4 py-2"
+                      >
+                        <Text className="font-medium text-white">
+                          Tạo hồ đầu tiên
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </>
+            );
+          }}
+          renderItem={({ item: pond }) => (
+            <PondItem pond={pond} onEditPond={handleEditPond} />
+          )}
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            if (!isFetchingNextPage && hasNextPage) {
+              fetchNextPage();
+            }
+          }}
+          refreshing={!!isRefetching}
+          onRefresh={() => {
+            refetch();
+          }}
+          ListFooterComponent={() =>
+            isFetchingNextPage ? (
+              <View className="items-center py-4">
+                <ActivityIndicator size="small" color="#0ea5e9" />
+              </View>
+            ) : !hasNextPage && ponds.length > 0 ? (
+              <View className="pb-16">
+                <Text className="text-center text-sm text-gray-500">
+                  Đã hiển thị tất cả {totalPonds} hồ cá
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      </SafeAreaView>
+
+      {/* Create Pond Modal */}
+      <CreatePondModal
         visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
+
+      {/* Edit Pond Modal */}
+      <EditPondModal
+        visible={showEditModal}
+        pondId={editingPondId}
+        onClose={handleCloseEditModal}
+      />
+
+      {/* Filter Sheet Modal */}
+      <Modal
+        visible={showFilterSheet}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilterSheet(false)}
       >
-        <SafeAreaView className="flex-1 bg-gray-50">
-          <View className="flex-row items-center justify-between p-4 bg-white border-b border-gray-200">
-            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <Text className="text-primary font-medium">Hủy</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold">Tạo hồ mới</Text>
-            <TouchableOpacity>
-              <Text className="text-primary font-medium">Lưu</Text>
+        <SafeAreaView className="flex-1 bg-white">
+          {/* Header */}
+          <View className="flex-row items-center justify-between border-b border-gray-200 p-4">
+            <Text className="text-lg font-semibold text-gray-900">Bộ lọc</Text>
+            <TouchableOpacity
+              className="p-1"
+              onPress={() => setShowFilterSheet(false)}
+            >
+              <X size={24} color="red" />
             </TouchableOpacity>
           </View>
 
           <ScrollView className="flex-1 p-4">
-            <Text className="text-lg font-semibold mb-4">Thông tin cơ bản</Text>
-
+            {/* Status Filter */}
             <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">
-                Tên hồ <Text className="text-red-500">*</Text>
-              </Text>
-              <TextInput
-                placeholder="VD: Hồ số 1, Hồ chính..."
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
+              <ContextMenuField
+                label="Trạng thái"
+                value={modalStatus || ''}
+                placeholder="Chọn trạng thái"
+                options={statusOptions.map((s) => ({
+                  label: statusToLabel(s),
+                  value: s,
+                }))}
+                onSelect={(val) => setModalStatus(val as PondStatus)}
               />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">
-                Loại hồ <Text className="text-red-500">*</Text>
-              </Text>
-              <TouchableOpacity 
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3 flex-row items-center justify-between"
-                onPress={() => setShowPondTypeDropdown(!showPondTypeDropdown)}
-              >
-                <Text className={selectedPondType ? "text-gray-900" : "text-gray-500"}>
-                  {selectedPondType || "Chọn loại hồ"}
-                </Text>
-                <ChevronDown size={20} color="#6b7280" />
-              </TouchableOpacity>
-              {showPondTypeDropdown && (
-                <View className="bg-white border border-gray-300 rounded-2xl mt-1 overflow-hidden">
-                  {pondTypes.map((type, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      className="px-4 py-3 border-b border-gray-100 last:border-b-0"
-                      onPress={() => {
-                        setSelectedPondType(type);
-                        setShowPondTypeDropdown(false);
-                      }}
-                    >
-                      <Text className="text-gray-900">{type}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              {modalStatus && (
+                <TouchableOpacity
+                  onPress={() => setModalStatus(undefined)}
+                  className="mt-1"
+                >
+                  <Text className="text-sm text-blue-600">Xóa lựa chọn</Text>
+                </TouchableOpacity>
               )}
             </View>
 
+            {/* Area Filter */}
             <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">
-                Mật độ (kg/m3) <Text className="text-red-500">*</Text>
-              </Text>
-              <TextInput
-                placeholder="VD: 5"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="numeric"
-                inputMode="numeric"
+              <ContextMenuField
+                label="Khu vực"
+                value={modalAreaId ? String(modalAreaId) : ''}
+                placeholder="Chọn khu vực"
+                options={areaOptions.map((area) => ({
+                  label: area.areaName,
+                  value: String(area.id),
+                }))}
+                onSelect={(val) => setModalAreaId(Number(val))}
               />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">
-                Dung tích (L) <Text className="text-red-500">*</Text>
-              </Text>
-              <TextInput
-                placeholder="VD: 5000"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="numeric"
-                inputMode="numeric"
-              />
-            </View>
-
-            <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">
-                Loại cá <Text className="text-red-500">*</Text>
-              </Text>
-              <TouchableOpacity 
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3 flex-row items-center justify-between"
-                onPress={() => setShowFishTypeDropdown(!showFishTypeDropdown)}
-              >
-                <Text className={selectedFishType ? "text-gray-900" : "text-gray-500"}>
-                  {selectedFishType || "Chọn loại cá"}
-                </Text>
-                <ChevronDown size={20} color="#6b7280" />
-              </TouchableOpacity>
-              {showFishTypeDropdown && (
-                <View className="bg-white border border-gray-300 rounded-2xl mt-1 overflow-hidden">
-                  {fishTypes.map((type, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      className="px-4 py-3 border-b border-gray-100 last:border-b-0"
-                      onPress={() => {
-                        setSelectedFishType(type);
-                        setShowFishTypeDropdown(false);
-                      }}
-                    >
-                      <Text className="text-gray-900">{type}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              {modalAreaId && (
+                <TouchableOpacity
+                  onPress={() => setModalAreaId(undefined)}
+                  className="mt-1"
+                >
+                  <Text className="text-sm text-blue-600">Xóa lựa chọn</Text>
+                </TouchableOpacity>
               )}
             </View>
 
-            <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">Mô tả</Text>
-              <TextInput
-                placeholder="Mô tả thêm về hồ..."
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
-
-            {/* Water Parameters Section */}
-            <Text className="text-lg font-semibold mb-2">Thiết lập thông số nước ban đầu</Text>
-            <Text className="text-gray-600 text-sm mb-4">
-              Nhập các thông số nước hiện tại của bể (không bắt buộc, có thể bỏ trống và cập nhật sau)
-            </Text>
-
+            {/* Pond Type Filter */}
             <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">pH</Text>
-              <TextInput
-                placeholder="VD: 7.2"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="decimal-pad"
-                inputMode="decimal"
+              <ContextMenuField
+                label="Loại hồ"
+                value={modalPondTypeId ? String(modalPondTypeId) : ''}
+                placeholder="Chọn loại hồ"
+                options={pondTypeOptions.map((type) => ({
+                  label: type.typeName,
+                  value: String(type.id),
+                }))}
+                onSelect={(val) => setModalPondTypeId(Number(val))}
               />
+              {modalPondTypeId && (
+                <TouchableOpacity
+                  onPress={() => setModalPondTypeId(undefined)}
+                  className="mt-1"
+                >
+                  <Text className="text-sm text-blue-600">Xóa lựa chọn</Text>
+                </TouchableOpacity>
+              )}
             </View>
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">Nhiệt độ (°C)</Text>
-              <TextInput
-                placeholder="VD: 24"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">Oxy hòa tan (mg/L)</Text>
-              <TextInput
-                placeholder="VD: 8.5"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">Ammonia (mg/L)</Text>
-              <TextInput
-                placeholder="VD: 0.2"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">Nitrite (mg/L)</Text>
-              <TextInput
-                placeholder="VD: 0.1"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-              />
-            </View>
-
-            <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">Nitrate (mg/L)</Text>
-              <TextInput
-                placeholder="VD: 20"
-                className="bg-white border border-gray-300 rounded-2xl px-4 py-3"
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-              />
-            </View>
-
-            <TouchableOpacity className="bg-primary rounded-2xl py-4 mb-8">
-              <Text className="text-white text-center font-semibold text-lg">
-                Tạo hồ
-              </Text>
-            </TouchableOpacity>
           </ScrollView>
+
+          {/* Action Buttons */}
+          <View className="border-t border-gray-200 p-4">
+            <View className="flex-row">
+              <TouchableOpacity
+                className="mr-2 flex-1 rounded-2xl bg-gray-200 py-3"
+                onPress={() => {
+                  resetModalFilters();
+                }}
+              >
+                <Text className="text-center font-semibold text-gray-700">
+                  Đặt lại
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="ml-2 flex-1 rounded-2xl bg-primary py-3"
+                onPress={() => {
+                  const newFilters: PondSearchParams = {
+                    status: modalStatus,
+                    areaId: modalAreaId,
+                    pondTypeId: modalPondTypeId,
+                  };
+                  setAppliedFilters(newFilters);
+                  setShowFilterSheet(false);
+                }}
+              >
+                <Text className="text-center font-semibold text-white">
+                  Áp dụng
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </>
   );
 }

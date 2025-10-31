@@ -1,5 +1,4 @@
 import apiService from '../apiClient';
-import { EggBatch } from './fetchEggBatch';
 
 export interface IncubationDailyRecord {
   id: number;
@@ -9,14 +8,35 @@ export interface IncubationDailyRecord {
   rottenEggs: number;
   hatchedEggs: number;
   success: boolean;
-  eggBatch: EggBatch;
+}
+
+export interface IncubationDailyRecordSummary {
+  eggBatchId: number;
+  fertilizationRate: number;
+  totalRottenEggs: number;
+  totalHatchedEggs: number;
 }
 
 export interface IncubationDailyRecordRequest {
   eggBatchId: number;
-  dayNumber: number;
   healthyEggs: number;
-  rottenEggs: number;
+  hatchedEggs: number;
+  success: boolean;
+}
+
+export interface UpdateIncubationDailyRecordRequest {
+  healthyEggs: number;
+  hatchedEggs: number;
+  success: boolean;
+}
+
+export interface IncubationDailyRecordRequestV2 {
+  eggBatchId: number;
+  hatchedEggs: number;
+  success: boolean;
+}
+
+export interface UpdateIncubationDailyRecordRequestV2 {
   hatchedEggs: number;
   success: boolean;
 }
@@ -44,6 +64,13 @@ export interface IncubationDailyRecordResponse {
   result: IncubationDailyRecord;
 }
 
+export interface IncubationDailyRecordSummaryResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: IncubationDailyRecordSummary;
+}
+
 export const incubationDailyRecordServices = {
   // Get all incubation daily records with pagination
   getAllIncubationDailyRecords: async (
@@ -52,7 +79,7 @@ export const incubationDailyRecordServices = {
     eggBatchId: number
   ): Promise<IncubationDailyRecordListResponse> => {
     const response = await apiService.get<IncubationDailyRecordListResponse>(
-      `/api/incubationdailyrecord/eggbatch/${eggBatchId}?pageIndex=${pageIndex}&pageSize=${pageSize}`
+      `/api/incubationdailyrecord/egg-batch/${eggBatchId}?pageIndex=${pageIndex}&pageSize=${pageSize}`
     );
     return response.data;
   },
@@ -63,6 +90,16 @@ export const incubationDailyRecordServices = {
   ): Promise<IncubationDailyRecordResponse> => {
     const response = await apiService.get<IncubationDailyRecordResponse>(
       `/api/incubationdailyrecord/${id}`
+    );
+    return response.data;
+  },
+
+  // Get incubation daily record summary by egg batch ID
+  getIncubationDailyRecordSummaryByEggBatchId: async (
+    eggBatchId: number
+  ): Promise<IncubationDailyRecordSummaryResponse> => {
+    const response = await apiService.get<IncubationDailyRecordSummaryResponse>(
+      `/api/incubationdailyrecord/egg-batch/${eggBatchId}/summary`
     );
     return response.data;
   },
@@ -78,15 +115,38 @@ export const incubationDailyRecordServices = {
     return response.data;
   },
 
+  // Create a new incubation daily record V2
+  createIncubationDailyRecordV2: async (
+    data: IncubationDailyRecordRequestV2
+  ): Promise<IncubationDailyRecordResponse> => {
+    const response = await apiService.post<
+      IncubationDailyRecordResponse,
+      IncubationDailyRecordRequestV2
+    >('/api/incubationdailyrecord/v2', data);
+    return response.data;
+  },
+
   // Update an existing incubation daily record
   updateIncubationDailyRecord: async (
     id: number,
-    data: IncubationDailyRecordRequest
+    data: UpdateIncubationDailyRecordRequest
   ): Promise<IncubationDailyRecordResponse> => {
     const response = await apiService.put<
       IncubationDailyRecordResponse,
-      IncubationDailyRecordRequest
+      UpdateIncubationDailyRecordRequest
     >(`/api/incubationdailyrecord/${id}`, data);
+    return response.data;
+  },
+
+  // Update an existing incubation daily record V2
+  updateIncubationDailyRecordV2: async (
+    id: number,
+    data: UpdateIncubationDailyRecordRequestV2
+  ): Promise<IncubationDailyRecordResponse> => {
+    const response = await apiService.put<
+      IncubationDailyRecordResponse,
+      UpdateIncubationDailyRecordRequestV2
+    >(`/api/incubationdailyrecord/v2/${id}`, data);
     return response.data;
   },
 

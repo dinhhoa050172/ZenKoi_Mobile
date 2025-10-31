@@ -1,6 +1,8 @@
 import {
   PondType,
+  PondTypePagination,
   PondTypeRequest,
+  PondTypeSearchParams,
   pondTypeServices,
 } from '@/lib/api/services/fetchPondType';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +12,8 @@ import Toast from 'react-native-toast-message';
 export const pondTypeKeys = {
   all: ['pondTypes'] as const,
   lists: () => [...pondTypeKeys.all, 'list'] as const,
-  list: () => [...pondTypeKeys.lists(), 'all'] as const,
+  list: (params: PondTypeSearchParams) =>
+    [...pondTypeKeys.lists(), params] as const,
   details: () => [...pondTypeKeys.all, 'detail'] as const,
   detail: (id: number | string) => [...pondTypeKeys.details(), id] as const,
 };
@@ -18,11 +21,14 @@ export const pondTypeKeys = {
 /*
  * Hook to get list of Pond Types
  */
-export function useGetPondTypes(enabled = true) {
+export function useGetPondTypes(
+  enabled = true,
+  filters?: PondTypeSearchParams
+) {
   return useQuery({
-    queryKey: pondTypeKeys.lists(),
-    queryFn: async (): Promise<PondType[]> => {
-      const resp = await pondTypeServices.getAllPondType();
+    queryKey: pondTypeKeys.list(filters || {}),
+    queryFn: async (): Promise<PondTypePagination> => {
+      const resp = await pondTypeServices.getAllPondType(filters || {});
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải danh sách loại ao');
       return resp.result;
@@ -167,13 +173,13 @@ export function usePrefetchPondTypeById(id: number) {
 /*
  * Hook to prefetch all Pond Types
  */
-export function usePrefetchPondTypes() {
+export function usePrefetchPondTypes(filters?: PondTypeSearchParams) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: pondTypeKeys.lists(),
-      queryFn: async (): Promise<PondType[]> => {
-        const resp = await pondTypeServices.getAllPondType();
+      queryKey: pondTypeKeys.list(filters || {}),
+      queryFn: async (): Promise<PondTypePagination> => {
+        const resp = await pondTypeServices.getAllPondType(filters || {});
         return resp.result;
       },
       staleTime: 5 * 60 * 1000,

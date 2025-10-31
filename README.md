@@ -70,27 +70,27 @@ SmartKoiBreeder is a **web & mobile application** that supports:
 
 - **Framework:** .NET Core
 - **Cloud Hosting:** Azure / AWS
-- **Database:** SQL Server, MySQL
+- **Database:** SQL Server
 
 ### 📌 Client-side
 
-- **Web App:** ReactJS, TypeScript, HTML5, CSS3
-- **Mobile App:** Flutter / Xamarin
+- **Web App:** NextJS, TypeScript, Shadcn
+- **Mobile App:** React Native, Expo, TypeScript, NativeWind
 
 ---
 
 ## 📱 Products
 
 - **Customer App:** Web/Mobile application for browsing & ordering koi fish.
-- **Farm App:** Web/Mobile application for breeding, environment, and sales management.
-- **Admin App:** Web application for system management and reporting.
+- **FarmStaff App:** Mobile application for breeding, environment.
+- **SaleStaff App:** Web application for sales management.
+- **Manager App:** Web application for system management and reporting.
 
 ---
 
 ## 📂 Deliverables
 
 1. **Documents**
-
    - User Requirement
    - Software Requirement Specification
    - Architecture Design & Detail Design
@@ -99,7 +99,6 @@ SmartKoiBreeder is a **web & mobile application** that supports:
    - User Guide
 
 2. **Source Code**
-
    - Backend (API)
    - Frontend (Web & Mobile)
 

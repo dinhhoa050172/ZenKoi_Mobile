@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/Logo_ZenKoi.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.ZenKoi"
     },
     "web": {
       "bundler": "metro",

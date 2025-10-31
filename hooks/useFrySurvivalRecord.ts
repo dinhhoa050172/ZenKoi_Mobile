@@ -2,6 +2,7 @@ import {
   FrySurvivalRecord,
   FrySurvivalRecordPagination,
   FrySurvivalRecordRequest,
+  FrySurvivalRecordSearchParams,
   frySurvivalRecordServices,
 } from '@/lib/api/services/fetchFrySurvivalRecord';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import Toast from 'react-native-toast-message';
 export const frySurvivalRecordKeys = {
   all: ['frySurvivalRecords'] as const,
   lists: () => [...frySurvivalRecordKeys.all, 'list'] as const,
-  list: (params: { pageIndex: number; pageSize: number }) =>
+  list: (params: FrySurvivalRecordSearchParams) =>
     [...frySurvivalRecordKeys.lists(), params] as const,
   details: () => [...frySurvivalRecordKeys.all, 'detail'] as const,
   detail: (id: number | string) =>
@@ -22,16 +23,14 @@ export const frySurvivalRecordKeys = {
  * Hook to get list of Fry Survival Records with pagination
  */
 export function useGetFrySurvivalRecords(
-  pageIndex = 1,
-  pageSize = 20,
+  filters?: FrySurvivalRecordSearchParams,
   enabled = true
 ) {
   return useQuery({
-    queryKey: frySurvivalRecordKeys.list({ pageIndex, pageSize }),
+    queryKey: frySurvivalRecordKeys.list(filters || {}),
     queryFn: async (): Promise<FrySurvivalRecordPagination> => {
       const resp = await frySurvivalRecordServices.getAllFrySurvivalRecords(
-        pageIndex,
-        pageSize
+        filters || {}
       );
       if (!resp.isSuccess)
         throw new Error(
@@ -192,15 +191,16 @@ export function usePrefetchFrySurvivalRecordById(id: number) {
 /*
  * Hook to prefetch list of Fry Survival Records with pagination
  */
-export function usePrefetchFrySurvivalRecords(pageIndex = 1, pageSize = 20) {
+export function usePrefetchFrySurvivalRecords(
+  filters?: FrySurvivalRecordSearchParams
+) {
   const qc = useQueryClient();
   return () =>
     qc.prefetchQuery({
-      queryKey: frySurvivalRecordKeys.list({ pageIndex, pageSize }),
+      queryKey: frySurvivalRecordKeys.list(filters || {}),
       queryFn: async (): Promise<FrySurvivalRecordPagination> => {
         const resp = await frySurvivalRecordServices.getAllFrySurvivalRecords(
-          pageIndex,
-          pageSize
+          filters || {}
         );
         return resp.result;
       },

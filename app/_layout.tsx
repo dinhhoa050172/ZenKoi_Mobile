@@ -3,6 +3,7 @@ import { initializeAuth, useAuthStore } from '@/lib/store/authStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import '../global.css';
 
@@ -55,8 +56,23 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <Stack screenOptions={{ headerShown: false }} />
-      {isLoading && <Loading />}
       <Toast />
+
+      {isLoading && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: '#fff',
+          }}
+        >
+          <Loading />
+        </View>
+      )}
     </QueryClientProvider>
   );
 }

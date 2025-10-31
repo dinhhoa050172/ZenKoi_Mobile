@@ -1,7 +1,9 @@
 import { useLogin } from '@/hooks/useAuth';
 import type { LoginCredentials } from '@/lib/api/services/fetchAuth';
+import { useAuthStore } from '@/lib/store/authStore';
+import { useRouter } from 'expo-router';
 import { Eye, EyeOff } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,6 +18,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AnimatedBackground from './AnimatedBackground';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(home)');
+    }
+  }, [isAuthenticated, router]);
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,7 +64,7 @@ export default function LoginPage() {
       <KeyboardAwareScrollView
         enableOnAndroid={true}
         enableAutomaticScroll={true}
-        extraScrollHeight={Platform.OS === 'android' ? 120 : 20}
+        extraScrollHeight={Platform.OS === 'android' ? 0 : 20}
         keyboardOpeningTime={0}
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
