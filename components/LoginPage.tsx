@@ -147,9 +147,9 @@ export default function LoginPage() {
                   </View>
                   <Text className="ml-2 text-sm">Ghi nhớ đăng nhập</Text>
                 </TouchableOpacity>
-                <TouchableOpacity>
+                {/* <TouchableOpacity>
                   <Text className="text-sm text-primary">Quên mật khẩu?</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
 
               {/* Login button */}

@@ -116,7 +116,7 @@ export default function TabLayout() {
           fontWeight: '500',
           marginTop: 2,
         },
-        tabBarIconStyle: { marginLeft: 20, marginTop: 10 },
+        tabBarIconStyle: { marginLeft: 24, marginTop: 10 },
       }}
     >
       {/* Home */}
