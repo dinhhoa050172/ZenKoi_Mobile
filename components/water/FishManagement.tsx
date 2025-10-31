@@ -132,16 +132,16 @@ export default function FishManagement({
       {isExpanded && (
         <View className="px-4 pb-4">
           {/* Action Buttons */}
-          <View className="mb-4 flex-row space-x-2">
+          <View className="mb-4 flex-row">
             <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center rounded-xl bg-green-500 py-3"
+              className="mr-4 flex-1 flex-row items-center justify-center rounded-2xl bg-green-500 py-3"
               onPress={() => setShowAddFishForm(true)}
             >
               <Plus size={16} color="white" />
               <Text className="ml-1 font-medium text-white">Thêm cá</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center rounded-xl bg-red-500 py-3"
+              className="flex-1 flex-row items-center justify-center rounded-2xl bg-red-500 py-3"
               onPress={() => setShowRemoveFishForm(true)}
             >
               <Minus size={16} color="white" />
@@ -154,7 +154,7 @@ export default function FishManagement({
             {displayedFish.map((fish) => (
               <View
                 key={fish.id}
-                className="flex-row items-center justify-between rounded-xl bg-gray-50 p-3"
+                className="mb-2 flex-row items-center justify-between rounded-2xl bg-gray-50 p-3"
               >
                 <View className="flex-1">
                   <Text className="font-medium text-gray-900">{fish.name}</Text>

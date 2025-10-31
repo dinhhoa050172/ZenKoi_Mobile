@@ -8,7 +8,7 @@ interface PondStatsProps {
 }
 
 export default function PondStats({ ponds, isLoading }: PondStatsProps) {
-  const totalPonds = ponds.length;
+  // const totalPonds = ponds.length;
   const activePonds = ponds.filter(
     (pond) => pond.pondStatus === PondStatus.ACTIVE
   ).length;
@@ -38,14 +38,14 @@ export default function PondStats({ ponds, isLoading }: PondStatsProps) {
   return (
     <View className="mb-4 flex-row">
       <View className="mr-2 flex-1 items-center rounded-2xl bg-white p-4 shadow-sm">
-        <Text className="text-2xl font-bold text-primary">{totalPonds}</Text>
-        <Text className="text-sm text-gray-600">Tổng hồ</Text>
-      </View>
-      <View className="mx-1 flex-1 items-center rounded-2xl bg-white p-4 shadow-sm">
         <Text className="text-2xl font-bold text-green-600">{activePonds}</Text>
         <Text className="text-sm text-gray-600">Hoạt động</Text>
       </View>
-      <View className="ml-2 flex-1 items-center rounded-2xl bg-white p-4 shadow-sm">
+      <View className="mr-2 flex-1 items-center rounded-2xl bg-white p-4 shadow-sm">
+        <Text className="text-2xl font-bold text-primary">{emptyPonds}</Text>
+        <Text className="text-sm text-gray-600">Hồ trống</Text>
+      </View>
+      <View className="flex-1 items-center rounded-2xl bg-white p-4 shadow-sm">
         <Text className="text-2xl font-bold text-yellow-600">
           {maintenancePonds}
         </Text>

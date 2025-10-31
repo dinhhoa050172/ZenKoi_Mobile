@@ -5,7 +5,25 @@ import {
   Plus,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Toast from 'react-native-toast-message';
+import ContextMenuField from '../ContextMenuField';
+
+interface Incident {
+  id: string;
+  type: string;
+  description: string;
+  fishCount?: number;
+  time: string;
+  severity: 'low' | 'medium' | 'high';
+}
 
 interface IncidentReportingProps {
   pondId: number;
@@ -18,24 +36,69 @@ export default function IncidentReporting({
   isExpanded,
   onToggle,
 }: IncidentReportingProps) {
-  const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedIncidentType, setSelectedIncidentType] = useState('Cá chết');
-  const [showIncidentTypeDropdown, setShowIncidentTypeDropdown] =
-    useState(false);
   const [incidentDescription, setIncidentDescription] = useState('');
   const [fishCount, setFishCount] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
-  const incidentTypes = [
-    'Cá chết',
-    'Cá bệnh',
-    'Chất lượng nước xấu',
-    'Thiết bị hỏng',
-    'Khác',
+  const incidentTypeOptions = [
+    { label: 'Cá chết', value: 'Cá chết' },
+    { label: 'Cá bệnh', value: 'Cá bệnh' },
+    { label: 'Chất lượng nước xấu', value: 'Chất lượng nước xấu' },
+    { label: 'Thiết bị hỏng', value: 'Thiết bị hỏng' },
+    { label: 'Khác', value: 'Khác' },
+  ];
+
+  // Mock data for incident history
+  const incidentHistory: Incident[] = [
+    {
+      id: '1',
+      type: 'Cá chết',
+      description: '2 cá Koi chết, nghi do nhiễm bệnh',
+      fishCount: 2,
+      time: '3 giờ trước',
+      severity: 'high',
+    },
+    {
+      id: '2',
+      type: 'Chất lượng nước xấu',
+      description: 'Ammonia vượt ngưỡng cho phép',
+      time: '1 ngày trước',
+      severity: 'medium',
+    },
+    {
+      id: '3',
+      type: 'Thiết bị hỏng',
+      description: 'Máy bơm nước bị hỏng, cần thay mới',
+      time: '2 ngày trước',
+      severity: 'medium',
+    },
+    {
+      id: '4',
+      type: 'Cá bệnh',
+      description: '5 cá có dấu hiệu bệnh nấm trắng',
+      fishCount: 5,
+      time: '3 ngày trước',
+      severity: 'high',
+    },
+    {
+      id: '5',
+      type: 'Chất lượng nước xấu',
+      description: 'pH giảm xuống 6.0, đã xử lý',
+      time: '5 ngày trước',
+      severity: 'low',
+    },
   ];
 
   const handleSubmitIncident = () => {
     if (!incidentDescription.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mô tả sự cố');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập mô tả sự cố',
+        position: 'top',
+      });
       return;
     }
 
@@ -46,13 +109,61 @@ export default function IncidentReporting({
       fishCount: fishCount ? parseInt(fishCount) : undefined,
     });
 
-    Alert.alert('Thành công', 'Đã báo cáo sự cố');
+    Toast.show({
+      type: 'success',
+      text1: 'Thành công',
+      text2: 'Đã báo cáo sự cố',
+      position: 'top',
+      visibilityTime: 3000,
+    });
 
     // Reset form
     setIncidentDescription('');
     setFishCount('');
-    setShowIncidentForm(false);
+    setSelectedIncidentType('Cá chết');
+    setIsModalVisible(false);
   };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'high':
+        return {
+          border: 'border-red-200',
+          bg: 'bg-red-50',
+          text: 'text-red-800',
+          subtext: 'text-red-700',
+          icon: '#ef4444',
+        };
+      case 'medium':
+        return {
+          border: 'border-yellow-200',
+          bg: 'bg-yellow-50',
+          text: 'text-yellow-800',
+          subtext: 'text-yellow-700',
+          icon: '#f59e0b',
+        };
+      case 'low':
+        return {
+          border: 'border-blue-200',
+          bg: 'bg-blue-50',
+          text: 'text-blue-800',
+          subtext: 'text-blue-700',
+          icon: '#3b82f6',
+        };
+      default:
+        return {
+          border: 'border-gray-200',
+          bg: 'bg-gray-50',
+          text: 'text-gray-800',
+          subtext: 'text-gray-700',
+          icon: '#6b7280',
+        };
+    }
+  };
+
+  const displayedIncidents = showAll
+    ? incidentHistory
+    : incidentHistory.slice(0, 3);
 
   return (
     <View className="mb-4 rounded-2xl bg-white shadow-sm">
@@ -72,54 +183,104 @@ export default function IncidentReporting({
 
       {isExpanded && (
         <View className="px-4 pb-4">
-          {!showIncidentForm ? (
-            <TouchableOpacity
-              onPress={() => setShowIncidentForm(true)}
-              className="flex-row items-center justify-center rounded-xl bg-red-500 py-3"
-            >
-              <Plus size={16} color="white" />
-              <Text className="ml-2 font-medium text-white">
-                Báo cáo sự cố mới
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <View className="space-y-4">
-              {/* Incident Type */}
-              <View>
-                <Text className="mb-2 font-medium text-gray-700">
-                  Loại sự cố <Text className="text-red-500">*</Text>
-                </Text>
-                <TouchableOpacity
-                  className="flex-row items-center justify-between rounded-xl border border-gray-300 bg-gray-50 px-4 py-3"
-                  onPress={() =>
-                    setShowIncidentTypeDropdown(!showIncidentTypeDropdown)
-                  }
+          <TouchableOpacity
+            onPress={() => setIsModalVisible(true)}
+            className="flex-row items-center justify-center rounded-2xl bg-red-500 py-3"
+          >
+            <Plus size={16} color="white" />
+            <Text className="ml-2 font-medium text-white">
+              Báo cáo sự cố mới
+            </Text>
+          </TouchableOpacity>
+
+          {/* Recent Incidents */}
+          <View className="mt-3">
+            <Text className="mb-3 font-medium text-gray-900">
+              Sự cố gần đây
+            </Text>
+            {displayedIncidents.map((incident) => {
+              const colors = getSeverityColor(incident.severity);
+              return (
+                <View
+                  key={incident.id}
+                  className={`mb-3 flex-row items-start rounded-2xl border ${colors.border} ${colors.bg} p-3`}
                 >
-                  <Text className="text-gray-900">{selectedIncidentType}</Text>
-                  <ChevronDown size={20} color="#6b7280" />
-                </TouchableOpacity>
-                {showIncidentTypeDropdown && (
-                  <View className="mt-1 overflow-hidden rounded-xl border border-gray-300 bg-white">
-                    {incidentTypes.map((type, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        className="border-b border-gray-100 px-4 py-3 last:border-b-0"
-                        onPress={() => {
-                          setSelectedIncidentType(type);
-                          setShowIncidentTypeDropdown(false);
-                        }}
-                      >
-                        <Text className="text-gray-900">{type}</Text>
-                      </TouchableOpacity>
-                    ))}
+                  <AlertTriangle
+                    size={16}
+                    color={colors.icon}
+                    className="mr-2 mt-1"
+                  />
+                  <View className="ml-2 flex-1">
+                    <Text className={`font-medium ${colors.text}`}>
+                      {incident.type}
+                      {incident.fishCount && ` (${incident.fishCount} con)`}
+                    </Text>
+                    <Text className={`text-sm ${colors.subtext}`}>
+                      {incident.description}
+                    </Text>
                   </View>
-                )}
-              </View>
+                  <Text className={`mt-1 text-xs ${colors.subtext}`}>
+                    {incident.time}
+                  </Text>
+                </View>
+              );
+            })}
+
+            {!showAll && incidentHistory.length > 3 && (
+              <TouchableOpacity
+                onPress={() => setShowAll(true)}
+                className="py-2"
+              >
+                <Text className="text-center font-medium text-blue-500">
+                  Xem tất cả sự cố
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {showAll && (
+              <TouchableOpacity
+                onPress={() => setShowAll(false)}
+                className="py-2"
+              >
+                <Text className="text-center font-medium text-blue-500">
+                  Thu gọn
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Report Incident Modal */}
+      <Modal
+        visible={isModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/50 px-4">
+          <View
+            className="w-full max-w-md rounded-2xl bg-white p-6"
+            style={{ maxHeight: '80%' }}
+          >
+            <Text className="mb-4 text-xl font-bold text-gray-900">
+              Báo cáo sự cố
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Incident Type */}
+              <ContextMenuField
+                label="Loại sự cố *"
+                value={selectedIncidentType}
+                options={incidentTypeOptions}
+                onSelect={setSelectedIncidentType}
+                placeholder="Chọn loại sự cố"
+              />
 
               {/* Fish Count - only show for fish-related incidents */}
               {(selectedIncidentType === 'Cá chết' ||
                 selectedIncidentType === 'Cá bệnh') && (
-                <View>
+                <View className="mb-4">
                   <Text className="mb-2 font-medium text-gray-700">
                     Số lượng cá{' '}
                     {selectedIncidentType === 'Cá chết' ? 'chết' : 'bệnh'}
@@ -128,14 +289,14 @@ export default function IncidentReporting({
                     placeholder="VD: 2"
                     value={fishCount}
                     onChangeText={setFishCount}
-                    className="rounded-xl border border-gray-300 bg-gray-50 px-4 py-3"
+                    className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3"
                     keyboardType="numeric"
                   />
                 </View>
               )}
 
               {/* Description */}
-              <View>
+              <View className="mb-4">
                 <Text className="mb-2 font-medium text-gray-700">
                   Mô tả chi tiết <Text className="text-red-500">*</Text>
                 </Text>
@@ -143,59 +304,38 @@ export default function IncidentReporting({
                   placeholder="Mô tả tình trạng, nguyên nhân có thể, các biện pháp đã thực hiện..."
                   value={incidentDescription}
                   onChangeText={setIncidentDescription}
-                  className="rounded-xl border border-gray-300 bg-gray-50 px-4 py-3"
+                  className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3"
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
                 />
               </View>
+            </ScrollView>
 
-              {/* Action Buttons */}
-              <View className="flex-row space-x-2">
-                <TouchableOpacity
-                  onPress={() => setShowIncidentForm(false)}
-                  className="flex-1 rounded-xl bg-gray-300 py-3"
-                >
-                  <Text className="text-center font-medium text-gray-700">
-                    Hủy
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleSubmitIncident}
-                  className="flex-1 rounded-xl bg-red-500 py-3"
-                >
-                  <Text className="text-center font-medium text-white">
-                    Báo cáo
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Recent Incidents */}
-          <View className="mt-6 border-t border-gray-200 pt-4">
-            <Text className="mb-3 font-medium text-gray-900">
-              Sự cố gần đây
-            </Text>
-            <View className="flex-row items-start rounded-xl border border-yellow-200 bg-yellow-50 p-3">
-              <AlertTriangle
-                size={16}
-                color="#f59e0b"
-                className="mr-2 mt-0.5"
-              />
-              <View className="flex-1">
-                <Text className="font-medium text-yellow-800">Cá chết</Text>
-                <Text className="text-sm text-yellow-700">
-                  2 cá Koi chết, nghi do nhiễm bệnh
+            {/* Action Buttons */}
+            <View className="mt-4 flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => {
+                  setIsModalVisible(false);
+                  setIncidentDescription('');
+                  setFishCount('');
+                }}
+                className="flex-1 rounded-lg bg-gray-500 py-3"
+              >
+                <Text className="text-center font-medium text-white">Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSubmitIncident}
+                className="flex-1 rounded-lg bg-red-500 py-3"
+              >
+                <Text className="text-center font-medium text-white">
+                  Báo cáo
                 </Text>
-                <Text className="mt-1 text-xs text-yellow-600">
-                  3 giờ trước
-                </Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
