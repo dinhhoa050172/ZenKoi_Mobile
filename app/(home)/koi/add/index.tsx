@@ -23,12 +23,12 @@ import {
   Image,
   Modal,
   Platform,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -237,23 +237,24 @@ export default function AddKoiPage() {
       try {
         const res = await uploadImage.mutateAsync({ file: fileForUpload });
         const remoteUrl = res?.result?.url;
+
+        if (!remoteUrl) {
+          throw new Error('Không nhận được URL từ server');
+        }
+
         // append only if under the 6-image limit
         const existing = formData.images ?? [];
         if (existing.length < 6) {
           setFormData({
             ...formData,
-            images: [...existing, remoteUrl ?? uri],
+            images: [...existing, remoteUrl],
           });
         } else {
           Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
         }
       } catch (err) {
         console.warn('upload error', err);
-        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Ảnh sẽ được dùng cục bộ.');
-        const existing = formData.images ?? [];
-        if (existing.length < 6) {
-          setFormData({ ...formData, images: [...existing, uri] });
-        }
+        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Vui lòng thử lại.');
       } finally {
         setIsUploading(false);
       }
@@ -296,22 +297,23 @@ export default function AddKoiPage() {
       try {
         const res = await uploadImage.mutateAsync({ file: fileForUpload });
         const remoteUrl = res?.result?.url;
+
+        if (!remoteUrl) {
+          throw new Error('Không nhận được URL từ server');
+        }
+
         const existing = formData.images ?? [];
         if (existing.length < 6) {
           setFormData({
             ...formData,
-            images: [...existing, remoteUrl ?? uri],
+            images: [...existing, remoteUrl],
           });
         } else {
           Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
         }
       } catch (err) {
         console.warn('upload error', err);
-        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Ảnh sẽ được dùng cục bộ.');
-        const existing = formData.images ?? [];
-        if (existing.length < 6) {
-          setFormData({ ...formData, images: [...existing, uri] });
-        }
+        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Vui lòng thử lại.');
       } finally {
         setIsUploading(false);
       }
@@ -390,10 +392,15 @@ export default function AddKoiPage() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'android' ? 120 : 50}
+        keyboardOpeningTime={0}
         className="flex-1 p-4"
         contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="mb-6">
           <Text className="mb-2 text-base font-medium text-gray-900">
@@ -402,32 +409,45 @@ export default function AddKoiPage() {
 
           {/* Image gallery grid */}
           <View className="-m-2 flex-row flex-wrap">
-            {(formData.images || []).map((url, idx) => (
-              <View key={idx} className="p-2" style={{ width: '50%' }}>
-                <View className="relative">
-                  <Image
-                    source={{ uri: url }}
-                    className="h-40 w-full rounded-lg"
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity
-                    onPress={() => {
-                      // remove image at idx
-                      setFormData({
-                        ...formData,
-                        images: (formData.images || []).filter(
-                          (_, i) => i !== idx
-                        ),
-                      });
-                    }}
-                    className="absolute right-2 top-2 rounded-full bg-white p-1"
-                    style={{ elevation: 2 }}
-                  >
-                    <X size={18} color="#ef4444" />
-                  </TouchableOpacity>
+            {(formData.images || []).map((url, idx) => {
+              console.log('Displaying image:', url); // Debug log
+              return (
+                <View key={idx} className="p-2" style={{ width: '50%' }}>
+                  <View className="relative">
+                    <Image
+                      source={{ uri: url }}
+                      className="h-40 w-full rounded-lg"
+                      resizeMode="cover"
+                      onError={(e) => {
+                        console.error(
+                          'Image load error:',
+                          url,
+                          e.nativeEvent.error
+                        );
+                      }}
+                      onLoad={() => {
+                        console.log('Image loaded successfully:', url);
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        // remove image at idx
+                        setFormData({
+                          ...formData,
+                          images: (formData.images || []).filter(
+                            (_, i) => i !== idx
+                          ),
+                        });
+                      }}
+                      className="absolute right-2 top-2 rounded-full bg-white p-1"
+                      style={{ elevation: 2 }}
+                    >
+                      <X size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             {/* Uploading indicator: show when uploadImage is loading */}
             {(uploadImage as any).isLoading ||
@@ -815,7 +835,7 @@ export default function AddKoiPage() {
             <Text className="text-center font-medium text-white">Lưu</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
       {/* Full-screen upload overlay */}
       {isUploading && (
         <View className="absolute inset-0 items-center justify-center bg-black/40">

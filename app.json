@@ -14,9 +14,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/Logo_ZenKoi.png",
-        "backgroundImage": "./assets/images/Logo_ZenKoi.png",
-        "monochromeImage": "./assets/images/Logo_ZenKoi.png"
+        "foregroundImage": "./assets/images/ZenKoi_white.jpg",
+        "backgroundImage": "./assets/images/ZenKoi_white.jpg",
+        "monochromeImage": "./assets/images/ZenKoi_white.jpg"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

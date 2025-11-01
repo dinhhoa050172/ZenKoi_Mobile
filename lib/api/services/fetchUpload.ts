@@ -26,6 +26,15 @@ export const uploadServices = {
       '/api/upload/upload-image',
       formdata
     );
+
+    // Convert HTTP to HTTPS for Cloudinary URLs
+    if (response.data?.result?.url) {
+      response.data.result.url = response.data.result.url.replace(
+        'http://res.cloudinary.com',
+        'https://res.cloudinary.com'
+      );
+    }
+
     return response.data;
   },
 };

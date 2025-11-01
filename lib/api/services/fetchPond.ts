@@ -1,4 +1,5 @@
 import apiService, { RequestParams } from '../apiClient';
+import { KoiFish } from './fetchKoiFish';
 
 export enum PondStatus {
   EMPTY = 'Empty',
@@ -11,6 +12,8 @@ export interface Pond {
   pondName: string;
   location: string;
   pondStatus: PondStatus;
+  maxFishCount: number | null;
+  currentCount: number | null;
   capacityLiters: number;
   depthMeters: number;
   lengthMeters: number;
@@ -70,6 +73,13 @@ export interface PondResponse {
   isSuccess: boolean;
   message: string;
   result: Pond;
+}
+
+export interface FishOfPondResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiFish[];
 }
 
 // Convert PondSearchParams to RequestParams
