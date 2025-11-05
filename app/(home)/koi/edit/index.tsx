@@ -1,4 +1,5 @@
 import ContextMenuField from '@/components/ContextMenuField';
+import { CustomAlert } from '@/components/CustomAlert';
 import { useGetKoiFishById, useUpdateKoiFish } from '@/hooks/useKoiFish';
 import { useGetPonds } from '@/hooks/usePond';
 import { useUploadImage } from '@/hooks/useUpload';
@@ -16,24 +17,24 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, LibraryBig, X } from 'lucide-react-native';
+import { Calendar, Camera, LibraryBig, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Platform,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 export default function EditKoiPage() {
   const router = useRouter();
@@ -49,6 +50,31 @@ export default function EditKoiPage() {
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertTitle, setCustomAlertTitle] = useState('');
+  const [customAlertMessage, setCustomAlertMessage] = useState('');
+  const [customAlertType, setCustomAlertType] = useState<
+    'danger' | 'warning' | 'info'
+  >('danger');
+  const [customAlertOnConfirm, setCustomAlertOnConfirm] = useState<
+    (() => void) | undefined
+  >(() => undefined);
+
+  const showCustomAlert = (opts: {
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }) => {
+    setCustomAlertTitle(opts.title);
+    setCustomAlertMessage(opts.message);
+    setCustomAlertType(opts.type ?? 'danger');
+    setCustomAlertOnConfirm(
+      () => opts.onConfirm ?? (() => setCustomAlertVisible(false))
+    );
+    setCustomAlertVisible(true);
+  };
 
   const { data: koiData, isLoading: koiLoading } = useGetKoiFishById(
     koiId ?? 0,
@@ -213,16 +239,21 @@ export default function EditKoiPage() {
   const pickImageFromLibrary = async () => {
     if (!formData) return;
     if ((formData.images ?? []).length >= 6) {
-      Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+      showCustomAlert({
+        title: 'Giới hạn',
+        message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+        type: 'warning',
+      });
       return;
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Quyền truy cập bị từ chối',
-        'Vui lòng cho phép truy cập ảnh để chọn ảnh từ thư viện'
-      );
+      showCustomAlert({
+        title: 'Quyền truy cập bị từ chối',
+        message: 'Vui lòng cho phép truy cập ảnh để chọn ảnh từ thư viện',
+        type: 'warning',
+      });
       return;
     }
 
@@ -245,41 +276,64 @@ export default function EditKoiPage() {
       try {
         const res = await uploadImage.mutateAsync({ file: fileForUpload });
         const remoteUrl = res?.result?.url;
+
+        if (!remoteUrl) {
+          throw new Error('Không nhận được URL từ server');
+        }
+
         const existing = formData.images ?? [];
         if (existing.length < 6) {
-          setFormData({ ...formData, images: [...existing, remoteUrl ?? uri] });
+          setFormData({ ...formData, images: [...existing, remoteUrl] });
+          setErrors((prev) => {
+            const copy = { ...prev };
+            delete copy.images;
+            return copy;
+          });
         } else {
-          Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+          showCustomAlert({
+            title: 'Giới hạn',
+            message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+            type: 'warning',
+          });
         }
       } catch (err) {
         console.warn('upload error', err);
-        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Ảnh sẽ được dùng cục bộ.');
-        const existing = formData.images ?? [];
-        if (existing.length < 6) {
-          setFormData({ ...formData, images: [...existing, uri] });
-        }
+        showCustomAlert({
+          title: 'Lỗi',
+          message: 'Không thể tải ảnh lên. Vui lòng thử lại.',
+          type: 'danger',
+        });
       } finally {
         setIsUploading(false);
       }
     } catch (err) {
       console.warn('pickImageFromLibrary error', err);
-      Alert.alert('Lỗi', 'Không thể chọn ảnh. Thử lại sau.');
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không thể chọn ảnh. Thử lại sau.',
+        type: 'danger',
+      });
     }
   };
 
   const takePhoto = async () => {
     if (!formData) return;
     if ((formData.images ?? []).length >= 6) {
-      Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+      showCustomAlert({
+        title: 'Giới hạn',
+        message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+        type: 'warning',
+      });
       return;
     }
 
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Quyền truy cập bị từ chối',
-        'Vui lòng cho phép truy cập camera để chụp ảnh'
-      );
+      showCustomAlert({
+        title: 'Quyền truy cập bị từ chối',
+        message: 'Vui lòng cho phép truy cập camera để chụp ảnh',
+        type: 'warning',
+      });
       return;
     }
 
@@ -301,25 +355,43 @@ export default function EditKoiPage() {
       try {
         const res = await uploadImage.mutateAsync({ file: fileForUpload });
         const remoteUrl = res?.result?.url;
+
+        if (!remoteUrl) {
+          throw new Error('Không nhận được URL từ server');
+        }
+
         const existing = formData.images ?? [];
         if (existing.length < 6) {
-          setFormData({ ...formData, images: [...existing, remoteUrl ?? uri] });
+          setFormData({ ...formData, images: [...existing, remoteUrl] });
+          setErrors((prev) => {
+            const copy = { ...prev };
+            delete copy.images;
+            return copy;
+          });
         } else {
-          Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+          showCustomAlert({
+            title: 'Giới hạn',
+            message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+            type: 'warning',
+          });
         }
       } catch (err) {
         console.warn('upload error', err);
-        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Ảnh sẽ được dùng cục bộ.');
-        const existing = formData.images ?? [];
-        if (existing.length < 6) {
-          setFormData({ ...formData, images: [...existing, uri] });
-        }
+        showCustomAlert({
+          title: 'Lỗi',
+          message: 'Không thể tải ảnh lên. Vui lòng thử lại.',
+          type: 'danger',
+        });
       } finally {
         setIsUploading(false);
       }
     } catch (err) {
       console.warn('takePhoto error', err);
-      Alert.alert('Lỗi', 'Không thể chụp ảnh. Thử lại sau.');
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không thể chụp ảnh. Thử lại sau.',
+        type: 'danger',
+      });
     }
   };
 
@@ -350,6 +422,9 @@ export default function EditKoiPage() {
       nextErrors.description = 'Vui lòng nhập mô tả';
 
     setErrors(nextErrors);
+    if (nextErrors.images) {
+      Toast.show({ type: 'error', text1: nextErrors.images, position: 'top' });
+    }
     if (Object.keys(nextErrors).length > 0) return;
 
     const payload: KoiFishRequest = {
@@ -406,10 +481,15 @@ export default function EditKoiPage() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'android' ? 120 : 50}
+        keyboardOpeningTime={0}
         className="flex-1 p-4"
         contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="mb-6">
           <Text className="mb-2 text-base font-medium text-gray-900">
@@ -417,31 +497,47 @@ export default function EditKoiPage() {
           </Text>
 
           <View className="-m-2 flex-row flex-wrap">
-            {(formData.images || []).map((url: string, idx: number) => (
-              <View key={idx} className="p-2" style={{ width: '50%' }}>
-                <View className="relative">
-                  <Image
-                    source={{ uri: url }}
-                    className="h-40 w-full rounded-lg"
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity
-                    onPress={() => {
-                      setFormData({
-                        ...formData,
-                        images: (formData.images || []).filter(
+            {(formData.images || []).map((url: string, idx: number) => {
+              console.log('Displaying image:', url); // Debug log
+              return (
+                <View key={idx} className="p-2" style={{ width: '50%' }}>
+                  <View className="relative">
+                    <Image
+                      source={{ uri: url }}
+                      className="h-48 w-full rounded-lg"
+                      resizeMode="cover"
+                      onError={(e) => {
+                        console.error(
+                          'Image load error:',
+                          url,
+                          e.nativeEvent.error
+                        );
+                      }}
+                      onLoad={() => {
+                        console.log('Image loaded successfully:', url);
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        const newImages = (formData.images || []).filter(
                           (_: any, i: number) => i !== idx
-                        ),
-                      });
-                    }}
-                    className="absolute right-2 top-2 rounded-full bg-white p-1"
-                    style={{ elevation: 2 }}
-                  >
-                    <X size={18} color="#ef4444" />
-                  </TouchableOpacity>
+                        );
+                        setFormData({ ...formData, images: newImages });
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.images;
+                          return copy;
+                        });
+                      }}
+                      className="absolute right-2 top-2 rounded-full bg-white p-1"
+                      style={{ elevation: 2 }}
+                    >
+                      <X size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             {(uploadImage as any).isLoading ||
             (uploadImage as any).isMutating ? (
@@ -456,7 +552,7 @@ export default function EditKoiPage() {
             {(formData.images ?? []).length < 6 && (
               <View className="p-2" style={{ width: '50%' }}>
                 <TouchableOpacity
-                  className="h-40 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
+                  className="h-48 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
                   onPress={() => setShowImageOptions(true)}
                 >
                   <View style={{ alignItems: 'center' }}>
@@ -527,7 +623,14 @@ export default function EditKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Nhập mã RFID"
             value={formData.rfid}
-            onChangeText={(t) => setFormData({ ...formData, rfid: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, rfid: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.rfid;
+                return copy;
+              });
+            }}
           />
           {errors.rfid && (
             <Text className="mt-1 text-sm text-red-500">{errors.rfid}</Text>
@@ -543,9 +646,21 @@ export default function EditKoiPage() {
               }
               options={varietySelectOptions}
               onSelect={(v) => {
-                if (v === '__none')
-                  return setFormData({ ...formData, varietyId: 0 });
+                if (v === '__none') {
+                  setFormData({ ...formData, varietyId: 0 });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.varietyId;
+                    return copy;
+                  });
+                  return;
+                }
                 setFormData({ ...formData, varietyId: Number(v) });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.varietyId;
+                  return copy;
+                });
               }}
               placeholder="Chọn giống"
             />
@@ -559,7 +674,14 @@ export default function EditKoiPage() {
               label="Loại"
               value={formData.type}
               options={typeOptionsVN as any}
-              onSelect={(v) => setFormData({ ...formData, type: v as KoiType })}
+              onSelect={(v) => {
+                setFormData({ ...formData, type: v as KoiType });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.type;
+                  return copy;
+                });
+              }}
               placeholder="Chọn loại"
             />
             {errors.type && (
@@ -574,9 +696,21 @@ export default function EditKoiPage() {
             value={formData.pondId ? String(formData.pondId) : undefined}
             options={pondSelectOptions}
             onSelect={(v) => {
-              if (v === '__none')
-                return setFormData({ ...formData, pondId: 0 });
+              if (v === '__none') {
+                setFormData({ ...formData, pondId: 0 });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.pondId;
+                  return copy;
+                });
+                return;
+              }
               setFormData({ ...formData, pondId: Number(v) });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.pondId;
+                return copy;
+              });
             }}
             placeholder="Chọn bể"
           />
@@ -592,9 +726,14 @@ export default function EditKoiPage() {
               label="Giới tính"
               value={formData.gender}
               options={genderOptionsVN as any}
-              onSelect={(v) =>
-                setFormData({ ...formData, gender: v as Gender })
-              }
+              onSelect={(v) => {
+                setFormData({ ...formData, gender: v as Gender });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.gender;
+                  return copy;
+                });
+              }}
               placeholder="Chọn giới tính"
             />
             {errors.gender && (
@@ -607,9 +746,14 @@ export default function EditKoiPage() {
               label="Chiều dài (cm)"
               value={formData.size}
               options={fishSizeOptions as any}
-              onSelect={(v: string) =>
-                setFormData({ ...formData, size: v as FishSize })
-              }
+              onSelect={(v: string) => {
+                setFormData({ ...formData, size: v as FishSize });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.size;
+                  return copy;
+                });
+              }}
               placeholder="Chọn kích thước"
             />
             {errors.size && (
@@ -627,7 +771,14 @@ export default function EditKoiPage() {
               className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
               placeholder="Nhập nguồn gốc"
               value={formData.origin}
-              onChangeText={(t) => setFormData({ ...formData, origin: t })}
+              onChangeText={(t) => {
+                setFormData({ ...formData, origin: t });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.origin;
+                  return copy;
+                });
+              }}
             />
             {errors.origin && (
               <Text className="mt-1 text-sm text-red-500">{errors.origin}</Text>
@@ -639,9 +790,14 @@ export default function EditKoiPage() {
               label="Tình trạng sức khỏe"
               value={formData.healthStatus}
               options={healthOptionsVN as any}
-              onSelect={(v) =>
-                setFormData({ ...formData, healthStatus: v as HealthStatus })
-              }
+              onSelect={(v) => {
+                setFormData({ ...formData, healthStatus: v as HealthStatus });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.healthStatus;
+                  return copy;
+                });
+              }}
               placeholder="Chọn tình trạng"
             />
             {errors.healthStatus && (
@@ -658,9 +814,14 @@ export default function EditKoiPage() {
             label="Trạng thái bán"
             value={formData.saleStatus}
             options={saleStatusOptionsVN as any}
-            onSelect={(v) =>
-              setFormData({ ...formData, saleStatus: v as SaleStatus })
-            }
+            onSelect={(v) => {
+              setFormData({ ...formData, saleStatus: v as SaleStatus });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.saleStatus;
+                return copy;
+              });
+            }}
             placeholder="Chọn trạng thái bán"
           />
         </View>
@@ -671,14 +832,18 @@ export default function EditKoiPage() {
               Ngày sinh
             </Text>
             <TouchableOpacity
-              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+              className="flex-row items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
               onPress={() => {
                 setDatePickerMode('date');
                 setShowDatePicker(true);
               }}
             >
+              <Calendar
+                size={18}
+                color={formData.birthDate ? '#111827' : '#6b7280'}
+              />
               <Text
-                className={`${formData.birthDate ? 'text-gray-900' : 'text-gray-500'}`}
+                className={`ml-2 ${formData.birthDate ? 'text-gray-900' : 'text-gray-500'}`}
               >
                 {formatDate(formData.birthDate, 'yyyy-MM-dd') || 'Chọn ngày'}
               </Text>
@@ -690,9 +855,33 @@ export default function EditKoiPage() {
                 }
                 mode={datePickerMode}
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={new Date()}
                 onChange={(e: any, selected?: Date) => {
                   setShowDatePicker(Platform.OS === 'ios');
                   if (!selected) return;
+                  const now = new Date();
+                  const sel = new Date(
+                    selected.getFullYear(),
+                    selected.getMonth(),
+                    selected.getDate()
+                  );
+                  const today = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate()
+                  );
+                  if (sel > today) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      birthDate: 'Không được chọn ngày trong tương lai',
+                    }));
+                    return;
+                  }
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.birthDate;
+                    return copy;
+                  });
                   const y = selected.getFullYear();
                   const m = String(selected.getMonth() + 1).padStart(2, '0');
                   const d = String(selected.getDate()).padStart(2, '0');
@@ -723,12 +912,22 @@ export default function EditKoiPage() {
               onChangeText={(t) => {
                 if (t.trim() === '') {
                   setFormData({ ...formData, sellingPrice: 0 });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.sellingPrice;
+                    return copy;
+                  });
                   return;
                 }
                 const parsed = Number(t.replace(/[^0-9.-]/g, ''));
                 setFormData({
                   ...formData,
                   sellingPrice: Number.isFinite(parsed) ? parsed : 0,
+                });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.sellingPrice;
+                  return copy;
                 });
               }}
             />
@@ -748,7 +947,14 @@ export default function EditKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Mô tả hình dáng"
             value={formData.bodyShape}
-            onChangeText={(t) => setFormData({ ...formData, bodyShape: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, bodyShape: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.bodyShape;
+                return copy;
+              });
+            }}
           />
           {errors.bodyShape && (
             <Text className="mt-1 text-sm text-red-500">
@@ -765,7 +971,14 @@ export default function EditKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Mô tả màu sắc và hoa văn"
             value={formData.colorPattern}
-            onChangeText={(t) => setFormData({ ...formData, colorPattern: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, colorPattern: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.colorPattern;
+                return copy;
+              });
+            }}
           />
           {errors.colorPattern && (
             <Text className="mt-1 text-sm text-red-500">
@@ -786,7 +999,14 @@ export default function EditKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Thông tin về cá Koi..."
             value={formData.description}
-            onChangeText={(t) => setFormData({ ...formData, description: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, description: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.description;
+                return copy;
+              });
+            }}
           />
           {errors.description && (
             <Text className="mt-1 text-sm text-red-500">
@@ -812,7 +1032,7 @@ export default function EditKoiPage() {
             <Text className="text-center font-medium text-white">Lưu</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {isUploading && (
         <View className="absolute inset-0 items-center justify-center bg-black/40">
@@ -822,6 +1042,17 @@ export default function EditKoiPage() {
           </View>
         </View>
       )}
+      <CustomAlert
+        visible={customAlertVisible}
+        title={customAlertTitle}
+        message={customAlertMessage}
+        type={customAlertType}
+        onCancel={() => setCustomAlertVisible(false)}
+        onConfirm={() => {
+          setCustomAlertVisible(false);
+          if (customAlertOnConfirm) customAlertOnConfirm();
+        }}
+      />
     </SafeAreaView>
   );
 }

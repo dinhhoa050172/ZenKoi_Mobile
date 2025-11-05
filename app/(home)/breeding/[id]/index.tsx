@@ -1,5 +1,6 @@
 import { ChangePondModal } from '@/components/breeding/ChangePondModal';
 import { CountEggModal } from '@/components/breeding/CountEggModal';
+import { CreatePacketFishModal } from '@/components/breeding/CreatePacketFishModal';
 import { EditClassificationRecordModal } from '@/components/breeding/EditClassificationRecordModal';
 import { EditFrySurvivalRecordModal } from '@/components/breeding/EditFrySurvivalRecordModal';
 import { EditIncubationRecordModal } from '@/components/breeding/EditIncubationRecordModal';
@@ -17,6 +18,7 @@ import { useUpdateFryFish } from '@/hooks/useFryFish';
 import { useDeleteFrySurvivalRecord } from '@/hooks/useFrySurvivalRecord';
 import { useDeleteIncubationDailyRecord } from '@/hooks/useIncubationDailyRecord';
 import { useGetPonds } from '@/hooks/usePond';
+import { useGetPondPacketFishes } from '@/hooks/usePondPacketFish';
 import {
   BreedingStatus,
   ClassificationRecordBreeding,
@@ -35,6 +37,7 @@ import {
   ChevronRight,
   Edit,
   Egg,
+  Plus,
   Trash2,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -108,6 +111,10 @@ export default function BreedingDetailScreen() {
   // State for SelectionModal
   const [showSelectionModal, setShowSelectionModal] = useState(false);
 
+  // State for Create Packet Fish Modal
+  const [showCreatePacketModal, setShowCreatePacketModal] = useState(false);
+  const [editPacketFishId, setEditPacketFishId] = useState<number | null>(null);
+
   // State for marking as spawned
   const [isMarkingSpawned, setIsMarkingSpawned] = useState(false);
 
@@ -143,6 +150,13 @@ export default function BreedingDetailScreen() {
     },
     true
   );
+
+  const pondPacketQuery = useGetPondPacketFishes(
+    { breedingProcessId: breedingId, pageIndex: 1, pageSize: 1 },
+    !!breedingId
+  );
+
+  const hasPondPacket = (pondPacketQuery.data?.data ?? []).length > 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -392,6 +406,24 @@ export default function BreedingDetailScreen() {
   const breedingDetail = breedingDetailQuery.data;
   // Guarded array for incubation daily records to avoid possible undefined access
   const incubationRecords = breedingDetail.batch?.incubationDailyRecords ?? [];
+
+  // Pond options for CreatePacketFishModal: include current pond first if missing
+  const pondOptions = (() => {
+    const emptyPonds = emptyPondPage?.data ?? [];
+    const currentPondId = breedingDetail.pondId;
+    const currentPondExists = emptyPonds.some((p) => p.id === currentPondId);
+
+    if (!currentPondExists) {
+      return [
+        {
+          id: currentPondId,
+          pondName: breedingDetail.pondName,
+        } as any,
+        ...emptyPonds,
+      ];
+    }
+    return emptyPonds;
+  })();
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -1255,10 +1287,11 @@ export default function BreedingDetailScreen() {
                                 .classificationRecords.length < 4) && (
                               <TouchableOpacity
                                 onPress={() => setShowSelectionModal(true)}
-                                className="flex-row items-center gap-1 rounded-full bg-blue-500 px-3 py-1"
+                                className="flex-row items-center gap-1 rounded-full bg-blue-500 px-3 py-2"
                               >
+                                <Plus size={18} color="#fff" />
                                 <Text className="text-xs font-medium text-white">
-                                  + Bản ghi
+                                  Bản ghi
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -1272,7 +1305,7 @@ export default function BreedingDetailScreen() {
                                     `/breeding/${breedingId}/fish-list?redirect=/breeding/${breedingId}`
                                   )
                                 }
-                                className="flex-row items-center gap-1 rounded-full bg-green-600 px-3 py-1"
+                                className="flex-row items-center gap-1 rounded-full bg-green-600 px-3 py-2"
                               >
                                 <Text className="text-xs font-medium text-white">
                                   Danh sách cá
@@ -1281,13 +1314,50 @@ export default function BreedingDetailScreen() {
                             )}
                         </View>
                       </View>
-                      <Text className="text-sm text-gray-900">
-                        Tổng số cá:{' '}
-                        {(
-                          breedingDetail.classificationStage.totalCount ?? 0
-                        ).toLocaleString()}{' '}
-                        con
-                      </Text>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-sm text-gray-900">
+                          Tổng số cá:{' '}
+                          {(
+                            breedingDetail.classificationStage.totalCount ?? 0
+                          ).toLocaleString()}{' '}
+                          con
+                        </Text>
+                        <TouchableOpacity
+                          onPress={async () => {
+                            try {
+                              const res = await pondPacketQuery.refetch();
+                              const items =
+                                res.data?.data ??
+                                pondPacketQuery.data?.data ??
+                                [];
+                              const first = items[0];
+                              const packetId =
+                                first?.packetFishId ?? first?.packetFish?.id;
+                              setEditPacketFishId(packetId ?? null);
+                            } catch {
+                              setEditPacketFishId(null);
+                            }
+                            setShowCreatePacketModal(true);
+                          }}
+                          className="rounded-full bg-blue-500 px-3 py-2"
+                        >
+                          {hasPondPacket ? (
+                            <View className="flex-row items-center">
+                              <Edit size={16} color="#fff" />
+                              <Text className="ml-2 text-xs font-medium text-white">
+                                Sửa lô cá
+                              </Text>
+                            </View>
+                          ) : (
+                            <View className="flex-row items-center">
+                              <Plus size={16} color="#fff" />
+                              <Text className="ml-2 text-xs font-medium text-white">
+                                Tạo lô cá
+                              </Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      </View>
 
                       {/* Classification Records Table */}
                       {breedingDetail.classificationStage
@@ -1472,18 +1542,56 @@ export default function BreedingDetailScreen() {
                     <Text className="text-base font-medium text-gray-900">
                       Kết quả tổng quan
                     </Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        router.push(
-                          `/breeding/${breedingId}/fish-list?redirect=/breeding/${breedingId}`
-                        )
-                      }
-                      className="flex-row items-center gap-1 rounded-full bg-green-600 px-3 py-1"
-                    >
-                      <Text className="text-xs font-medium text-white">
-                        Danh sách cá
-                      </Text>
-                    </TouchableOpacity>
+                    <View className="flex-row items-center gap-2">
+                      <TouchableOpacity
+                        onPress={async () => {
+                          try {
+                            const res = await pondPacketQuery.refetch();
+                            const items =
+                              res.data?.data ??
+                              pondPacketQuery.data?.data ??
+                              [];
+                            const first = items[0];
+                            const packetId =
+                              first?.packetFishId ?? first?.packetFish?.id;
+                            setEditPacketFishId(packetId ?? null);
+                          } catch {
+                            setEditPacketFishId(null);
+                          }
+                          setShowCreatePacketModal(true);
+                        }}
+                        className="rounded-full bg-blue-500 px-3 py-2"
+                      >
+                        {hasPondPacket ? (
+                          <View className="flex-row items-center">
+                            <Edit size={16} color="#fff" className="mr-2" />
+                            <Text className="text-xs font-medium text-white">
+                              Sửa lô cá
+                            </Text>
+                          </View>
+                        ) : (
+                          <View className="flex-row items-center">
+                            <Plus size={16} color="#fff" className="mr-2" />
+                            <Text className="text-xs font-medium text-white">
+                              Tạo lô cá
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() =>
+                          router.push(
+                            `/breeding/${breedingId}/fish-list?redirect=/breeding/${breedingId}`
+                          )
+                        }
+                        className="flex-row items-center gap-1 rounded-full bg-green-600 px-3 py-2"
+                      >
+                        <Text className="text-xs font-medium text-white">
+                          Danh sách cá
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <Text className="text-sm text-gray-900">
                     Tổng số cá đạt chuẩn:{' '}
@@ -1491,8 +1599,8 @@ export default function BreedingDetailScreen() {
                     con
                   </Text>
                   <Text className="text-sm text-gray-900">
-                    Số gói:{' '}
-                    {(breedingDetail.totalPackage ?? 0).toLocaleString()} gói
+                    Số lô cá:{' '}
+                    {(breedingDetail.totalPackage ?? 0).toLocaleString()} lô
                   </Text>
                   <Text className="text-sm text-gray-900">
                     Tỷ lệ thụ tinh:{' '}
@@ -1515,6 +1623,19 @@ export default function BreedingDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Create Packet Fish Modal */}
+      <CreatePacketFishModal
+        visible={showCreatePacketModal}
+        onClose={() => {
+          setShowCreatePacketModal(false);
+        }}
+        breedingId={breedingId}
+        ponds={pondOptions}
+        currentPondId={breedingDetail.pondId}
+        packetFishId={editPacketFishId ?? undefined}
+        onSuccess={() => breedingDetailQuery.refetch()}
+      />
 
       {/* Update Egg Batch Modal */}
       <UpdateEggBatchModal

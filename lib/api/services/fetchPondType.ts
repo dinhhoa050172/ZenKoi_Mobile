@@ -1,16 +1,27 @@
 import apiService, { RequestParams } from '../apiClient';
 
+export enum TypeOfPond {
+  PARING = 'Paring',
+  EGG_BATCH = 'EggBatch',
+  FRY_FISH = 'FryFish',
+  CLASSIFICATION = 'Classification',
+  MARKET_POND = 'MarketPond',
+  BROOD_STOCK = 'BroodStock',
+}
+
 export interface PondType {
   id: number;
   typeName: string;
   description: string;
-  recommendedCapacity: number;
+  type: TypeOfPond;
+  recommendedQuantity: number;
 }
 
 export interface PondTypeSearchParams {
   search?: string;
-  minRecommendedCapacity?: number;
-  maxRecommendedCapacity?: number;
+  type?: TypeOfPond;
+  minRecommendedQuantity?: number;
+  maxRecommendedQuantity?: number;
   pageIndex?: number;
   pageSize?: number;
 }
@@ -18,7 +29,8 @@ export interface PondTypeSearchParams {
 export interface PondTypeRequest {
   typeName: string;
   description: string;
-  recommendedCapacity: number;
+  type: TypeOfPond;
+  recommendedQuantity: number;
 }
 
 export interface PondTypePagination {
@@ -54,10 +66,11 @@ export const convertPondTypeFilter = (
 
   // Basic parameters
   if (filters.search) params.search = filters.search;
-  if (filters.minRecommendedCapacity)
-    params.minRecommendedCapacity = filters.minRecommendedCapacity;
-  if (filters.maxRecommendedCapacity)
-    params.maxRecommendedCapacity = filters.maxRecommendedCapacity;
+  if (filters.type) params.type = filters.type;
+  if (filters.minRecommendedQuantity)
+    params.minRecommendedQuantity = filters.minRecommendedQuantity;
+  if (filters.maxRecommendedQuantity)
+    params.maxRecommendedQuantity = filters.maxRecommendedQuantity;
   if (filters.pageIndex) params.pageIndex = filters.pageIndex;
   if (filters.pageSize) params.pageSize = filters.pageSize;
 

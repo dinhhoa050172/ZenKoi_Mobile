@@ -1,5 +1,6 @@
 import ClassificationStageSection from '@/components/breeding/ClassificationStageSection';
 import { CountEggModal } from '@/components/breeding/CountEggModal';
+import { CreatePacketFishModal } from '@/components/breeding/CreatePacketFishModal';
 import FryFishInfo from '@/components/breeding/FryFishInfo';
 import FryFishSummary from '@/components/breeding/FryFishSummary';
 import { FrySurvivalRecordModal } from '@/components/breeding/FrySurvivalRecordModal';
@@ -56,6 +57,9 @@ export default function BreedingScreen() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showFryUpdateModal, setShowFryUpdateModal] = useState(false);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
+  const [showCreatePacketModal, setShowCreatePacketModal] = useState(false);
+
+  const [editPacketFishId, setEditPacketFishId] = useState<number | null>(null);
 
   const [currentBreedingId, setCurrentBreedingId] = useState<number | null>(
     null
@@ -630,7 +634,7 @@ export default function BreedingScreen() {
                       >
                         <Eye size={16} color="#6b7280" />
                         <Text className="ml-2 text-sm text-gray-700">
-                          Xem chi tiết
+                          Chi tiết
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -685,7 +689,7 @@ export default function BreedingScreen() {
                       >
                         <Eye size={16} color="#6b7280" />
                         <Text className="ml-2 text-sm text-gray-700">
-                          Xem chi tiết
+                          Chi tiết
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -754,6 +758,19 @@ export default function BreedingScreen() {
                     onStartSelection={() => {
                       setCurrentBreedingId(b.id);
                       setShowSelectionModal(true);
+                    }}
+                    onCreatePacket={() => {
+                      setCurrentBreedingId(b.id);
+                      setEditPacketFishId(null);
+                      setShowCreatePacketModal(true);
+                    }}
+                    onEditPacket={(
+                      breedingProcessId: number,
+                      packetFishId: number
+                    ) => {
+                      setCurrentBreedingId(breedingProcessId);
+                      setEditPacketFishId(packetFishId ?? null);
+                      setShowCreatePacketModal(true);
                     }}
                   />
                 </View>
@@ -891,6 +908,36 @@ export default function BreedingScreen() {
           setCurrentBreedingId(null);
         }}
         breedingId={currentBreedingId}
+      />
+      {/* Create Packet Fish Modal (opened from classification section) */}
+      <CreatePacketFishModal
+        visible={showCreatePacketModal}
+        onClose={() => {
+          setShowCreatePacketModal(false);
+        }}
+        breedingId={currentBreedingId ?? 0}
+        ponds={(() => {
+          const emptyPonds = emptyPondPage?.data ?? [];
+          const current = breedingListToRender.find(
+            (x) => x.id === currentBreedingId
+          );
+          const currentPondId = current?.pondId;
+          const currentPondName = current?.pondName;
+          if (!currentPondId) return emptyPonds;
+          const exists = emptyPonds.some((p) => p.id === currentPondId);
+          if (!exists) {
+            return [
+              { id: currentPondId, pondName: currentPondName ?? '' },
+              ...emptyPonds,
+            ];
+          }
+          return emptyPonds;
+        })()}
+        currentPondId={(() =>
+          breedingListToRender.find((x) => x.id === currentBreedingId)
+            ?.pondId ?? undefined)()}
+        packetFishId={editPacketFishId ?? undefined}
+        onSuccess={() => refetchBreeding()}
       />
       <CustomAlert
         visible={customAlertVisible}

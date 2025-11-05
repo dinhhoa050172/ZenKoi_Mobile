@@ -196,7 +196,7 @@ export default function PondManagementScreen() {
         <FlatList
           data={ponds}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + 20,
+            paddingBottom: insets.bottom + 10,
             paddingHorizontal: 16,
           }}
           showsVerticalScrollIndicator={false}

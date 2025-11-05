@@ -25,19 +25,17 @@ export default function CreatePondModal({
   onClose,
 }: CreatePondModalProps) {
   // Form states
-  const [formData, setFormData] = useState<Partial<PondRequest>>({
+  const [formData, setFormData] = useState<PondRequest>({
     pondName: '',
     location: '',
     pondStatus: PondStatus.EMPTY,
-    capacityLiters: 0,
+    currentCapacity: 0,
     depthMeters: 0,
     lengthMeters: 0,
     widthMeters: 0,
     areaId: 0,
     pondTypeId: 0,
   });
-
-  // UI states
 
   // API hooks
   const { data: pondTypesData } = useGetPondTypes(true, {
@@ -55,18 +53,12 @@ export default function CreatePondModal({
   const pondTypes = pondTypesData?.data || [];
   const areas = areasData?.data || [];
 
-  const statusOptions = [
-    { value: PondStatus.EMPTY, label: 'Trống' },
-    { value: PondStatus.ACTIVE, label: 'Hoạt động' },
-    { value: PondStatus.MAINTENANCE, label: 'Bảo trì' },
-  ];
-
   const resetForm = () => {
     setFormData({
       pondName: '',
       location: '',
       pondStatus: PondStatus.EMPTY,
-      capacityLiters: 0,
+      currentCapacity: 0,
       depthMeters: 0,
       lengthMeters: 0,
       widthMeters: 0,
@@ -97,7 +89,7 @@ export default function CreatePondModal({
       Alert.alert('Lỗi', 'Vui lòng nhập vị trí');
       return false;
     }
-    if (!formData.capacityLiters || formData.capacityLiters <= 0) {
+    if (!formData.currentCapacity || formData.currentCapacity <= 0) {
       Alert.alert('Lỗi', 'Vui lòng nhập dung tích hợp lệ');
       return false;
     }
@@ -120,10 +112,10 @@ export default function CreatePondModal({
       formData.lengthMeters *
       formData.widthMeters *
       1000;
-    if (formData.capacityLiters > maxCapacityLiters) {
+    if ((formData.currentCapacity ?? 0) > maxCapacityLiters) {
       Alert.alert(
         'Lỗi',
-        `Dung tích hồ (${formData.capacityLiters}L) không thể lớn hơn thể tích tính toán (${maxCapacityLiters.toFixed(0)}L) từ kích thước hồ.`
+        `Dung tích hồ (${formData.currentCapacity}L) không thể lớn hơn thể tích tính toán (${maxCapacityLiters.toFixed(0)}L) từ kích thước hồ.`
       );
       return false;
     }
@@ -135,7 +127,7 @@ export default function CreatePondModal({
     if (!validateForm()) return;
 
     try {
-      await createPondMutation.mutateAsync(formData as PondRequest);
+      await createPondMutation.mutateAsync(formData);
       handleClose();
     } catch (error) {
       console.error('Error creating pond:', error);
@@ -170,7 +162,7 @@ export default function CreatePondModal({
           <Text className="mb-4 text-lg font-semibold">Thông tin cơ bản</Text>
 
           {/* Pond Name */}
-          <View className="mb-4">
+          <View className="mb-2">
             <Text className="mb-2 font-medium text-gray-700">
               Tên hồ <Text className="text-red-500">*</Text>
             </Text>
@@ -185,7 +177,7 @@ export default function CreatePondModal({
           </View>
 
           {/* Pond Type */}
-          <View className="mb-4">
+          <View className="mb-2">
             <ContextMenuField
               label="Loại hồ"
               value={formData.pondTypeId?.toString() || ''}
@@ -206,7 +198,7 @@ export default function CreatePondModal({
           </View>
 
           {/* Area */}
-          <View className="mb-4">
+          <View className="mb-2">
             <ContextMenuField
               label="Khu vực"
               value={formData.areaId?.toString() || ''}
@@ -227,7 +219,7 @@ export default function CreatePondModal({
           </View>
 
           {/* Location */}
-          <View className="mb-4">
+          <View>
             <Text className="mb-2 font-medium text-gray-700">
               Vị trí <Text className="text-red-500">*</Text>
             </Text>
@@ -241,27 +233,8 @@ export default function CreatePondModal({
             />
           </View>
 
-          {/* Status */}
-          <View className="mb-4">
-            <ContextMenuField
-              label="Trạng thái"
-              value={formData.pondStatus || ''}
-              placeholder="Chọn trạng thái"
-              options={statusOptions.map((status) => ({
-                label: status.label,
-                value: status.value,
-              }))}
-              onSelect={(value) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  pondStatus: value as PondStatus,
-                }))
-              }
-            />
-          </View>
-
           {/* Dimensions Section */}
-          <Text className="mb-4 mt-6 text-lg font-semibold">Kích thước hồ</Text>
+          <Text className="mb-2 mt-4 text-lg font-semibold">Kích thước hồ</Text>
 
           <View className="mb-4 flex-row">
             <View className="mr-2 flex-1">
@@ -323,15 +296,15 @@ export default function CreatePondModal({
             </View>
             <View className="ml-2 flex-1">
               <Text className="mb-2 font-medium text-gray-700">
-                Dung tích (L) <Text className="text-red-500">*</Text>
+                Thể tích hiện tại (L) <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 placeholder="VD: 5000"
-                value={formData.capacityLiters?.toString() || ''}
+                value={formData.currentCapacity?.toString() || ''}
                 onChangeText={(text) =>
                   setFormData((prev) => ({
                     ...prev,
-                    capacityLiters: parseFloat(text) || 0,
+                    currentCapacity: parseFloat(text) || 0,
                   }))
                 }
                 className="rounded-2xl border border-gray-300 bg-white px-4 py-3"

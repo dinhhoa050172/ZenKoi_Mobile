@@ -1,8 +1,17 @@
-import { useCreatePondType } from '@/hooks/usePondType';
-import { PondTypeRequest } from '@/lib/api/services/fetchPondType';
+import ContextMenuField from '@/components/ContextMenuField';
+import { CustomAlert } from '@/components/CustomAlert';
+import { useCreatePondType, useDeletePondType } from '@/hooks/usePondType';
+import {
+  useCreateWaterParameterThreshold,
+  useDeleteWaterParameterThreshold,
+} from '@/hooks/useWaterParameterThreshold';
+import { PondTypeRequest, TypeOfPond } from '@/lib/api/services/fetchPondType';
+import {
+  WaterParameterThreshold,
+  WaterParameterThresholdRequest,
+} from '@/lib/api/services/fetchWaterParameterThreshold';
 import React, { useState } from 'react';
 import {
-  Alert,
   Modal,
   ScrollView,
   Text,
@@ -25,18 +34,109 @@ export default function CreatePondTypeModal({
   const [formData, setFormData] = useState<PondTypeRequest>({
     typeName: '',
     description: '',
-    recommendedCapacity: 0,
+    type: TypeOfPond.PARING,
+    recommendedQuantity: 0,
   });
 
   // API hooks
   const createPondTypeMutation = useCreatePondType();
+  const deletePondTypeMutation = useDeletePondType();
+  const createWaterParameterThreshold = useCreateWaterParameterThreshold();
+  const deleteWaterParameterThreshold = useDeleteWaterParameterThreshold();
+
+  const typeOptions = Object.values(TypeOfPond).map((t) => ({
+    label: getTypeLabelVN(t as TypeOfPond),
+    value: t,
+  }));
+
+  function getTypeLabelVN(type: TypeOfPond) {
+    switch (type) {
+      case TypeOfPond.PARING:
+        return 'Ao phối giống';
+      case TypeOfPond.EGG_BATCH:
+        return 'Ao nuôi trứng';
+      case TypeOfPond.FRY_FISH:
+        return 'Ao cá bột';
+      case TypeOfPond.CLASSIFICATION:
+        return 'Ao tuyển chọn';
+      case TypeOfPond.MARKET_POND:
+        return 'Ao cá bán';
+      case TypeOfPond.BROOD_STOCK:
+        return 'Ao cá giống';
+      default:
+        return type;
+    }
+  }
 
   const resetForm = () => {
     setFormData({
       typeName: '',
       description: '',
-      recommendedCapacity: 0,
+      type: TypeOfPond.PARING,
+      recommendedQuantity: 0,
     });
+    setThresholds(getDefaultThresholds());
+  };
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const closeAlert = () => setAlertVisible(false);
+
+  // Water parameter thresholds state (min/max for each parameter)
+  const parameterKeys = [
+    'phLevel',
+    'temperatureCelsius',
+    'oxygenLevel',
+    'ammoniaLevel',
+    'nitriteLevel',
+    'nitrateLevel',
+    'carbonHardness',
+    'waterLevelMeters',
+  ] as const;
+
+  type ParamKey = (typeof parameterKeys)[number];
+
+  const getDefaultThresholds = () => {
+    const obj: Record<string, { min: number; max: number }> = {};
+    parameterKeys.forEach((k) => {
+      obj[k] = { min: 0, max: 0 };
+    });
+    return obj as Record<ParamKey, { min: number; max: number }>;
+  };
+
+  const [thresholds, setThresholds] = useState<
+    Record<ParamKey, { min: number; max: number }>
+  >(getDefaultThresholds());
+
+  const paramLabels: Record<ParamKey, string> = {
+    phLevel: 'pH',
+    temperatureCelsius: 'Nhiệt độ (°C)',
+    oxygenLevel: 'Độ oxy (mg/L)',
+    ammoniaLevel: 'Amoni (NH3, mg/L)',
+    nitriteLevel: 'Nitrit (NO2-, mg/L)',
+    nitrateLevel: 'Nitrat (NO3-, mg/L)',
+    carbonHardness: 'Độ cứng cacbonat (°dH)',
+    waterLevelMeters: 'Mực nước (m)',
+  };
+
+  const paramUnits: Record<ParamKey, string> = {
+    phLevel: '',
+    temperatureCelsius: '°C',
+    oxygenLevel: 'mg/L',
+    ammoniaLevel: 'mg/L',
+    nitriteLevel: 'mg/L',
+    nitrateLevel: 'mg/L',
+    carbonHardness: '°dH',
+    waterLevelMeters: 'm',
   };
 
   const handleClose = () => {
@@ -46,15 +146,15 @@ export default function CreatePondTypeModal({
 
   const validateForm = () => {
     if (!formData.typeName?.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên loại hồ');
+      showAlert('Lỗi', 'Vui lòng nhập tên loại hồ');
       return false;
     }
     if (!formData.description?.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mô tả');
+      showAlert('Lỗi', 'Vui lòng nhập mô tả');
       return false;
     }
-    if (!formData.recommendedCapacity || formData.recommendedCapacity <= 0) {
-      Alert.alert('Lỗi', 'Vui lòng nhập dung tích khuyến nghị hợp lệ');
+    if (!formData.recommendedQuantity || formData.recommendedQuantity <= 0) {
+      showAlert('Lỗi', 'Vui lòng nhập số lượng khuyến nghị tối đa hợp lệ');
       return false;
     }
     return true;
@@ -63,11 +163,64 @@ export default function CreatePondTypeModal({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    setIsSubmitting(true);
+    let handledError = false;
+
     try {
-      await createPondTypeMutation.mutateAsync(formData);
+      const resp = await createPondTypeMutation.mutateAsync(formData);
+      const pondTypeId = resp?.id;
+      if (pondTypeId) {
+        const createdIds: number[] = [];
+        try {
+          for (const key of Object.keys(thresholds) as ParamKey[]) {
+            const t = thresholds[key];
+            const req: WaterParameterThresholdRequest = {
+              parameterName: key,
+              unit: paramUnits[key],
+              minValue: t.min,
+              maxValue: t.max,
+              pondTypeId,
+            };
+            const res = await createWaterParameterThreshold.mutateAsync(req);
+            if (res && typeof (res as WaterParameterThreshold).id === 'number')
+              createdIds.push((res as WaterParameterThreshold).id);
+          }
+        } catch (err) {
+          handledError = true;
+          const msg =
+            (err as any)?.message ??
+            String(err) ??
+            'Lỗi khi tạo ngưỡng thông số nước';
+          showAlert('Lỗi', msg);
+          try {
+            await Promise.all(
+              createdIds.map((id) =>
+                deleteWaterParameterThreshold.mutateAsync(id)
+              )
+            );
+          } catch (e) {
+            console.error('Rollback failed deleting thresholds:', e);
+          }
+          try {
+            await deletePondTypeMutation.mutateAsync(pondTypeId);
+          } catch (e) {
+            console.error('Rollback failed deleting pond type:', e);
+          }
+          throw err;
+        }
+      }
       handleClose();
     } catch (error) {
       console.error('Error creating pond type:', error);
+      if (!handledError) {
+        const msg =
+          (error as any)?.message ??
+          String(error) ??
+          'Đã xảy ra lỗi khi tạo loại hồ';
+        showAlert('Lỗi', msg);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,18 +232,19 @@ export default function CreatePondTypeModal({
     >
       <SafeAreaView className="flex-1 bg-gray-50">
         <View className="flex-row items-center justify-between border-b border-gray-200 bg-white p-4">
-          <TouchableOpacity onPress={handleClose}>
-            <Text className="font-medium text-primary">Hủy</Text>
+          <TouchableOpacity onPress={handleClose} disabled={isSubmitting}>
+            <Text
+              className={`font-medium ${isSubmitting ? 'text-gray-400' : 'text-primary'}`}
+            >
+              Hủy
+            </Text>
           </TouchableOpacity>
           <Text className="text-lg font-semibold">Tạo loại hồ mới</Text>
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={createPondTypeMutation.isPending}
-          >
+          <TouchableOpacity onPress={handleSubmit} disabled={isSubmitting}>
             <Text
-              className={`font-medium ${createPondTypeMutation.isPending ? 'text-gray-400' : 'text-primary'}`}
+              className={`font-medium ${isSubmitting ? 'text-gray-400' : 'text-primary'}`}
             >
-              {createPondTypeMutation.isPending ? 'Đang lưu...' : 'Lưu'}
+              {isSubmitting ? 'Đang lưu...' : 'Lưu'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -131,18 +285,81 @@ export default function CreatePondTypeModal({
             />
           </View>
 
+          {/* Type */}
+          <View className="mb-4">
+            <ContextMenuField
+              label="Loại ao"
+              value={formData.type}
+              placeholder="Chọn loại ao"
+              options={typeOptions}
+              onSelect={(value) =>
+                setFormData((prev) => ({ ...prev, type: value as TypeOfPond }))
+              }
+            />
+          </View>
+
+          {/* Water parameter thresholds */}
+          <Text className="mb-4 text-lg font-semibold">
+            Ngưỡng thông số nước
+          </Text>
+          {Object.keys(thresholds).map((k) => {
+            const key = k as keyof typeof thresholds as ParamKey;
+            return (
+              <View key={k} className="mb-4">
+                <Text className="mb-2 font-medium text-gray-700">
+                  {paramLabels[key]}
+                </Text>
+                <View className="flex-row">
+                  <View className="mr-2 flex-1">
+                    <Text className="mb-1 text-xs text-gray-500">Min</Text>
+                    <TextInput
+                      placeholder="Min"
+                      value={String(thresholds[key].min ?? '')}
+                      onChangeText={(text) =>
+                        setThresholds((prev) => ({
+                          ...prev,
+                          [key]: { ...prev[key], min: parseFloat(text) || 0 },
+                        }))
+                      }
+                      className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+                      keyboardType="numeric"
+                      inputMode="numeric"
+                    />
+                  </View>
+                  <View className="ml-2 flex-1">
+                    <Text className="mb-1 text-xs text-gray-500">Max</Text>
+                    <TextInput
+                      placeholder="Max"
+                      value={String(thresholds[key].max ?? '')}
+                      onChangeText={(text) =>
+                        setThresholds((prev) => ({
+                          ...prev,
+                          [key]: { ...prev[key], max: parseFloat(text) || 0 },
+                        }))
+                      }
+                      className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+                      keyboardType="numeric"
+                      inputMode="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+
           {/* Recommended Capacity */}
           <View className="mb-4">
             <Text className="mb-2 font-medium text-gray-700">
-              Dung tích khuyến nghị (L) <Text className="text-red-500">*</Text>
+              Số lượng khuyến nghị tối đa{' '}
+              <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
-              placeholder="VD: 5000"
-              value={formData.recommendedCapacity?.toString() || ''}
+              placeholder="VD: 50"
+              value={formData.recommendedQuantity?.toString() || ''}
               onChangeText={(text) =>
                 setFormData((prev) => ({
                   ...prev,
-                  recommendedCapacity: parseFloat(text) || 0,
+                  recommendedQuantity: parseFloat(text) || 0,
                 }))
               }
               className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
@@ -150,22 +367,30 @@ export default function CreatePondTypeModal({
               inputMode="numeric"
             />
             <Text className="mt-1 text-sm text-gray-500">
-              Dung tích khuyến nghị cho loại hồ này (tính bằng lít)
+              Số lượng khuyến nghị tối đa cho loại hồ này (số lượng cá)
             </Text>
           </View>
 
           <TouchableOpacity
-            className={`mb-8 rounded-2xl py-4 ${createPondTypeMutation.isPending ? 'bg-gray-400' : 'bg-primary'}`}
+            className={`mb-8 rounded-2xl py-4 ${isSubmitting ? 'bg-gray-400' : 'bg-primary'}`}
             onPress={handleSubmit}
-            disabled={createPondTypeMutation.isPending}
+            disabled={isSubmitting}
           >
             <Text className="text-center text-lg font-semibold text-white">
-              {createPondTypeMutation.isPending
-                ? 'Đang tạo loại hồ...'
-                : 'Tạo loại hồ'}
+              {isSubmitting ? 'Đang tạo loại hồ...' : 'Tạo loại hồ'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
+        <CustomAlert
+          visible={alertVisible}
+          title={alertTitle}
+          message={alertMessage}
+          onCancel={closeAlert}
+          onConfirm={closeAlert}
+          cancelText="Đóng"
+          confirmText="OK"
+          type="warning"
+        />
       </SafeAreaView>
     </Modal>
   );

@@ -181,7 +181,7 @@ export const classificationStageServices = {
   completeClassificationStage: async (
     id: number
   ): Promise<ClassificationStageResponse> => {
-    const response = await apiService.post<ClassificationStageResponse>(
+    const response = await apiService.put<ClassificationStageResponse>(
       `/api/classificationstage/complete/${id}`
     );
     return response.data;
