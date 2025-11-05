@@ -27,11 +27,11 @@ export default function EditPondModal({
   onClose,
 }: EditPondModalProps) {
   // Form states
-  const [formData, setFormData] = useState<Partial<PondRequest>>({
+  const [formData, setFormData] = useState<PondRequest>({
     pondName: '',
     location: '',
     pondStatus: PondStatus.EMPTY,
-    capacityLiters: 0,
+    currentCapacity: 0,
     depthMeters: 0,
     lengthMeters: 0,
     widthMeters: 0,
@@ -73,7 +73,7 @@ export default function EditPondModal({
         pondName: pondData.pondName,
         location: pondData.location,
         pondStatus: pondData.pondStatus,
-        capacityLiters: pondData.capacityLiters,
+        currentCapacity: pondData.capacityLiters,
         depthMeters: pondData.depthMeters,
         lengthMeters: pondData.lengthMeters,
         widthMeters: pondData.widthMeters,
@@ -88,7 +88,7 @@ export default function EditPondModal({
       pondName: '',
       location: '',
       pondStatus: PondStatus.EMPTY,
-      capacityLiters: 0,
+      currentCapacity: 0,
       depthMeters: 0,
       lengthMeters: 0,
       widthMeters: 0,
@@ -119,7 +119,7 @@ export default function EditPondModal({
       Alert.alert('Lỗi', 'Vui lòng nhập vị trí');
       return false;
     }
-    if (!formData.capacityLiters || formData.capacityLiters <= 0) {
+    if (!formData.currentCapacity || formData.currentCapacity <= 0) {
       Alert.alert('Lỗi', 'Vui lòng nhập dung tích hợp lệ');
       return false;
     }
@@ -142,10 +142,10 @@ export default function EditPondModal({
       formData.lengthMeters *
       formData.widthMeters *
       1000;
-    if (formData.capacityLiters > maxCapacityLiters) {
+    if ((formData.currentCapacity ?? 0) > maxCapacityLiters) {
       Alert.alert(
         'Lỗi',
-        `Dung tích hồ (${formData.capacityLiters}L) không thể lớn hơn thể tích tính toán (${maxCapacityLiters.toFixed(0)}L) từ kích thước hồ.`
+        `Dung tích hồ (${formData.currentCapacity}L) không thể lớn hơn thể tích tính toán (${maxCapacityLiters.toFixed(0)}L) từ kích thước hồ.`
       );
       return false;
     }
@@ -159,7 +159,7 @@ export default function EditPondModal({
     try {
       await updatePondMutation.mutateAsync({
         id: pondId,
-        data: formData as PondRequest,
+        data: formData,
       });
       handleClose();
     } catch (error) {
@@ -368,11 +368,11 @@ export default function EditPondModal({
               </Text>
               <TextInput
                 placeholder="VD: 5000"
-                value={formData.capacityLiters?.toString() || ''}
+                value={formData.currentCapacity?.toString() || ''}
                 onChangeText={(text) =>
                   setFormData((prev) => ({
                     ...prev,
-                    capacityLiters: parseFloat(text) || 0,
+                    currentCapacity: parseFloat(text) || 0,
                   }))
                 }
                 className="rounded-2xl border border-gray-300 bg-white px-4 py-3"

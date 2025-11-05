@@ -277,6 +277,7 @@ export function FrySurvivalRecordModal({
                     options={(emptyPonds ?? []).map((p) => ({
                       label: `${p.id}: ${p.pondName ?? p.id}`,
                       value: `${p.id}: ${p.pondName ?? p.id}`,
+                      meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
                     }))}
                     onSelect={(v: string) => {
                       const id = String(v).split(':')[0]?.trim();

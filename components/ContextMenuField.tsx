@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-type Option = { label: string; value: string };
+type Option = { label: string; value: string; meta?: string };
 
 export default function ContextMenuField({
   label,
@@ -87,11 +87,18 @@ export default function ContextMenuField({
                         <View className="h-full w-full rounded-full border-2 border-blue-500 bg-white" />
                       )}
                     </View>
-                    <Text
-                      className={`flex-1 ${value === option.value ? 'font-medium text-blue-600' : 'text-gray-900'}`}
-                    >
-                      {option.label}
-                    </Text>
+                    <View className="flex-1">
+                      <Text
+                        className={` ${value === option.value ? 'font-medium text-blue-600' : 'text-gray-900'}`}
+                      >
+                        {option.label}
+                      </Text>
+                      {option.meta ? (
+                        <Text className="mt-1 text-sm text-gray-500">
+                          {option.meta}
+                        </Text>
+                      ) : null}
+                    </View>
                   </TouchableOpacity>
                 ))
               )}

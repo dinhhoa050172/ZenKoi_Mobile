@@ -1,5 +1,6 @@
 import apiService, { RequestParams } from '../apiClient';
 import { KoiFish } from './fetchKoiFish';
+import { TypeOfPond } from './fetchPondType';
 
 export enum PondStatus {
   EMPTY = 'Empty',
@@ -14,6 +15,7 @@ export interface Pond {
   pondStatus: PondStatus;
   maxFishCount: number | null;
   currentCount: number | null;
+  currentCapacity: number | null;
   capacityLiters: number;
   depthMeters: number;
   lengthMeters: number;
@@ -30,6 +32,7 @@ export interface PondSearchParams {
   status?: PondStatus;
   areaId?: number;
   pondTypeId?: number;
+  pondTypeEnum?: TypeOfPond;
   minCapacityLiters?: number;
   maxCapacityLiters?: number;
   minDepthMeters?: number;
@@ -46,7 +49,7 @@ export interface PondRequest {
   pondName: string;
   location: string;
   pondStatus: PondStatus;
-  capacityLiters: number;
+  currentCapacity: number;
   depthMeters: number;
   lengthMeters: number;
   widthMeters: number;

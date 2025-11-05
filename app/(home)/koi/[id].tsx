@@ -2,7 +2,7 @@ import { useGetKoiFishById } from '@/hooks/useKoiFish';
 import { Gender, HealthStatus, KoiFish } from '@/lib/api/services/fetchKoiFish';
 import { formatDate } from '@/lib/utils/formatDate';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Edit } from 'lucide-react-native';
+import { ArrowLeft, Edit, Loader2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
@@ -149,10 +149,10 @@ export default function KoiDetailScreen() {
         <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
           {/* Main Image */}
           <View className="mb-2 items-center">
-            <View className="mb-3 h-52 w-full items-center justify-center rounded-2xl bg-gray-200">
+            <View className="mb-3 h-72 w-5/6 items-center justify-center rounded-2xl bg-gray-200">
               {isLoading ? (
                 <View className="h-full w-full items-center justify-center">
-                  <Text>Đang tải...</Text>
+                  <Loader2 size={36} color="#0A3D62" className="animate-spin" />
                 </View>
               ) : koi?.images && koi.images.length > 0 ? (
                 <Image

@@ -1,5 +1,6 @@
 import { useDeletePondType, useInfinitePondTypes } from '@/hooks/usePondType';
 import { PondType } from '@/lib/api/services/fetchPondType';
+import { useIsFocused } from '@react-navigation/native';
 import { Edit, Plus, Search, Trash2, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -20,6 +21,7 @@ import EditPondTypeModal from '../../../components/pond/EditPondTypeModal';
 
 export default function PondTypeManagementScreen() {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPondTypeId, setEditingPondTypeId] = useState<number | null>(
@@ -64,6 +66,14 @@ export default function PondTypeManagementScreen() {
   const handleRefresh = async () => {
     await refetch();
   };
+
+  // Refetch when the screen becomes focused to ensure data is fresh
+  useEffect(() => {
+    if (isFocused) {
+      refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
 
   const handleEditPondType = (pondTypeId: number) => {
     setEditingPondTypeId(pondTypeId);
@@ -153,7 +163,7 @@ export default function PondTypeManagementScreen() {
           paddingBottom: insets.bottom + 40,
         }}
         onRefresh={handleRefresh}
-        refreshing={isLoading && pondTypes.length === 0}
+        refreshing={isLoading}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
@@ -285,6 +295,7 @@ export default function PondTypeManagementScreen() {
         visible={showEditModal}
         pondTypeId={editingPondTypeId}
         onClose={handleCloseEditModal}
+        parentFocused={isFocused}
       />
 
       {/* Delete Confirmation Alert */}
@@ -345,13 +356,13 @@ function PondTypeCard({ pondType, onEdit, onDelete }: PondTypeCardProps) {
           </View>
         )}
 
-        {/* Recommended Capacity */}
+        {/* Recommended Quantity */}
         <View className="rounded-lg bg-gradient-to-r from-green-50 to-emerald-50">
           <Text className="mb-1 text-xs font-medium text-gray-600">
-            Dung tích khuyến nghị
+            Số lượng khuyến nghị tối đa
           </Text>
           <Text className="text-xl font-bold text-green-600">
-            {pondType.recommendedCapacity.toLocaleString('vi-VN')} L
+            {pondType.recommendedQuantity.toLocaleString('vi-VN')} con
           </Text>
         </View>
       </View>

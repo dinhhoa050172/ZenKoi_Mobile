@@ -1,4 +1,5 @@
 import ContextMenuField from '@/components/ContextMenuField';
+import { CustomAlert } from '@/components/CustomAlert';
 import { useCreateKoiFish } from '@/hooks/useKoiFish';
 import { useGetPonds } from '@/hooks/usePond';
 import { useUploadImage } from '@/hooks/useUpload';
@@ -15,11 +16,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, LibraryBig, X } from 'lucide-react-native';
+import { Calendar, Camera, LibraryBig, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Platform,
@@ -33,6 +33,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 const initialForm: KoiFishRequest = {
   pondId: 0,
@@ -67,6 +68,31 @@ export default function AddKoiPage() {
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertTitle, setCustomAlertTitle] = useState('');
+  const [customAlertMessage, setCustomAlertMessage] = useState('');
+  const [customAlertType, setCustomAlertType] = useState<
+    'danger' | 'warning' | 'info'
+  >('danger');
+  const [customAlertOnConfirm, setCustomAlertOnConfirm] = useState<
+    (() => void) | undefined
+  >(() => undefined);
+
+  const showCustomAlert = (opts: {
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }) => {
+    setCustomAlertTitle(opts.title);
+    setCustomAlertMessage(opts.message);
+    setCustomAlertType(opts.type ?? 'danger');
+    setCustomAlertOnConfirm(
+      () => opts.onConfirm ?? (() => setCustomAlertVisible(false))
+    );
+    setCustomAlertVisible(true);
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -205,16 +231,21 @@ export default function AddKoiPage() {
 
   const pickImageFromLibrary = async () => {
     if ((formData.images ?? []).length >= 6) {
-      Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+      showCustomAlert({
+        title: 'Giới hạn',
+        message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+        type: 'warning',
+      });
       return;
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Quyền truy cập bị từ chối',
-        'Vui lòng cho phép truy cập ảnh để chọn ảnh từ thư viện'
-      );
+      showCustomAlert({
+        title: 'Quyền truy cập bị từ chối',
+        message: 'Vui lòng cho phép truy cập ảnh để chọn ảnh từ thư viện',
+        type: 'warning',
+      });
       return;
     }
 
@@ -249,33 +280,55 @@ export default function AddKoiPage() {
             ...formData,
             images: [...existing, remoteUrl],
           });
+          setErrors((prev) => {
+            const copy = { ...prev };
+            delete copy.images;
+            return copy;
+          });
         } else {
-          Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+          showCustomAlert({
+            title: 'Giới hạn',
+            message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+            type: 'warning',
+          });
         }
       } catch (err) {
         console.warn('upload error', err);
-        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Vui lòng thử lại.');
+        showCustomAlert({
+          title: 'Lỗi',
+          message: 'Không thể tải ảnh lên. Vui lòng thử lại.',
+          type: 'danger',
+        });
       } finally {
         setIsUploading(false);
       }
     } catch (err) {
       console.warn('pickImageFromLibrary error', err);
-      Alert.alert('Lỗi', 'Không thể chọn ảnh. Thử lại sau.');
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không thể chọn ảnh. Thử lại sau.',
+        type: 'danger',
+      });
     }
   };
 
   const takePhoto = async () => {
     if ((formData.images ?? []).length >= 6) {
-      Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+      showCustomAlert({
+        title: 'Giới hạn',
+        message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+        type: 'warning',
+      });
       return;
     }
 
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Quyền truy cập bị từ chối',
-        'Vui lòng cho phép truy cập camera để chụp ảnh'
-      );
+      showCustomAlert({
+        title: 'Quyền truy cập bị từ chối',
+        message: 'Vui lòng cho phép truy cập camera để chụp ảnh',
+        type: 'warning',
+      });
       return;
     }
 
@@ -308,18 +361,35 @@ export default function AddKoiPage() {
             ...formData,
             images: [...existing, remoteUrl],
           });
+          setErrors((prev) => {
+            const copy = { ...prev };
+            delete copy.images;
+            return copy;
+          });
         } else {
-          Alert.alert('Giới hạn', 'Bạn chỉ có thể tải lên tối đa 6 ảnh.');
+          showCustomAlert({
+            title: 'Giới hạn',
+            message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+            type: 'warning',
+          });
         }
       } catch (err) {
         console.warn('upload error', err);
-        Alert.alert('Lỗi', 'Không thể tải ảnh lên. Vui lòng thử lại.');
+        showCustomAlert({
+          title: 'Lỗi',
+          message: 'Không thể tải ảnh lên. Vui lòng thử lại.',
+          type: 'danger',
+        });
       } finally {
         setIsUploading(false);
       }
     } catch (err) {
       console.warn('takePhoto error', err);
-      Alert.alert('Lỗi', 'Không thể chụp ảnh. Thử lại sau.');
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không thể chụp ảnh. Thử lại sau.',
+        type: 'danger',
+      });
     }
   };
 
@@ -349,6 +419,9 @@ export default function AddKoiPage() {
       nextErrors.description = 'Vui lòng nhập mô tả';
 
     setErrors(nextErrors);
+    if (nextErrors.images) {
+      Toast.show({ type: 'error', text1: nextErrors.images, position: 'top' });
+    }
     if (Object.keys(nextErrors).length > 0) return;
 
     const payload: KoiFishRequest = {
@@ -410,13 +483,12 @@ export default function AddKoiPage() {
           {/* Image gallery grid */}
           <View className="-m-2 flex-row flex-wrap">
             {(formData.images || []).map((url, idx) => {
-              console.log('Displaying image:', url); // Debug log
               return (
                 <View key={idx} className="p-2" style={{ width: '50%' }}>
                   <View className="relative">
                     <Image
                       source={{ uri: url }}
-                      className="h-40 w-full rounded-lg"
+                      className="h-48 w-full rounded-lg"
                       resizeMode="cover"
                       onError={(e) => {
                         console.error(
@@ -431,12 +503,17 @@ export default function AddKoiPage() {
                     />
                     <TouchableOpacity
                       onPress={() => {
-                        // remove image at idx
+                        const newImages = (formData.images || []).filter(
+                          (_, i) => i !== idx
+                        );
                         setFormData({
                           ...formData,
-                          images: (formData.images || []).filter(
-                            (_, i) => i !== idx
-                          ),
+                          images: newImages,
+                        });
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.images;
+                          return copy;
                         });
                       }}
                       className="absolute right-2 top-2 rounded-full bg-white p-1"
@@ -464,13 +541,14 @@ export default function AddKoiPage() {
             {(formData.images ?? []).length < 6 && (
               <View className="p-2" style={{ width: '50%' }}>
                 <TouchableOpacity
-                  className="h-40 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
+                  className="h-48 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
                   onPress={() => {
                     if ((formData.images ?? []).length >= 6) {
-                      Alert.alert(
-                        'Giới hạn',
-                        'Bạn chỉ có thể tải lên tối đa 6 ảnh.'
-                      );
+                      showCustomAlert({
+                        title: 'Giới hạn',
+                        message: 'Bạn chỉ có thể tải lên tối đa 6 ảnh.',
+                        type: 'warning',
+                      });
                       return;
                     }
                     setShowImageOptions(true);
@@ -545,7 +623,14 @@ export default function AddKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Nhập mã RFID"
             value={formData.rfid}
-            onChangeText={(t) => setFormData({ ...formData, rfid: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, rfid: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.rfid;
+                return copy;
+              });
+            }}
           />
           {errors.rfid && (
             <Text className="mt-1 text-sm text-red-500">{errors.rfid}</Text>
@@ -562,9 +647,21 @@ export default function AddKoiPage() {
               }
               options={varietySelectOptions}
               onSelect={(v: string) => {
-                if (v === '__none')
-                  return setFormData({ ...formData, varietyId: 0 });
+                if (v === '__none') {
+                  setFormData({ ...formData, varietyId: 0 });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.varietyId;
+                    return copy;
+                  });
+                  return;
+                }
                 setFormData({ ...formData, varietyId: Number(v) });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.varietyId;
+                  return copy;
+                });
               }}
               placeholder="Chọn giống"
             />
@@ -578,9 +675,14 @@ export default function AddKoiPage() {
               label="Loại"
               value={formData.type}
               options={typeOptionsVN}
-              onSelect={(v: string) =>
-                setFormData({ ...formData, type: v as KoiType })
-              }
+              onSelect={(v: string) => {
+                setFormData({ ...formData, type: v as KoiType });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.type;
+                  return copy;
+                });
+              }}
               placeholder="Chọn loại"
             />
             {errors.type && (
@@ -595,9 +697,21 @@ export default function AddKoiPage() {
             value={formData.pondId ? String(formData.pondId) : undefined}
             options={pondSelectOptions}
             onSelect={(v: string) => {
-              if (v === '__none')
-                return setFormData({ ...formData, pondId: 0 });
+              if (v === '__none') {
+                setFormData({ ...formData, pondId: 0 });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.pondId;
+                  return copy;
+                });
+                return;
+              }
               setFormData({ ...formData, pondId: Number(v) });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.pondId;
+                return copy;
+              });
             }}
             placeholder="Chọn bể"
           />
@@ -613,9 +727,14 @@ export default function AddKoiPage() {
               label="Giới tính"
               value={formData.gender}
               options={genderOptionsVN}
-              onSelect={(v: string) =>
-                setFormData({ ...formData, gender: v as Gender })
-              }
+              onSelect={(v: string) => {
+                setFormData({ ...formData, gender: v as Gender });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.gender;
+                  return copy;
+                });
+              }}
               placeholder="Chọn giới tính"
             />
             {errors.gender && (
@@ -628,9 +747,14 @@ export default function AddKoiPage() {
               label="Chiều dài (cm)"
               value={formData.size}
               options={fishSizeOptions}
-              onSelect={(v: string) =>
-                setFormData({ ...formData, size: v as FishSize })
-              }
+              onSelect={(v: string) => {
+                setFormData({ ...formData, size: v as FishSize });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.size;
+                  return copy;
+                });
+              }}
               placeholder="Chọn kích thước"
             />
             {errors.size && (
@@ -649,7 +773,14 @@ export default function AddKoiPage() {
               className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
               placeholder="Nhập nguồn gốc"
               value={formData.origin}
-              onChangeText={(t) => setFormData({ ...formData, origin: t })}
+              onChangeText={(t) => {
+                setFormData({ ...formData, origin: t });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.origin;
+                  return copy;
+                });
+              }}
             />
             {errors.origin && (
               <Text className="mt-1 text-sm text-red-500">{errors.origin}</Text>
@@ -661,9 +792,14 @@ export default function AddKoiPage() {
               label="Tình trạng sức khỏe"
               value={formData.healthStatus}
               options={healthOptionsVN}
-              onSelect={(v: string) =>
-                setFormData({ ...formData, healthStatus: v as HealthStatus })
-              }
+              onSelect={(v: string) => {
+                setFormData({ ...formData, healthStatus: v as HealthStatus });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.healthStatus;
+                  return copy;
+                });
+              }}
               placeholder="Chọn tình trạng"
             />
             {errors.healthStatus && (
@@ -680,9 +816,14 @@ export default function AddKoiPage() {
             label="Trạng thái bán"
             value={formData.saleStatus}
             options={saleStatusOptionsVN}
-            onSelect={(v: string) =>
-              setFormData({ ...formData, saleStatus: v as SaleStatus })
-            }
+            onSelect={(v: string) => {
+              setFormData({ ...formData, saleStatus: v as SaleStatus });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.saleStatus;
+                return copy;
+              });
+            }}
             placeholder="Chọn trạng thái bán"
           />
         </View>
@@ -694,14 +835,18 @@ export default function AddKoiPage() {
               Ngày sinh
             </Text>
             <TouchableOpacity
-              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+              className="flex-row items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
               onPress={() => {
                 setDatePickerMode('date');
                 setShowDatePicker(true);
               }}
             >
+              <Calendar
+                size={18}
+                color={formData.birthDate ? '#111827' : '#6b7280'}
+              />
               <Text
-                className={`${formData.birthDate ? 'text-gray-900' : 'text-gray-500'}`}
+                className={`ml-2 ${formData.birthDate ? 'text-gray-900' : 'text-gray-500'}`}
               >
                 {formData.birthDate || 'Chọn ngày'}
               </Text>
@@ -713,9 +858,33 @@ export default function AddKoiPage() {
                 }
                 mode={datePickerMode}
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={new Date()}
                 onChange={(e: any, selected?: Date) => {
                   setShowDatePicker(Platform.OS === 'ios');
                   if (!selected) return;
+                  const now = new Date();
+                  const sel = new Date(
+                    selected.getFullYear(),
+                    selected.getMonth(),
+                    selected.getDate()
+                  );
+                  const today = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate()
+                  );
+                  if (sel > today) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      birthDate: 'Không được chọn ngày trong tương lai',
+                    }));
+                    return;
+                  }
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.birthDate;
+                    return copy;
+                  });
                   const y = selected.getFullYear();
                   const m = String(selected.getMonth() + 1).padStart(2, '0');
                   const d = String(selected.getDate()).padStart(2, '0');
@@ -746,12 +915,22 @@ export default function AddKoiPage() {
               onChangeText={(t) => {
                 if (t.trim() === '') {
                   setFormData({ ...formData, sellingPrice: 0 });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.sellingPrice;
+                    return copy;
+                  });
                   return;
                 }
                 const parsed = Number(t.replace(/[^0-9.-]/g, ''));
                 setFormData({
                   ...formData,
                   sellingPrice: Number.isFinite(parsed) ? parsed : 0,
+                });
+                setErrors((prev) => {
+                  const copy = { ...prev };
+                  delete copy.sellingPrice;
+                  return copy;
                 });
               }}
             />
@@ -771,7 +950,14 @@ export default function AddKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Mô tả hình dáng"
             value={formData.bodyShape}
-            onChangeText={(t) => setFormData({ ...formData, bodyShape: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, bodyShape: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.bodyShape;
+                return copy;
+              });
+            }}
           />
           {errors.bodyShape && (
             <Text className="mt-1 text-sm text-red-500">
@@ -788,7 +974,14 @@ export default function AddKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Mô tả màu sắc và hoa văn"
             value={formData.colorPattern}
-            onChangeText={(t) => setFormData({ ...formData, colorPattern: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, colorPattern: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.colorPattern;
+                return copy;
+              });
+            }}
           />
           {errors.colorPattern && (
             <Text className="mt-1 text-sm text-red-500">
@@ -809,7 +1002,14 @@ export default function AddKoiPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
             placeholder="Thông tin về cá Koi..."
             value={formData.description}
-            onChangeText={(t) => setFormData({ ...formData, description: t })}
+            onChangeText={(t) => {
+              setFormData({ ...formData, description: t });
+              setErrors((prev) => {
+                const copy = { ...prev };
+                delete copy.description;
+                return copy;
+              });
+            }}
           />
           {errors.description && (
             <Text className="mt-1 text-sm text-red-500">
@@ -845,6 +1045,17 @@ export default function AddKoiPage() {
           </View>
         </View>
       )}
+      <CustomAlert
+        visible={customAlertVisible}
+        title={customAlertTitle}
+        message={customAlertMessage}
+        type={customAlertType}
+        onCancel={() => setCustomAlertVisible(false)}
+        onConfirm={() => {
+          setCustomAlertVisible(false);
+          if (customAlertOnConfirm) customAlertOnConfirm();
+        }}
+      />
     </SafeAreaView>
   );
 }
