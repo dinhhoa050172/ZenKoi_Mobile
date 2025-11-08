@@ -4,6 +4,7 @@ import {
   LoginResponse,
   RegisterRequest,
 } from '@/lib/api/services/fetchAuth';
+import { userServices } from '@/lib/api/services/fetchUser';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -12,7 +13,7 @@ import { useCallback, useState } from 'react';
 import Toast from 'react-native-toast-message';
 export function useLogin() {
   const queryClient = useQueryClient();
-  const { setToken, setRefreshToken } = useAuthStore();
+  const { login: authStoreLogin } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -28,7 +29,7 @@ export function useLogin() {
 
       return response;
     },
-    onSuccess: (data: LoginResponse) => {
+    onSuccess: async (data: LoginResponse) => {
       if (
         data.isSuccess &&
         data.result?.accessToken &&
@@ -76,17 +77,82 @@ export function useLogin() {
           return;
         }
 
-        setToken(data.result.accessToken);
-        setRefreshToken(data.result.refreshToken);
-        queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
-        router.replace('/(home)');
-        setError(null);
-        Toast.show({
-          type: 'success',
-          text1: 'Đăng nhập thành công',
-          position: 'top',
-          visibilityTime: 2000,
-        });
+        try {
+          // Step 1: Save tokens to auth store first
+          console.log('🔧 [LOGIN] Step 1: Saving tokens to auth store:', {
+            hasAccessToken: !!data.result.accessToken,
+            hasRefreshToken: !!data.result.refreshToken,
+          });
+
+          await authStoreLogin(data.result);
+
+          console.log(
+            '🔧 [LOGIN] Step 1 completed, basic user from token:',
+            useAuthStore.getState().user
+          );
+
+          // Step 2: Fetch detailed user profile with the new token
+          console.log('🔧 [LOGIN] Step 2: Fetching user profile from API...');
+
+          try {
+            const userProfileResponse = await userServices.getMe();
+
+            if (userProfileResponse.isSuccess && userProfileResponse.result) {
+              console.log(
+                '🔧 [LOGIN] User profile fetched successfully:',
+                userProfileResponse.result
+              );
+
+              // Step 3: Sync the detailed profile to auth store
+              const { syncUserFromProfile } = useAuthStore.getState();
+              await syncUserFromProfile({
+                id: userProfileResponse.result.id,
+                userName: userProfileResponse.result.fullName,
+                fullName: userProfileResponse.result.fullName,
+                email: userProfileResponse.result.email,
+                // Add additional fields from profile
+                phoneNumber: userProfileResponse.result.phoneNumber,
+                role: userProfileResponse.result.role as any,
+              });
+
+              console.log(
+                '🔧 [LOGIN] Step 3 completed, final user in store:',
+                useAuthStore.getState().user
+              );
+            } else {
+              console.warn(
+                '🔧 [LOGIN] Failed to fetch user profile, continuing with token data'
+              );
+            }
+          } catch (profileError) {
+            console.warn(
+              '🔧 [LOGIN] Error fetching user profile, continuing with token data:',
+              profileError
+            );
+            // Don't fail the login if profile fetch fails
+          }
+
+          // Step 4: Complete login process
+          queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
+          queryClient.invalidateQueries({ queryKey: ['user'] }); // Also invalidate user queries
+          router.replace('/(home)');
+          setError(null);
+          Toast.show({
+            type: 'success',
+            text1: 'Đăng nhập thành công',
+            position: 'top',
+            visibilityTime: 2000,
+          });
+        } catch (err) {
+          console.warn('Failed to process login', err);
+          Toast.show({
+            type: 'error',
+            text1: 'Không thể xử lý đăng nhập',
+            position: 'top',
+          });
+          setError('Không thể xử lý đăng nhập');
+          return;
+        }
       }
     },
     onError: (error: LoginResponse) => {
