@@ -2,7 +2,12 @@ import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import apiService from '../api/apiClient';
 import { Token, authServices } from '../api/services/fetchAuth';
-import { User } from '../api/services/fetchUser';
+import {
+  User,
+  UserMeProfile,
+  UserRole,
+  userServices,
+} from '../api/services/fetchUser';
 
 // Storage keys
 const AUTH_TOKEN_KEY = 'auth-token';
@@ -10,24 +15,6 @@ const AUTH_REFRESH_KEY = 'auth-refresh-token';
 const AUTH_USER_KEY = 'auth-user';
 
 export type AuthUser = Partial<User> & { id?: number | string };
-
-// Helper function to decode JWT token
-const decodeJWT = (token: string) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Failed to decode JWT token:', error);
-    return null;
-  }
-};
 
 // Auth store state interface
 interface AuthState {
@@ -45,7 +32,7 @@ interface AuthState {
   logout: (refreshToken: string) => Promise<void>;
   renewAccessToken: () => Promise<boolean>;
   syncAuthState: () => Promise<void>;
-  syncUserFromProfile: (user: AuthUser) => Promise<void>;
+  syncUserFromProfile: (user: AuthUser | UserMeProfile) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -88,26 +75,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => {
-    if (user) {
-      const state = get();
-      const userWithId: AuthUser = { ...user };
-
-      // Attempt to attach id from token if present
-      if (state.token) {
-        const decodedToken = decodeJWT(state.token);
-        if (decodedToken && decodedToken.UserID) {
-          userWithId.id = decodedToken.UserID;
-          console.log(
-            '💾 [SET USER] Added UserID from token:',
-            decodedToken.UserID
-          );
-        }
-      }
-
-      set({ user: userWithId });
-    } else {
-      set({ user: null });
-    }
+    set({ user: user || null });
   },
 
   login: async (tokenOrTokenObj, user) => {
@@ -132,37 +100,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       set({ refreshToken: refresh || null });
 
-      // Decode token and optionally check expiry
-      const decoded = decodeJWT(jwt);
-
-      // Build a minimal AuthUser from token claims
-      let baseUser: AuthUser | null = null;
-      if (decoded && (decoded as any).UserID) {
-        const uid = (decoded as any).UserID;
-        baseUser = {
-          id: uid,
-          userName: (decoded as any).unique_name || String(uid),
-          fullName:
-            (decoded as any).FullName || (decoded as any).unique_name || 'User',
-          email: (decoded as any).email || '',
-        };
-      }
-
-      // Merge server-provided user (if any) over the token-derived base
-      const mergedUser: AuthUser | null = user
-        ? ({
-            ...(baseUser || {}),
-            ...user,
-            id: (decoded as any)?.UserID || user.id,
-          } as AuthUser)
-        : baseUser;
-
-      // Update store
-      set({ token: jwt, user: mergedUser || null, isAuthenticated: true });
+      // Update store with token only, user will be set separately via syncUserFromProfile
+      set({ token: jwt, user: user || null, isAuthenticated: true });
 
       console.log('🔧 [AUTH INIT] Login successful:', {
         hasToken: !!jwt,
-        user: mergedUser,
+        user: user,
         isAuthenticated: true,
       });
     } catch (err) {
@@ -275,6 +218,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   syncAuthState: async () => {
     try {
       const storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+      const storedRefreshToken =
+        await SecureStore.getItemAsync(AUTH_REFRESH_KEY);
       const state = get();
 
       console.log('🔄 [AUTH SYNC] Syncing auth state:', {
@@ -291,79 +236,127 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           // Set the API token immediately when syncing from storage
           apiService.setAuthToken(storedToken as string);
 
-          // Build minimal user from token
-          let userData: AuthUser | null = null;
-          const decoded = decodeJWT(storedToken as string);
-
-          if (decoded && decoded.UserID) {
-            userData = {
-              id: decoded.UserID,
-              userName: decoded.unique_name || String(decoded.UserID),
-              fullName: decoded.FullName || decoded.unique_name || 'User',
-              email: decoded.email || '',
-            };
-            console.log('🔄 [AUTH SYNC] Built user from token:', userData);
-          }
           set({
             token: storedToken as string,
-            user: userData,
+            refreshToken: storedRefreshToken,
             isAuthenticated: true,
+            isLoading: true,
           });
+
+          // Try to get fresh user data from API
+          try {
+            console.log('🔄 [AUTH SYNC] Fetching fresh user data...');
+            const userResponse = await userServices.getMe();
+
+            if (userResponse.isSuccess && userResponse.result) {
+              await get().syncUserFromProfile(userResponse.result);
+              console.log('🔄 [AUTH SYNC] Fresh user data synced');
+            } else {
+              // No fallback, set user to null
+              set({ user: null });
+              console.log('🔄 [AUTH SYNC] No user data available');
+            }
+          } catch (error) {
+            console.warn(
+              '🔄 [AUTH SYNC] Failed to fetch fresh user data:',
+              error
+            );
+
+            // Check if token is invalid
+            if ((error as any)?.response?.status === 401) {
+              console.log('🔄 [AUTH SYNC] Token invalid, clearing auth');
+              await get().logout('');
+              return;
+            }
+
+            // No fallback, clear user data
+            set({ user: null });
+          }
+
+          set({ isLoading: false });
         } else {
           // Clear API token when no storage token
           apiService.setAuthToken(null);
           set({
             token: null,
+            refreshToken: null,
             user: null,
             isAuthenticated: false,
+            isLoading: false,
           });
         }
       } else if (storeHasToken && state.token) {
         // Ensure API service has the token
         apiService.setAuthToken(state.token);
 
-        // Restore user data if missing
+        // Restore user data if missing by calling getMe
         if (!state.user) {
-          const decoded = decodeJWT(state.token);
-          if (decoded && decoded.UserID) {
-            const userData: AuthUser = {
-              id: decoded.UserID,
-              userName: decoded.unique_name || String(decoded.UserID),
-              fullName: decoded.FullName || decoded.unique_name || 'User',
-              email: decoded.email || '',
-            };
-            console.log(
-              '🔄 [AUTH SYNC] Restoring missing user data:',
-              userData
-            );
-            set({ user: userData });
+          set({ isLoading: true });
+
+          try {
+            console.log('🔄 [AUTH SYNC] User missing, fetching from API...');
+            const userResponse = await userServices.getMe();
+
+            if (userResponse.isSuccess && userResponse.result) {
+              await get().syncUserFromProfile(userResponse.result);
+              console.log('🔄 [AUTH SYNC] Missing user data restored from API');
+            } else {
+              // No fallback, clear user data
+              set({ user: null });
+              console.log('🔄 [AUTH SYNC] No user data available');
+            }
+          } catch (error) {
+            console.warn('🔄 [AUTH SYNC] Failed to restore user data:', error);
           }
+
+          set({ isLoading: false });
         }
       }
     } catch (error) {
       console.error('🔄 [AUTH SYNC] Failed to sync auth state:', error);
+      set({
+        token: null,
+        refreshToken: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     }
   },
 
-  syncUserFromProfile: async (user: AuthUser) => {
+  syncUserFromProfile: async (user: AuthUser | UserMeProfile) => {
     console.log(
       '🔄 [SYNC USER] Syncing user from profile to auth store:',
       user
     );
 
-    const state = get();
-    const userWithId: AuthUser = { ...user };
+    // Convert UserMeProfile to AuthUser format
+    let userWithId: AuthUser;
+    if ('dateOfBirth' in user) {
+      // This is a UserMeProfile from API
+      const profile = user as UserMeProfile;
+      userWithId = {
+        id: profile.id,
+        userName: profile.email, // Use email as username if not provided
+        fullName: profile.fullName,
+        email: profile.email,
+        phoneNumber: profile.phoneNumber,
+        // Note: UserMeProfile.role is string, AuthUser expects UserRole enum
+        // We'll convert it in a safer way
+      };
 
-    // Extract UserID from token if available
-    if (state.token) {
-      const decodedToken = decodeJWT(state.token);
-      if (decodedToken && decodedToken.UserID) {
-        userWithId.id = decodedToken.UserID;
-        console.log(
-          '🔄 [SYNC USER] Added UserID from token:',
-          decodedToken.UserID
-        );
+      // Try to convert role string to UserRole enum
+      try {
+        const roleValue = profile.role as keyof typeof UserRole;
+        if (roleValue && UserRole[roleValue]) {
+          userWithId.role = UserRole[roleValue];
+        }
+      } catch {
+        console.warn('🔄 [SYNC USER] Could not convert role:', profile.role);
       }
+    } else {
+      // This is already an AuthUser
+      userWithId = { ...(user as AuthUser) };
     }
 
     // Store user data in secure storage (optional - for caching)
@@ -375,47 +368,121 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Update store
     set({ user: userWithId });
+    console.log(
+      '🔄 [SYNC USER] Successfully synced user to store:',
+      userWithId
+    );
   },
 }));
 
-// Initialize auth state from storage
+// Initialize auth state from storage and fetch user profile
 export const initializeAuth = async () => {
   try {
     const storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    const storedRefreshToken = await SecureStore.getItemAsync(AUTH_REFRESH_KEY);
 
     console.log('🔧 [AUTH INIT] Initializing auth state:', {
       hasStoredToken: !!storedToken,
+      hasStoredRefreshToken: !!storedRefreshToken,
     });
 
     if (storedToken) {
-      // Set token in API service
+      // Set token in API service first
       apiService.setAuthToken(storedToken);
 
-      // Decode token to get user info
-      const decoded = decodeJWT(storedToken);
-      let userData: AuthUser | null = null;
-
-      if (decoded && decoded.UserID) {
-        userData = {
-          id: decoded.UserID,
-          userName: decoded.unique_name || String(decoded.UserID),
-          fullName: decoded.FullName || decoded.unique_name || 'User',
-          email: decoded.email || '',
-        } as AuthUser;
-      }
-
-      // Update store
+      // Set loading state
       useAuthStore.setState({
         token: storedToken,
-        user: userData,
+        refreshToken: storedRefreshToken,
         isAuthenticated: true,
+        isLoading: true,
       });
 
-      console.log('🔧 [AUTH INIT] Initialized with token and user data');
+      try {
+        // Call getMe API to fetch complete user profile
+        console.log('🔧 [AUTH INIT] Calling getMe API...');
+        const userResponse = await userServices.getMe();
+
+        if (userResponse.isSuccess && userResponse.result) {
+          console.log(
+            '🔧 [AUTH INIT] getMe API successful:',
+            userResponse.result
+          );
+
+          // Use syncUserFromProfile to properly convert and store user data
+          await useAuthStore
+            .getState()
+            .syncUserFromProfile(userResponse.result);
+
+          console.log('🔧 [AUTH INIT] User profile synced successfully');
+        } else {
+          console.warn(
+            '🔧 [AUTH INIT] getMe API failed:',
+            userResponse.message
+          );
+
+          useAuthStore.setState({
+            user: null,
+            isLoading: false,
+          });
+        }
+      } catch (error) {
+        console.error('🔧 [AUTH INIT] getMe API error:', error);
+
+        // Check if token is expired/invalid
+        if ((error as any)?.response?.status === 401) {
+          console.log(
+            '🔧 [AUTH INIT] Token appears to be invalid, clearing auth state'
+          );
+
+          // Clear invalid tokens
+          try {
+            await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+            await SecureStore.deleteItemAsync(AUTH_REFRESH_KEY);
+            await SecureStore.deleteItemAsync(AUTH_USER_KEY);
+          } catch {}
+
+          apiService.setAuthToken(null);
+          useAuthStore.setState({
+            token: null,
+            refreshToken: null,
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+
+          return;
+        }
+
+        // For other errors, clear user data
+        useAuthStore.setState({
+          user: null,
+          isLoading: false,
+        });
+      }
+
+      // Clear loading state
+      useAuthStore.setState({ isLoading: false });
+
+      console.log('🔧 [AUTH INIT] Initialization completed');
     } else {
       console.log('🔧 [AUTH INIT] No stored token found');
+      useAuthStore.setState({
+        token: null,
+        refreshToken: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     }
   } catch (error) {
     console.error('🔧 [AUTH INIT] Failed to initialize auth:', error);
+    useAuthStore.setState({
+      token: null,
+      refreshToken: null,
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
   }
 };
