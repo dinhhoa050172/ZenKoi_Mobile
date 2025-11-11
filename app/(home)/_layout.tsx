@@ -259,6 +259,18 @@ export default function TabLayout() {
         name="pond/index"
         options={{ href: null, title: 'Danh sách loại hồ' }}
       />
+      <Tabs.Screen
+        name="incidents/index"
+        options={{ href: null, title: 'Danh sách loại sự cố' }}
+      />
+      <Tabs.Screen
+        name="incidents/types"
+        options={{ href: null, title: 'Loại sự cố' }}
+      />
+      <Tabs.Screen
+        name="incidents/[id]"
+        options={{ href: null, title: 'Chi tiết sự cố' }}
+      />
     </Tabs>
   );
 }

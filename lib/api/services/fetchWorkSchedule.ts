@@ -90,7 +90,12 @@ export interface WorkScheduleListResponse {
   message: string;
   result: WorkSchedulePagination;
 }
-
+export interface WorkScheduleListResponseWithoutPagination {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: WorkSchedule[];
+}
 export interface WorkScheduleResponse {
   statusCode: number;
   isSuccess: boolean;
@@ -138,12 +143,13 @@ export const workScheduleServices = {
   //get work schedules by self
   getSelfWorkSchedules: async (
     filters?: WorkScheduleSearchParams
-  ): Promise<WorkScheduleListResponse> => {
+  ): Promise<WorkScheduleListResponseWithoutPagination> => {
     const params = convertWorkScheduleFilter(filters);
-    const response = await apiService.get<WorkScheduleListResponse>(
-      `/api/WorkSchedule/me`,
-      params
-    );
+    const response =
+      await apiService.get<WorkScheduleListResponseWithoutPagination>(
+        `/api/WorkSchedule/me`,
+        params
+      );
     return response.data;
   },
   // Get work schedules by staff ID

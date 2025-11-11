@@ -173,6 +173,12 @@ const FarmStaffDashboard: React.FC = () => {
       icon: Calendar,
       route: '/(home)/tasks',
     },
+    {
+      title: 'Sự cố & Cảnh báo',
+      subtitle: 'Xem và quản lý sự cố',
+      icon: AlertTriangle,
+      route: '/(home)/incidents',
+    },
   ];
 
   const summaryData: SummaryData[] = [

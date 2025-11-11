@@ -169,44 +169,6 @@ export function useLogin() {
   return { login, isLoading, error };
 }
 
-export function useRegister() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-
-  const { mutate: register, isPending: isLoading } = useMutation({
-    mutationFn: async (request: RegisterRequest) => {
-      const response = await authServices.register(request);
-      if (!response.isSuccess) throw response;
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-      Toast.show({
-        type: 'success',
-        text1: 'Đăng ký thành công',
-        position: 'top',
-        visibilityTime: 2000,
-      });
-      // After register, navigate to login
-      router.replace('/login');
-      setError(null);
-    },
-    onError: (err: any) => {
-      const message = err?.message || 'Đăng ký thất bại';
-      setError(message);
-      Toast.show({
-        type: 'error',
-        text1: message,
-        position: 'top',
-        visibilityTime: 2000,
-      });
-    },
-  });
-
-  return { register, isLoading, error };
-}
-
 export function useLogout() {
   const queryClient = useQueryClient();
   const router = useRouter();

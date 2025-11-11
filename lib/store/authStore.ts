@@ -118,6 +118,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Determine refresh token to use: param -> state -> storage
       let rt = refreshToken || get().refreshToken || null;
+
       if (!rt) {
         try {
           rt = await SecureStore.getItemAsync(AUTH_REFRESH_KEY);
@@ -193,7 +194,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Call renew token endpoint
       const resp = await authServices.renewToken({
-        token: currentToken,
+        accessToken: currentToken,
         refreshToken: currentRefresh,
       });
       if (resp && resp.result && resp.result.accessToken) {
