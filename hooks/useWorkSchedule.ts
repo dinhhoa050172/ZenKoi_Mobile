@@ -1,5 +1,6 @@
 import {
   WorkSchedule,
+  WorkScheduleListResponseWithoutPagination,
   WorkSchedulePagination,
   WorkScheduleRequest,
   WorkScheduleSearchParams,
@@ -58,13 +59,15 @@ export function useGetWorkSchedulesBySelf(
 ) {
   return useQuery({
     queryKey: [...workScheduleKeys.self(), filters || {}],
-    queryFn: async (): Promise<WorkSchedulePagination> => {
+    queryFn: async (): Promise<WorkScheduleListResponseWithoutPagination> => {
       const resp = await workScheduleServices.getSelfWorkSchedules(
         filters || {}
       );
+
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải lịch làm việc của bạn');
-      return resp.result;
+
+      return resp; // Return the full response object, not just resp.result
     },
     enabled,
     staleTime: 5 * 60 * 1000,

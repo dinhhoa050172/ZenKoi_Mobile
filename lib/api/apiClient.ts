@@ -32,11 +32,22 @@ export interface RequestParams {
   [key: string]: string | number | boolean | undefined | null | string[];
 }
 
+// Hàng đợi cho các request bị lỗi 401
+// (any vì chúng ta không biết kiểu của resolve/reject)
+interface FailedRequestQueueItem {
+  resolve: (value: any) => void;
+  reject: (reason?: any) => void;
+}
+
 // API service class
 export class ApiService {
   private client: AxiosInstance;
   private authToken: string | null = null;
   private onAuthError?: () => void;
+
+  // --- Biến kiểm soát refresh token ---
+  private isRefreshing = false;
+  private failedQueue: FailedRequestQueueItem[] = [];
 
   constructor(baseURL: string, timeout = 10000, onAuthError?: () => void) {
     this.client = axios.create({
@@ -54,6 +65,27 @@ export class ApiService {
   // Set auth token
   setAuthToken(token: string | null): void {
     this.authToken = token;
+    // Cập nhật header mặc định của client khi token thay đổi
+    if (token) {
+      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.client.defaults.headers.common['Authorization'];
+    }
+  }
+
+  // Xử lý hàng đợi
+  private processQueue(
+    error: ApiError | null,
+    token: string | null = null
+  ): void {
+    this.failedQueue.forEach((prom) => {
+      if (error) {
+        prom.reject(error);
+      } else {
+        prom.resolve(token);
+      }
+    });
+    this.failedQueue = [];
   }
 
   // Setup request/response interceptors
@@ -61,8 +93,9 @@ export class ApiService {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        // Add auth header if token exists
-        if (this.authToken) {
+        // Token giờ đã được quản lý bởi setAuthToken và defaults
+        // nhưng chúng ta vẫn có thể check ở đây để đảm bảo
+        if (this.authToken && !config.headers.Authorization) {
           config.headers.Authorization = `Bearer ${this.authToken}`;
         }
 
@@ -79,13 +112,8 @@ export class ApiService {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => response,
-      (error: AxiosError<ApiErrorData>) => {
-        // Handle authentication errors
-        if (error.response?.status === 401 && this.onAuthError) {
-          this.onAuthError();
-        }
-
-        // Standardize error format
+      async (error: AxiosError<ApiErrorData>) => {
+        // Chuẩn hóa lỗi trước
         const apiError: ApiError = {
           status: error.response?.status,
           message:
@@ -95,6 +123,79 @@ export class ApiService {
           error: error.response?.data || { message: error.message },
         };
 
+        const originalRequest = error.config as AxiosRequestConfig & {
+          _retry?: boolean;
+        };
+
+        // Chỉ xử lý lỗi 401 và request đó chưa được thử lại
+        if (apiError.status === 401 && !originalRequest._retry) {
+          if (this.isRefreshing) {
+            // Nếu đang refresh, thêm request vào hàng đợi
+            return new Promise((resolve, reject) => {
+              this.failedQueue.push({ resolve, reject });
+            })
+              .then((token) => {
+                originalRequest.headers = originalRequest.headers || {};
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+                return this.client(originalRequest); // Gửi lại request với token mới
+              })
+              .catch((err) => {
+                return Promise.reject(err);
+              });
+          }
+
+          // Đánh dấu request này đã thử retry
+          originalRequest._retry = true;
+          this.isRefreshing = true;
+
+          try {
+            // Import động để tránh lỗi circular dependency
+            const { useAuthStore } = await import('../store/authStore');
+
+            // Gọi hàm renewAccessToken từ store của bạn
+            const renewSuccess = await useAuthStore
+              .getState()
+              .renewAccessToken();
+
+            if (renewSuccess) {
+              console.log('🔄 [API] Token renewed, retrying original request');
+              // Lấy token mới từ store (vì renewAccessToken đã cập nhật nó)
+              const newToken = useAuthStore.getState().token;
+
+              // Cập nhật header cho request gốc
+              originalRequest.headers = originalRequest.headers || {};
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+              // "Xả" hàng đợi: thực thi lại các request đã bị treo với token mới
+              this.processQueue(null, newToken);
+
+              // Gửi lại request gốc
+              return this.client(originalRequest);
+            } else {
+              // Refresh thất bại (ví dụ: refresh token hết hạn)
+              console.warn('🔒 [API] Token renew failed, logging out.');
+              this.processQueue(apiError, null); // "Xả" hàng đợi với lỗi
+              if (this.onAuthError) {
+                this.onAuthError(); // Gọi hàm logout
+              }
+              return Promise.reject(apiError);
+            }
+          } catch (renewError: any) {
+            console.error(
+              'CRITICAL: Error during token renew process',
+              renewError
+            );
+            this.processQueue(renewError, null); // "Xả" hàng đợi với lỗi
+            if (this.onAuthError) {
+              this.onAuthError(); // Gọi hàm logout
+            }
+            return Promise.reject(renewError);
+          } finally {
+            this.isRefreshing = false;
+          }
+        }
+
+        // Trả về lỗi đã được chuẩn hóa
         return Promise.reject(apiError);
       }
     );

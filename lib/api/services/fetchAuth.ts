@@ -58,7 +58,7 @@ export interface LogoutResponse {
 }
 
 export interface RenewTokenRequest {
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 
@@ -121,36 +121,15 @@ export interface SendOtpResponse {
 export const authServices = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     const response = await apiService.post<LoginResponse, LoginCredentials>(
-      '/api/accounts/authen',
+      '/api/Accounts/authen',
       credentials
     );
     return response.data;
   },
 
-  register: async (request: RegisterRequest): Promise<RegisterResponse> => {
-    try {
-      const response = await apiService.post<RegisterResponse, RegisterRequest>(
-        '/api/accounts/register',
-        request
-      );
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.data) {
-        throw {
-          ...error,
-          response: {
-            ...error.response,
-            data: error.response.data as RegisterResponse,
-          },
-        };
-      }
-      throw error;
-    }
-  },
-
   logout: async (request: LogoutRequest): Promise<LogoutResponse> => {
     const response = await apiService.post<LogoutResponse, LogoutRequest>(
-      '/api/accounts/logout',
+      '/api/Accounts/sign-out',
       request
     );
     return response.data;
@@ -162,7 +141,7 @@ export const authServices = {
     const response = await apiService.post<
       RenewTokenResponse,
       RenewTokenRequest
-    >('/api/accounts/renew-token', request);
+    >('/api/Accounts/renew-token', request);
     return response.data;
   },
 
@@ -172,7 +151,7 @@ export const authServices = {
     const response = await apiService.post<
       ForgotPasswordResponse,
       ForgotPasswordRequest
-    >('/api/accounts/forgot-password', request);
+    >('/api/Accounts/forgot-password', request);
     return response.data;
   },
 
@@ -182,7 +161,7 @@ export const authServices = {
     const response = await apiService.post<
       ResetPasswordResponse,
       ResetPasswordRequest
-    >('/api/accounts/reset-password', request);
+    >('/api/Accounts/reset-password', request);
     return response.data;
   },
 
@@ -192,13 +171,13 @@ export const authServices = {
     const response = await apiService.post<
       ChangePasswordResponse,
       ChangePasswordRequest
-    >('/api/accounts/change-password', request);
+    >('/api/Accounts/change-password', request);
     return response.data;
   },
 
   sendOtp: async (request: SendOtpRequest): Promise<SendOtpResponse> => {
     const response = await apiService.post<SendOtpResponse, SendOtpRequest>(
-      '/api/accounts/send-otp',
+      '/api/Accounts/send-otp',
       request
     );
     return response.data;

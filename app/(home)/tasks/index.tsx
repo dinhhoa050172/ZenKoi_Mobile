@@ -9,7 +9,14 @@ import {
 import { useAuthStore } from '@/lib/store/authStore';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -21,6 +28,7 @@ export default function TasksScreen() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedTask, setSelectedTask] = useState<WorkSchedule | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Get user from auth store
@@ -55,10 +63,9 @@ export default function TasksScreen() {
     {
       scheduledDateFrom: weekRange.from,
       scheduledDateTo: weekRange.to,
-      pageSize: 100, // Increased to handle full week
     }
   );
-  console.log('error schedule:', error);
+
   // Day names in Vietnamese
   const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
   const monthNames = [
@@ -78,11 +85,14 @@ export default function TasksScreen() {
 
   // Filter tasks for selected date and group by time periods
   const selectedDateString = selectedDate.toISOString().split('T')[0];
-  const workSchedules = workScheduleData?.data || [];
+  const workSchedules = workScheduleData?.result || [];
 
   // Filter tasks for the selected date only
   const todayTasks = workSchedules.filter((schedule) => {
-    const scheduleDate = schedule.scheduledDate.split('T')[0];
+    // Handle both date formats: "2025-11-13" or "2025-11-13T00:00:00"
+    const scheduleDate = schedule.scheduledDate.includes('T')
+      ? schedule.scheduledDate.split('T')[0]
+      : schedule.scheduledDate;
     return scheduleDate === selectedDateString;
   });
 
@@ -188,6 +198,15 @@ export default function TasksScreen() {
     setSelectedTask(null);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -238,10 +257,19 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={['#0A3D62']}
+            tintColor="#0A3D62"
+          />
+        }
       >
         <View className="p-4">
           {/* Header with Date */}
@@ -304,7 +332,10 @@ export default function TasksScreen() {
                 .toISOString()
                 .split('T')[0];
               const dayTaskCount = workSchedules.filter((schedule) => {
-                const scheduleDate = schedule.scheduledDate.split('T')[0];
+                // Handle both date formats: "2025-11-13" or "2025-11-13T00:00:00"
+                const scheduleDate = schedule.scheduledDate.includes('T')
+                  ? schedule.scheduledDate.split('T')[0]
+                  : schedule.scheduledDate;
                 return scheduleDate === dayDateString;
               }).length;
 
@@ -390,7 +421,7 @@ export default function TasksScreen() {
             )}
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Task Completion Modal */}
       <TaskCompletionModal
