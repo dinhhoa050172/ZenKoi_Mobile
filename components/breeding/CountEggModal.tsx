@@ -1,16 +1,17 @@
 import { useCreateEggBatch, useUpdateEggBatch } from '@/hooks/useEggBatch';
 import { Pond } from '@/lib/api/services/fetchPond';
 import { useQueryClient } from '@tanstack/react-query';
-import { X } from 'lucide-react-native';
+import { Calculator, Droplet, Egg, Save, Scale, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Toast from 'react-native-toast-message';
 import ContextMenuField from '../ContextMenuField';
 import { CustomAlert } from '../CustomAlert';
@@ -28,7 +29,7 @@ interface CountEggModalProps {
   emptyPonds: Pond[];
   onRefetchPonds: () => void;
   eggBatchData?: EggBatchData | null;
-  allPonds?: Pond[]; // All ponds for edit mode
+  allPonds?: Pond[];
   onRefetchAllPonds?: () => void;
 }
 
@@ -47,8 +48,6 @@ export function CountEggModal({
   const updateEggBatch = useUpdateEggBatch();
 
   const isEditMode = !!eggBatchData;
-
-  // Use all ponds when editing, empty ponds when creating
   const availablePonds = isEditMode ? (allPonds ?? []) : emptyPonds;
   const refetchPonds = isEditMode
     ? (onRefetchAllPonds ?? onRefetchPonds)
@@ -71,7 +70,6 @@ export function CountEggModal({
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Pre-fill pond data when in edit mode
   useEffect(() => {
     if (eggBatchData && visible) {
       setCurrentPondId(eggBatchData.pondId);
@@ -180,7 +178,6 @@ export function CountEggModal({
 
     try {
       if (isEditMode && eggBatchData) {
-        // Update existing egg batch
         await updateEggBatch.mutateAsync({
           id: eggBatchData.id,
           data: {
@@ -194,7 +191,6 @@ export function CountEggModal({
           text1: 'Đã cập nhật lô trứng thành công!',
         });
       } else {
-        // Create new egg batch
         await createEggBatch.mutateAsync({
           breedingProcessId: breedingId,
           quantity,
@@ -203,6 +199,11 @@ export function CountEggModal({
         Toast.show({ type: 'success', text1: 'Đã tạo lô trứng thành công!' });
       }
       queryClient.invalidateQueries({ queryKey: ['breedingProcesses'] });
+      if (breedingId) {
+        queryClient.invalidateQueries({
+          queryKey: ['eggBatch', 'by-breeding-process', breedingId],
+        });
+      }
       handleClose();
     } catch (err: any) {
       setErrorMessage(
@@ -215,6 +216,8 @@ export function CountEggModal({
     }
   };
 
+  const isLoading = createEggBatch.isPending || updateEggBatch.isPending;
+
   return (
     <>
       <Modal
@@ -223,207 +226,310 @@ export function CountEggModal({
         animationType="slide"
         onRequestClose={handleClose}
       >
-        <View className="flex-1 items-center justify-center bg-black/40 px-4">
+        <View className="flex-1 items-center justify-center bg-black/50 px-4">
           <View
-            className="w-11/12 rounded-2xl bg-white"
-            style={{ maxHeight: '75%' }}
+            className="w-full max-w-lg flex-1 overflow-hidden rounded-3xl bg-white"
+            style={{ maxHeight: '85%' }}
           >
-            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
-              <Text className="text-lg font-semibold">
-                {isEditMode ? 'Chỉnh sửa lô trứng' : 'Đếm số lượng trứng'}
-              </Text>
-              <TouchableOpacity onPress={handleClose}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
+            {/* Header */}
+            <View className="bg-amber-500 pb-6 pt-4">
+              <View className="flex-row items-center justify-between px-5">
+                <View className="h-10 w-10" />
+                <View className="flex-1 items-center">
+                  <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-white/20">
+                    <Egg size={24} color="white" />
+                  </View>
+                  <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
+                    {isEditMode ? 'Chỉnh sửa' : 'Đếm trứng'}
+                  </Text>
+                  <Text className="text-xl font-bold text-white">
+                    {isEditMode ? 'Cập nhật lô trứng' : 'Đếm số lượng trứng'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
+                  disabled={isLoading}
+                >
+                  <X size={20} color="white" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <ScrollView
+            <KeyboardAwareScrollView
+              style={{ flex: 1 }}
               contentContainerStyle={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: 100,
               }}
+              bottomOffset={20}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Text className="mb-2 text-sm text-gray-600">
-                Chọn phương pháp đếm trứng phù hợp
-              </Text>
-              <ContextMenuField
-                label="Phương pháp đếm"
-                value={countMethod}
-                options={[
-                  { label: 'Đếm theo mẫu', value: 'Đếm theo mẫu' },
-                  {
-                    label: 'Đếm theo trọng lượng',
-                    value: 'Đếm theo trọng lượng',
-                  },
-                ]}
-                onSelect={(v: string) => setCountMethod(v)}
-                placeholder="Chọn phương pháp đếm"
-              />
-
-              {countMethod === 'Đếm theo mẫu' ? (
-                <View>
-                  <Text className="mb-1 text-xs text-gray-500">
-                    Tổng trọng lượng (g) <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="mb-2 rounded border border-gray-200 p-2"
-                    value={totalWeight}
-                    onChangeText={(t) => {
-                      setTotalWeight(normalizeDecimalInput(t));
-                      if (totalWeightError) setTotalWeightError('');
-                    }}
-                    placeholder="VD: 500"
-                    keyboardType="numeric"
-                  />
-                  {totalWeightError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {totalWeightError}
-                    </Text>
-                  ) : null}
-
-                  <Text className="mb-1 text-xs text-gray-500">
-                    Trọng lượng mẫu (g) <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="mb-2 rounded border border-gray-200 p-2"
-                    value={sampleWeight}
-                    onChangeText={(t) => {
-                      setSampleWeight(normalizeDecimalInput(t));
-                      if (sampleWeightError) setSampleWeightError('');
-                    }}
-                    placeholder="VD: 10"
-                    keyboardType="numeric"
-                  />
-                  {sampleWeightError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {sampleWeightError}
-                    </Text>
-                  ) : null}
-
-                  <Text className="mb-1 text-xs text-gray-500">
-                    Số lượng trong mẫu <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="mb-2 rounded border border-gray-200 p-2"
-                    value={sampleCount}
-                    onChangeText={(t) => {
-                      setSampleCount(t.replace(/[^0-9]/g, ''));
-                      if (sampleCountError) setSampleCountError('');
-                    }}
-                    placeholder="VD: 150"
-                    keyboardType="numeric"
-                  />
-                  {sampleCountError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {sampleCountError}
-                    </Text>
-                  ) : null}
-
-                  <ContextMenuField
-                    label="Hồ"
-                    value={currentPondLabel}
-                    options={availablePonds.map((p) => ({
-                      label: `${p.id}: ${p.pondName ?? p.id}`,
-                      value: `${p.id}: ${p.pondName ?? p.id}`,
-                      meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
-                    }))}
-                    onSelect={(v: string) => {
-                      const id = String(v).split(':')[0]?.trim();
-                      setCurrentPondId(id ? Number(id) : null);
-                      setCurrentPondLabel(String(v));
-                      if (pondError) setPondError('');
-                    }}
-                    onPress={refetchPonds}
-                    placeholder="Chọn hồ"
-                  />
-                  {pondError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {pondError}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : (
-                <View>
-                  <Text className="mb-1 text-xs text-gray-500">
-                    Tổng trọng lượng (g) <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="mb-2 rounded border border-gray-200 p-2"
-                    value={totalWeight}
-                    onChangeText={(t) => {
-                      setTotalWeight(normalizeDecimalInput(t));
-                      if (totalWeightError) setTotalWeightError('');
-                    }}
-                    placeholder="VD: 500"
-                    keyboardType="numeric"
-                  />
-                  {totalWeightError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {totalWeightError}
-                    </Text>
-                  ) : null}
-
-                  <Text className="mb-1 text-xs text-gray-500">
-                    Trọng lượng trung bình 1 trứng (g){' '}
-                    <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="mb-2 rounded border border-gray-200 p-2"
-                    value={avgWeight}
-                    onChangeText={(t) => {
-                      setAvgWeight(normalizeDecimalInput(t));
-                      if (avgWeightError) setAvgWeightError('');
-                    }}
-                    placeholder="VD: 0.067"
-                    keyboardType="numeric"
-                  />
-                  {avgWeightError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {avgWeightError}
-                    </Text>
-                  ) : null}
-
-                  <ContextMenuField
-                    label="Hồ"
-                    value={currentPondLabel}
-                    options={availablePonds.map((p) => ({
-                      label: `${p.id}: ${p.pondName ?? p.id}`,
-                      value: `${p.id}: ${p.pondName ?? p.id}`,
-                      meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
-                    }))}
-                    onSelect={(v: string) => {
-                      const id = String(v).split(':')[0]?.trim();
-                      setCurrentPondId(id ? Number(id) : null);
-                      setCurrentPondLabel(String(v));
-                      if (pondError) setPondError('');
-                    }}
-                    onPress={refetchPonds}
-                    placeholder="Chọn hồ"
-                  />
-                  {pondError ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {pondError}
-                    </Text>
-                  ) : null}
-                </View>
-              )}
-            </ScrollView>
-
-            <View className="flex-row justify-between border-t border-gray-100 p-4">
-              <TouchableOpacity
-                className="rounded-lg border border-gray-200 px-4 py-2"
-                onPress={handleClose}
-              >
-                <Text>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="rounded-lg bg-primary px-4 py-2"
-                onPress={handleSave}
-              >
-                <Text className="text-white">
-                  {isEditMode ? 'Cập nhật' : 'Lưu kết quả'}
+              {/* Method Selection */}
+              <View className="mb-4">
+                <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                  Phương pháp đếm
                 </Text>
-              </TouchableOpacity>
+                <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <View className="flex-row items-start">
+                    <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                      <Calculator size={18} color="#3b82f6" />
+                    </View>
+                    <View className="flex-1">
+                      <ContextMenuField
+                        label="Chọn phương pháp"
+                        value={countMethod}
+                        options={[
+                          { label: 'Đếm theo mẫu', value: 'Đếm theo mẫu' },
+                          {
+                            label: 'Đếm theo trọng lượng',
+                            value: 'Đếm theo trọng lượng',
+                          },
+                        ]}
+                        onSelect={(v: string) => setCountMethod(v)}
+                        placeholder="Chọn phương pháp đếm"
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Input Fields */}
+              <View className="mb-4">
+                <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                  Thông tin đo lường
+                </Text>
+                <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                  {countMethod === 'Đếm theo mẫu' ? (
+                    <>
+                      {/* Total Weight */}
+                      <View className="mb-4 flex-row items-center">
+                        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                          <Scale size={18} color="#22c55e" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="mb-1 text-base font-medium text-gray-600">
+                            Tổng trọng lượng (g){' '}
+                            <Text className="text-red-500">*</Text>
+                          </Text>
+                          <TextInput
+                            className={`rounded-2xl border ${totalWeightError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                            value={totalWeight}
+                            onChangeText={(t) => {
+                              setTotalWeight(normalizeDecimalInput(t));
+                              if (totalWeightError) setTotalWeightError('');
+                            }}
+                            placeholder="VD: 500"
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="numeric"
+                          />
+                          {totalWeightError ? (
+                            <Text className="mt-1 text-xs text-red-500">
+                              {totalWeightError}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      {/* Sample Weight */}
+                      <View className="mb-4 flex-row items-center">
+                        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-cyan-100">
+                          <Scale size={18} color="#06b6d4" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="mb-1 text-base font-medium text-gray-600">
+                            Trọng lượng mẫu (g){' '}
+                            <Text className="text-red-500">*</Text>
+                          </Text>
+                          <TextInput
+                            className={`rounded-2xl border ${sampleWeightError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                            value={sampleWeight}
+                            onChangeText={(t) => {
+                              setSampleWeight(normalizeDecimalInput(t));
+                              if (sampleWeightError) setSampleWeightError('');
+                            }}
+                            placeholder="VD: 10"
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="numeric"
+                          />
+                          {sampleWeightError ? (
+                            <Text className="mt-1 text-xs text-red-500">
+                              {sampleWeightError}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      {/* Sample Count */}
+                      <View className="flex-row items-center">
+                        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                          <Egg size={18} color="#f59e0b" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="mb-1 text-base font-medium text-gray-600">
+                            Số lượng trong mẫu{' '}
+                            <Text className="text-red-500">*</Text>
+                          </Text>
+                          <TextInput
+                            className={`rounded-2xl border ${sampleCountError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                            value={sampleCount}
+                            onChangeText={(t) => {
+                              setSampleCount(t.replace(/[^0-9]/g, ''));
+                              if (sampleCountError) setSampleCountError('');
+                            }}
+                            placeholder="VD: 150"
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="numeric"
+                          />
+                          {sampleCountError ? (
+                            <Text className="mt-1 text-xs text-red-500">
+                              {sampleCountError}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      {/* Total Weight */}
+                      <View className="mb-4 flex-row items-center">
+                        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                          <Scale size={18} color="#22c55e" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="mb-1 text-base font-medium text-gray-600">
+                            Tổng trọng lượng (g){' '}
+                            <Text className="text-red-500">*</Text>
+                          </Text>
+                          <TextInput
+                            className={`rounded-2xl border ${totalWeightError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                            value={totalWeight}
+                            onChangeText={(t) => {
+                              setTotalWeight(normalizeDecimalInput(t));
+                              if (totalWeightError) setTotalWeightError('');
+                            }}
+                            placeholder="VD: 500"
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="numeric"
+                          />
+                          {totalWeightError ? (
+                            <Text className="mt-1 text-xs text-red-500">
+                              {totalWeightError}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      {/* Average Weight */}
+                      <View className="flex-row items-center">
+                        <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                          <Egg size={18} color="#a855f7" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="mb-1 text-base font-medium text-gray-600">
+                            Trọng lượng trung bình 1 trứng (g){' '}
+                            <Text className="text-red-500">*</Text>
+                          </Text>
+                          <TextInput
+                            className={`rounded-2xl border ${avgWeightError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                            value={avgWeight}
+                            onChangeText={(t) => {
+                              setAvgWeight(normalizeDecimalInput(t));
+                              if (avgWeightError) setAvgWeightError('');
+                            }}
+                            placeholder="VD: 0.067"
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="numeric"
+                          />
+                          {avgWeightError ? (
+                            <Text className="mt-1 text-xs text-red-500">
+                              {avgWeightError}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+
+              {/* Pond Selection */}
+              <View className="mb-4">
+                <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                  Chọn hồ nuôi
+                </Text>
+                <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <View className="flex-row items-start">
+                    <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                      <Droplet size={18} color="#3b82f6" />
+                    </View>
+                    <View className="flex-1">
+                      <ContextMenuField
+                        label="Hồ *"
+                        value={currentPondLabel}
+                        options={availablePonds.map((p) => ({
+                          label: `${p.id}: ${p.pondName ?? p.id}`,
+                          value: `${p.id}: ${p.pondName ?? p.id}`,
+                          meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
+                        }))}
+                        onSelect={(v: string) => {
+                          const id = String(v).split(':')[0]?.trim();
+                          setCurrentPondId(id ? Number(id) : null);
+                          setCurrentPondLabel(String(v));
+                          if (pondError) setPondError('');
+                        }}
+                        onPress={refetchPonds}
+                        placeholder="Chọn hồ"
+                      />
+                      {pondError ? (
+                        <Text className="mt-2 text-xs text-red-500">
+                          {pondError}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </KeyboardAwareScrollView>
+
+            {/* Fixed Bottom Actions */}
+            <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-5 py-4">
+              <View className="flex-row">
+                <TouchableOpacity
+                  className="mr-2 flex-1 rounded-2xl border-2 border-gray-200 bg-gray-50 py-4"
+                  onPress={handleClose}
+                  disabled={isLoading}
+                >
+                  <Text className="text-center text-base font-semibold text-gray-700">
+                    Hủy
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className={`ml-2 flex-1 flex-row items-center justify-center rounded-2xl py-4 ${
+                    isLoading ? 'bg-gray-300' : 'bg-amber-500'
+                  }`}
+                  onPress={handleSave}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <ActivityIndicator color="#fff" size="small" />
+                      <Text className="ml-2 text-base font-semibold text-white">
+                        Đang lưu...
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={20} color="white" />
+                      <Text className="ml-2 text-base font-semibold text-white">
+                        {isEditMode ? 'Cập nhật' : 'Lưu kết quả'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>

@@ -226,7 +226,7 @@ export default function CreateIncidentModal({
               <View className="flex-row space-x-3">
                 <TouchableOpacity
                   onPress={handleClose}
-                  className="flex-1 rounded-xl border border-gray-300 bg-white py-4"
+                  className="flex-1 rounded-2xl border border-gray-300 bg-white py-4"
                   disabled={createMutation.isPending}
                 >
                   <Text className="text-center text-base font-semibold text-gray-700">
@@ -236,7 +236,7 @@ export default function CreateIncidentModal({
 
                 <TouchableOpacity
                   onPress={handleSubmit}
-                  className={`flex-1 rounded-xl py-4 ${
+                  className={`flex-1 rounded-2xl py-4 ${
                     createMutation.isPending ||
                     !formData.incidentTypeId ||
                     !formData.incidentTitle?.trim() ||

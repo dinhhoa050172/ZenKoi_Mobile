@@ -7,6 +7,7 @@ import {
 } from '@/lib/api/services/fetchEggBatch';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import { breedingProcessKeys } from './useBreedingProcess';
 
 // Query keys
 export const eggBatchKeys = {
@@ -101,6 +102,7 @@ export function useCreateEggBatch() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: eggBatchKeys.lists() });
       qc.invalidateQueries({ queryKey: eggBatchKeys.all });
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });
       Toast.show({
         type: 'success',
         text1: 'Tạo lô trứng thành công',
@@ -140,6 +142,7 @@ export function useUpdateEggBatch() {
       if (vars?.id)
         qc.invalidateQueries({ queryKey: eggBatchKeys.detail(vars.id) });
       qc.invalidateQueries({ queryKey: eggBatchKeys.lists() });
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });
     },
     onError: (err: any) => {
       Toast.show({
@@ -168,6 +171,7 @@ export function useDeleteEggBatch() {
       Toast.show({ type: 'success', text1: 'Xóa thành công', position: 'top' });
       qc.invalidateQueries({ queryKey: eggBatchKeys.lists() });
       qc.invalidateQueries({ queryKey: eggBatchKeys.all });
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });
     },
     onError: (err: any) => {
       Toast.show({

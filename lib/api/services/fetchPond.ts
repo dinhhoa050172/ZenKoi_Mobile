@@ -25,6 +25,7 @@ export interface Pond {
   pondTypeName: string;
   areaId: number;
   areaName: string;
+  record: WaterQualityRecord | null;
 }
 
 export interface PondSearchParams {
@@ -33,6 +34,7 @@ export interface PondSearchParams {
   areaId?: number;
   pondTypeId?: number;
   pondTypeEnum?: TypeOfPond;
+  available?: boolean;
   minCapacityLiters?: number;
   maxCapacityLiters?: number;
   minDepthMeters?: number;
@@ -43,9 +45,21 @@ export interface PondSearchParams {
   pageSize?: number;
 }
 
+export interface WaterQualityRecord {
+  phLevel: number;
+  temperatureCelsius: number;
+  oxygenLevel: number;
+  ammoniaLevel: number;
+  nitriteLevel: number;
+  nitrateLevel: number;
+  carbonHardness: number;
+  waterLevelMeters: number;
+  notes: string;
+}
+
 export interface PondRequest {
-  areaId: number;
   pondTypeId: number;
+  areaId: number;
   pondName: string;
   location: string;
   pondStatus: PondStatus;
@@ -53,6 +67,7 @@ export interface PondRequest {
   depthMeters: number;
   lengthMeters: number;
   widthMeters: number;
+  record: WaterQualityRecord;
 }
 
 export interface PondPagination {
@@ -129,6 +144,14 @@ export const pondServices = {
   // Get pond by ID
   getPondById: async (id: number): Promise<PondResponse> => {
     const response = await apiService.get<PondResponse>(`/api/pond/${id}`);
+    return response.data;
+  },
+
+  // Get fish in a pond
+  getFishOfPond: async (pondId: number): Promise<FishOfPondResponse> => {
+    const response = await apiService.get<FishOfPondResponse>(
+      `/api/pond/${pondId}/koifish`
+    );
     return response.data;
   },
 

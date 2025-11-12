@@ -21,7 +21,7 @@ export default function PondStats({ ponds, isLoading }: PondStatsProps) {
 
   if (isLoading) {
     return (
-      <View className="mb-4 flex-row">
+      <View className="mb-4 mt-2 flex-row">
         {[1, 2, 3].map((index) => (
           <View
             key={index}
@@ -36,7 +36,7 @@ export default function PondStats({ ponds, isLoading }: PondStatsProps) {
   }
 
   return (
-    <View className="mb-4 flex-row">
+    <View className="mb-4 mt-2 flex-row">
       <View className="mr-2 flex-1 items-center rounded-2xl bg-white p-4 shadow-sm">
         <Text className="text-2xl font-bold text-green-600">{activePonds}</Text>
         <Text className="text-sm text-gray-600">Hoạt động</Text>

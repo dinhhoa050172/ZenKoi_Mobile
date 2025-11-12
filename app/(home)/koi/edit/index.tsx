@@ -1,15 +1,19 @@
 import ContextMenuField from '@/components/ContextMenuField';
 import { CustomAlert } from '@/components/CustomAlert';
+import FishSvg from '@/components/icons/FishSvg';
+import PondSvg from '@/components/icons/PondSvg';
+import InputField from '@/components/InputField';
 import { useGetKoiFishById, useUpdateKoiFish } from '@/hooks/useKoiFish';
 import { useGetPonds } from '@/hooks/usePond';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useGetVarieties } from '@/hooks/useVariety';
 import type { KoiFishRequest } from '@/lib/api/services/fetchKoiFish';
 import {
-  FishSize,
   Gender,
   HealthStatus,
+  KoiPatternType,
   KoiType,
+  MutationType,
   SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import { formatDate } from '@/lib/utils/formatDate';
@@ -17,19 +21,36 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Camera, LibraryBig, X } from 'lucide-react-native';
+import {
+  Biohazard,
+  Blend,
+  Calendar,
+  Camera,
+  Coins,
+  Dna,
+  DollarSign,
+  Hash,
+  HeartPulse,
+  ImageIcon,
+  List,
+  MapPin,
+  Ruler,
+  VenusAndMars,
+  X,
+} from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
   Modal,
   Platform,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -50,6 +71,7 @@ export default function EditKoiPage() {
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sizeText, setSizeText] = useState('');
 
   const [customAlertVisible, setCustomAlertVisible] = useState(false);
   const [customAlertTitle, setCustomAlertTitle] = useState('');
@@ -84,14 +106,35 @@ export default function EditKoiPage() {
   useFocusEffect(
     React.useCallback(() => {
       if (koiData) {
+        const extractCm = (s?: string | null) => {
+          if (!s) return 0;
+          // try to find a number followed by 'cm' (e.g. '20 cm' or '20cm')
+          const cmMatch = s.match(/([0-9]+(?:[.,][0-9]+)?)\s*cm/i);
+          if (cmMatch && cmMatch[1]) {
+            const num = parseFloat(cmMatch[1].replace(',', '.'));
+            return Number.isFinite(num) ? num : 0;
+          }
+          // fallback: take the last numeric token in the string
+          const lastNumMatch = s.match(/([0-9]+(?:[.,][0-9]+)?)(?!.*[0-9])/);
+          if (lastNumMatch && lastNumMatch[1]) {
+            const num = parseFloat(lastNumMatch[1].replace(',', '.'));
+            return Number.isFinite(num) ? num : 0;
+          }
+          // ultimate fallback: parseFloat on whole string
+          const pf = parseFloat(s.replace(',', '.'));
+          return Number.isFinite(pf) ? pf : 0;
+        };
+
+        const sizeVal = extractCm(koiData.size as any);
         setFormData({
           pondId: koiData.pond?.id ?? 0,
           varietyId: koiData.variety?.id ?? 0,
           breedingProcessId: null,
           rfid: koiData.rfid ?? '',
           origin: koiData.origin ?? '',
-          size: koiData.size ?? FishSize.FROM21TO25CM,
+          size: sizeVal,
           type: koiData.type ?? KoiType.HIGH,
+          patternType: koiData.patternType,
           birthDate: koiData.birthDate ?? '',
           gender: koiData.gender ?? Gender.MALE,
           healthStatus: koiData.healthStatus ?? HealthStatus.HEALTHY,
@@ -99,13 +142,15 @@ export default function EditKoiPage() {
           images: koiData.images ?? [],
           videos: koiData.videos ?? [],
           sellingPrice: koiData.sellingPrice ?? 0,
-          bodyShape: koiData.bodyShape ?? '',
-          colorPattern: koiData.colorPattern ?? '',
           description: koiData.description ?? '',
+          isMutated: koiData.isMutated ?? false,
+          mutationType: koiData.mutationType,
         });
+        setSizeText(sizeVal > 0 ? String(sizeVal) : '');
         setErrors({});
       } else {
         setFormData(null);
+        setSizeText('');
         setErrors({});
       }
       return undefined;
@@ -116,6 +161,7 @@ export default function EditKoiPage() {
     {
       pageIndex: 1,
       pageSize: 100,
+      available: true,
     },
     true
   );
@@ -187,6 +233,48 @@ export default function EditKoiPage() {
     }
   };
 
+  const koiPatternTypeToLabel = (p: KoiPatternType) => {
+    switch (p) {
+      case KoiPatternType.TANCHO:
+        return 'Đốm đỏ giữa đầu';
+      case KoiPatternType.MARUTEN:
+        return 'Đốm đầu và thân';
+      case KoiPatternType.NIDAN:
+        return '2 đốm đỏ';
+      case KoiPatternType.SANDAN:
+        return '3 đốm đỏ';
+      case KoiPatternType.INAZUMA:
+        return 'Dải đỏ hình tia sét';
+      case KoiPatternType.STRAIGHT_HI:
+        return 'Dải đỏ liền thân';
+      case KoiPatternType.MENKABURI:
+        return 'Đầu đỏ toàn phần';
+      case KoiPatternType.BOZU:
+        return 'Đầu trắng';
+      case KoiPatternType.NONE:
+        return 'Không xác định';
+      default:
+        return p;
+    }
+  };
+
+  const mutationTypeToLabel = (m: MutationType) => {
+    switch (m) {
+      case MutationType.DOITSU:
+        return 'Doitsu (không vảy)';
+      case MutationType.GINRIN:
+        return 'Ginrin (vảy ánh kim)';
+      case MutationType.HIRENAGA:
+        return 'Hirenaga (đuôi dài)';
+      case MutationType.METALLIC:
+        return 'Metallic (ánh kim toàn thân)';
+      case MutationType.NONE:
+        return 'Không';
+      default:
+        return m;
+    }
+  };
+
   const typeOptionsVN = Object.values(KoiType).map((t) => ({
     label: t,
     value: t,
@@ -205,35 +293,19 @@ export default function EditKoiPage() {
     value: s,
   }));
 
-  const fishSizeToLabel = (s: FishSize) => {
-    switch (s) {
-      case FishSize.UNDER10CM:
-        return 'Dưới 10 cm';
-      case FishSize.FROM10TO20CM:
-        return '10 - 20 cm';
-      case FishSize.FROM21TO25CM:
-        return '21 - 25 cm';
-      case FishSize.FROM26TO30CM:
-        return '26 - 30 cm';
-      case FishSize.FROM31TO40CM:
-        return '31 - 40 cm';
-      case FishSize.FROM41TO45CM:
-        return '41 - 45 cm';
-      case FishSize.FROM46TO50CM:
-        return '46 - 50 cm';
-      case FishSize.OVER50CM:
-        return 'Trên 50 cm';
-      default:
-        return s;
-    }
-  };
+  const patternOptionsVN = Object.values(KoiPatternType).map((p) => ({
+    label: koiPatternTypeToLabel(p),
+    value: p,
+  }));
 
-  const fishSizeOptions = Object.values(FishSize).map((s) => ({
-    label: fishSizeToLabel(s),
-    value: s,
+  const mutationTypeOptionsVN = Object.values(MutationType).map((m) => ({
+    label: mutationTypeToLabel(m),
+    value: m,
   }));
 
   const updateKoi = useUpdateKoiFish();
+  const isSaving =
+    (updateKoi as any).isLoading || (updateKoi as any).isMutating || false;
   const uploadImage = useUploadImage();
 
   const pickImageFromLibrary = async () => {
@@ -414,12 +486,10 @@ export default function EditKoiPage() {
       nextErrors.images = 'Vui lòng thêm ít nhất 1 ảnh';
     if (!formData.sellingPrice || Number(formData.sellingPrice) <= 0)
       nextErrors.sellingPrice = 'Vui lòng nhập giá bán > 0';
-    if (!formData.bodyShape.trim())
-      nextErrors.bodyShape = 'Vui lòng nhập hình dáng cá';
-    if (!formData.colorPattern.trim())
-      nextErrors.colorPattern = 'Vui lòng nhập màu sắc';
     if (!formData.description.trim())
-      nextErrors.description = 'Vui lòng nhập mô tả';
+      nextErrors.description = 'Vui lòng nhập giới thiệu';
+    if (formData.isMutated && !formData.mutationType)
+      nextErrors.mutationType = 'Vui lòng chọn loại đột biến';
 
     setErrors(nextErrors);
     if (nextErrors.images) {
@@ -435,6 +505,7 @@ export default function EditKoiPage() {
       rfid: String(formData.rfid),
       origin: String(formData.origin ?? ''),
       size: formData.size,
+      patternType: formData.patternType as KoiPatternType,
       birthDate: formData.birthDate || new Date().toISOString(),
       gender: formData.gender as Gender,
       healthStatus: formData.healthStatus as HealthStatus,
@@ -442,9 +513,9 @@ export default function EditKoiPage() {
       images: formData.images ?? [],
       videos: formData.videos ?? [],
       sellingPrice: Number(formData.sellingPrice ?? 0),
-      bodyShape: String(formData.bodyShape ?? ''),
-      colorPattern: String(formData.colorPattern ?? ''),
       description: String(formData.description ?? ''),
+      isMutated: formData.isMutated ?? false,
+      mutationType: formData.mutationType as MutationType,
     };
 
     updateKoi.mutate(
@@ -466,571 +537,783 @@ export default function EditKoiPage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center justify-between border-b border-gray-200 p-4">
-        <Text className="text-lg font-semibold text-gray-900">
-          Chỉnh sửa cá Koi
-        </Text>
-        <TouchableOpacity
-          onPress={() =>
-            router.replace({ pathname: redirect ?? '/koi' } as any)
-          }
-          className="p-1"
-        >
-          <X size={24} color="red" />
-        </TouchableOpacity>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      {/* Header */}
+      <View className="relative rounded-t-3xl bg-primary pb-6">
+        <View className="px-4 pt-4">
+          <View className="items-center">
+            <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
+              Chỉnh sửa
+            </Text>
+            <Text className="text-2xl font-bold text-white">
+              Chỉnh sửa cá Koi
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() =>
+              router.replace({ pathname: redirect ?? '/koi' } as any)
+            }
+            className="absolute right-4 top-4 h-10 w-10 items-center justify-center rounded-full bg-white/20"
+            accessibilityLabel="Đóng"
+          >
+            <X size={20} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <KeyboardAwareScrollView
-        enableOnAndroid={true}
-        enableAutomaticScroll={true}
-        extraScrollHeight={Platform.OS === 'android' ? 120 : 50}
-        keyboardOpeningTime={0}
-        className="flex-1 p-4"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+        bottomOffset={insets.bottom + 80}
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 20,
+          paddingBottom: insets.bottom + 30,
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="mb-6">
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Ảnh cá
+        <View className="mb-4">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+            Hình ảnh cá Koi
           </Text>
 
-          <View className="-m-2 flex-row flex-wrap">
-            {(formData.images || []).map((url: string, idx: number) => {
-              console.log('Displaying image:', url); // Debug log
-              return (
-                <View key={idx} className="p-2" style={{ width: '50%' }}>
-                  <View className="relative">
-                    <Image
-                      source={{ uri: url }}
-                      className="h-48 w-full rounded-lg"
-                      resizeMode="cover"
-                      onError={(e) => {
-                        console.error(
-                          'Image load error:',
-                          url,
-                          e.nativeEvent.error
-                        );
-                      }}
-                      onLoad={() => {
-                        console.log('Image loaded successfully:', url);
-                      }}
-                    />
+          <View className="rounded-2xl border border-gray-200 bg-white p-4">
+            <View className="-m-2 flex-row flex-wrap">
+              {(formData.images || []).map((url: string, idx: number) => {
+                return (
+                  <View key={idx} className="p-2" style={{ width: '50%' }}>
+                    <View className="relative">
+                      <Image
+                        source={{ uri: url }}
+                        className="h-40 w-full rounded-2xl"
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        onPress={() => {
+                          const newImages = (formData.images || []).filter(
+                            (_: any, i: number) => i !== idx
+                          );
+                          setFormData({ ...formData, images: newImages });
+                          setErrors((prev) => {
+                            const copy = { ...prev };
+                            delete copy.images;
+                            return copy;
+                          });
+                        }}
+                        className="absolute right-2 top-2 rounded-full bg-white p-1"
+                        style={{ elevation: 2 }}
+                      >
+                        <X size={18} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {(uploadImage as any).isLoading ||
+              (uploadImage as any).isMutating ? (
+                <View className="p-2" style={{ width: '50%' }}>
+                  <View className="h-40 w-full items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white/60">
+                    <ActivityIndicator size="small" color="#0A3D62" />
+                    <Text className="mt-2 text-gray-600">Đang tải lên...</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {(formData.images ?? []).length < 6 && (
+                <View className="p-2" style={{ width: '50%' }}>
+                  <TouchableOpacity
+                    className="h-40 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
+                    onPress={() => setShowImageOptions(true)}
+                  >
+                    <View style={{ alignItems: 'center' }}>
+                      <Camera size={28} color="#374151" />
+                      <Text className="mt-2 font-medium text-gray-600">
+                        Thêm ảnh
+                      </Text>
+                      <Text className="mt-0.5 text-xs text-gray-400">
+                        {(formData.images ?? []).length}/6
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {errors.images && (
+              <Text className="mt-2 text-sm text-red-500">{errors.images}</Text>
+            )}
+
+            <Modal
+              visible={showImageOptions}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowImageOptions(false)}
+            >
+              <View className="flex-1 items-center justify-center bg-black/50 px-4">
+                <View className="w-full max-w-sm overflow-hidden rounded-2xl bg-white">
+                  <View className="border-b border-gray-200 p-4">
+                    <Text className="text-center text-lg font-semibold text-gray-900">
+                      Chọn ảnh
+                    </Text>
+                  </View>
+
+                  <View className="p-4">
                     <TouchableOpacity
+                      className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
                       onPress={() => {
-                        const newImages = (formData.images || []).filter(
-                          (_: any, i: number) => i !== idx
-                        );
-                        setFormData({ ...formData, images: newImages });
-                        setErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.images;
-                          return copy;
-                        });
+                        setShowImageOptions(false);
+                        pickImageFromLibrary();
                       }}
-                      className="absolute right-2 top-2 rounded-full bg-white p-1"
-                      style={{ elevation: 2 }}
                     >
-                      <X size={18} color="#ef4444" />
+                      <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                        <ImageIcon size={20} color="#3b82f6" />
+                      </View>
+                      <Text className="text-base font-medium text-gray-900">
+                        Chọn từ thư viện
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
+                      onPress={() => {
+                        setShowImageOptions(false);
+                        takePhoto();
+                      }}
+                    >
+                      <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-purple-100">
+                        <Camera size={20} color="#a855f7" />
+                      </View>
+                      <Text className="text-base font-medium text-gray-900">
+                        Chụp ảnh
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="rounded-2xl bg-gray-100 py-3"
+                      onPress={() => setShowImageOptions(false)}
+                    >
+                      <Text className="text-center text-base font-medium text-gray-700">
+                        Hủy
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-              );
-            })}
+              </View>
+            </Modal>
+          </View>
+        </View>
 
-            {(uploadImage as any).isLoading ||
-            (uploadImage as any).isMutating ? (
-              <View className="p-2" style={{ width: '50%' }}>
-                <View className="h-40 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white/60">
-                  <ActivityIndicator size="small" color="#0A3D62" />
-                  <Text className="mt-2 text-gray-600">Đang tải lên...</Text>
+        {/* Basic Info Section */}
+        <View className="mb-4">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+            Thông tin cơ bản
+          </Text>
+
+          <View className="rounded-2xl border border-gray-200 bg-white p-4">
+            {/* RFID */}
+            <View className="mb-4">
+              <InputField
+                icon={<Hash size={18} color="#0A3D62" />}
+                label="Mã RFID *"
+                placeholder="Nhập mã RFID"
+                value={formData.rfid}
+                onChangeText={(t) => {
+                  setFormData({ ...formData, rfid: t });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.rfid;
+                    return copy;
+                  });
+                }}
+                iconBg="bg-blue-100"
+              />
+              {errors.rfid && (
+                <Text className="mt-1 text-sm text-red-500">{errors.rfid}</Text>
+              )}
+            </View>
+
+            {/* Variety */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                  <FishSvg size={18} color="#0A3D62" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Giống *"
+                    value={
+                      formData.varietyId
+                        ? String(formData.varietyId)
+                        : undefined
+                    }
+                    options={varietySelectOptions}
+                    onSelect={(v: string) => {
+                      if (v === '__none') {
+                        setFormData({ ...formData, varietyId: 0 });
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.varietyId;
+                          return copy;
+                        });
+                        return;
+                      }
+                      setFormData({ ...formData, varietyId: Number(v) });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.varietyId;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn giống"
+                  />
+                  {errors.varietyId && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.varietyId}
+                    </Text>
+                  )}
                 </View>
               </View>
-            ) : null}
+            </View>
 
-            {(formData.images ?? []).length < 6 && (
-              <View className="p-2" style={{ width: '50%' }}>
-                <TouchableOpacity
-                  className="h-48 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
-                  onPress={() => setShowImageOptions(true)}
-                >
-                  <View style={{ alignItems: 'center' }}>
-                    <Camera size={28} color="#374151" />
-                    <Text className="mt-2 font-medium text-gray-900">
-                      Thêm ảnh
+            {/* Type */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
+                  <List size={18} color="#059669" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Loại *"
+                    value={formData.type}
+                    options={typeOptionsVN}
+                    onSelect={(v: string) => {
+                      setFormData({ ...formData, type: v as KoiType });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.type;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn loại"
+                  />
+                  {errors.type && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.type}
                     </Text>
-                    <Text className="text-sm text-gray-500">
-                      Chụp hoặc chọn từ thư viện
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          <Modal
-            visible={showImageOptions}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowImageOptions(false)}
-          >
-            <View className="flex-1 items-center justify-center bg-black/50 p-4">
-              <View className="w-full max-w-sm rounded-2xl bg-white p-4">
-                <Text className="mb-4 text-center text-lg font-semibold text-gray-900">
-                  Chọn ảnh
-                </Text>
-                <TouchableOpacity
-                  className="mb-3 items-center rounded-lg border border-gray-200 bg-white py-4"
-                  onPress={() => {
-                    setShowImageOptions(false);
-                    pickImageFromLibrary();
-                  }}
-                >
-                  <LibraryBig size={28} color="#374151" />
-                  <Text className="mt-2 text-center text-gray-900">
-                    Chọn từ thư viện
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="mb-3 items-center rounded-lg border border-gray-200 bg-white py-4"
-                  onPress={() => {
-                    setShowImageOptions(false);
-                    takePhoto();
-                  }}
-                >
-                  <Camera size={28} color="#374151" />
-                  <Text className="mt-2 text-center text-gray-900">
-                    Chụp ảnh
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="rounded-lg bg-red-500 py-3"
-                  onPress={() => setShowImageOptions(false)}
-                >
-                  <Text className="text-center text-white">Hủy</Text>
-                </TouchableOpacity>
+                  )}
+                </View>
               </View>
             </View>
-          </Modal>
+
+            {/* Pond */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                  <PondSvg size={18} color="#0A3D62" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Bể *"
+                    value={
+                      formData.pondId ? String(formData.pondId) : undefined
+                    }
+                    options={pondSelectOptions}
+                    onSelect={(v: string) => {
+                      if (v === '__none') {
+                        setFormData({ ...formData, pondId: 0 });
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.pondId;
+                          return copy;
+                        });
+                        return;
+                      }
+                      setFormData({ ...formData, pondId: Number(v) });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.pondId;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn bể"
+                  />
+                  {errors.pondId && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.pondId}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
 
+        {/* Physical Info Section */}
         <View className="mb-4">
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Mã RFID <Text className="text-red-500">*</Text>
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+            Thông số vật lý
           </Text>
-          <TextInput
-            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-            placeholder="Nhập mã RFID"
-            value={formData.rfid}
-            onChangeText={(t) => {
-              setFormData({ ...formData, rfid: t });
-              setErrors((prev) => {
-                const copy = { ...prev };
-                delete copy.rfid;
-                return copy;
-              });
-            }}
-          />
-          {errors.rfid && (
-            <Text className="mt-1 text-sm text-red-500">{errors.rfid}</Text>
-          )}
-        </View>
 
-        <View className="mb-4 flex-row">
-          <View className="mr-2 flex-1">
-            <ContextMenuField
-              label="Giống"
-              value={
-                formData.varietyId ? String(formData.varietyId) : undefined
-              }
-              options={varietySelectOptions}
-              onSelect={(v) => {
-                if (v === '__none') {
-                  setFormData({ ...formData, varietyId: 0 });
+          <View className="rounded-2xl border border-gray-200 bg-white p-4">
+            {/* Gender */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                  <VenusAndMars size={18} color="#f43f5e" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Giới tính *"
+                    value={formData.gender}
+                    options={genderOptionsVN}
+                    onSelect={(v: string) => {
+                      setFormData({ ...formData, gender: v as Gender });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.gender;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn giới tính"
+                  />
+                  {errors.gender && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.gender}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Size */}
+            <View className="mb-4">
+              <InputField
+                icon={<Ruler size={18} color="#8b5cf6" />}
+                label="Chiều dài (cm) *"
+                placeholder="VD: 25cm"
+                value={sizeText}
+                onChangeText={(t) => {
+                  // allow digits and one decimal separator (either . or ,)
+                  let s = t.replace(/[^0-9.,]/g, '');
+                  const firstDot = s.indexOf('.');
+                  const firstComma = s.indexOf(',');
+                  let sepIndex = -1;
+                  let sepChar = '';
+                  if (firstDot !== -1 && firstComma !== -1) {
+                    if (firstDot < firstComma) {
+                      sepIndex = firstDot;
+                      sepChar = '.';
+                    } else {
+                      sepIndex = firstComma;
+                      sepChar = ',';
+                    }
+                  } else if (firstDot !== -1) {
+                    sepIndex = firstDot;
+                    sepChar = '.';
+                  } else if (firstComma !== -1) {
+                    sepIndex = firstComma;
+                    sepChar = ',';
+                  }
+
+                  if (sepIndex === -1) {
+                    s = s.replace(/[.,]/g, '');
+                  } else {
+                    const before = s.slice(0, sepIndex).replace(/[.,]/g, '');
+                    const after = s.slice(sepIndex + 1).replace(/[.,]/g, '');
+                    s = before + sepChar + after;
+                  }
+
+                  setSizeText(s);
+
+                  // convert comma to dot for parsing
+                  const numeric = parseFloat(s.replace(',', '.'));
+                  setFormData({
+                    ...formData,
+                    size: Number.isFinite(numeric) ? numeric : 0,
+                  });
                   setErrors((prev) => {
                     const copy = { ...prev };
-                    delete copy.varietyId;
+                    delete copy.size;
                     return copy;
                   });
-                  return;
-                }
-                setFormData({ ...formData, varietyId: Number(v) });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.varietyId;
-                  return copy;
-                });
-              }}
-              placeholder="Chọn giống"
-            />
-            {errors.varietyId && (
-              <Text className="text-sm text-red-500">{errors.varietyId}</Text>
-            )}
-          </View>
-
-          <View className="flex-1">
-            <ContextMenuField
-              label="Loại"
-              value={formData.type}
-              options={typeOptionsVN as any}
-              onSelect={(v) => {
-                setFormData({ ...formData, type: v as KoiType });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.type;
-                  return copy;
-                });
-              }}
-              placeholder="Chọn loại"
-            />
-            {errors.type && (
-              <Text className="text-sm text-red-500">{errors.type}</Text>
-            )}
-          </View>
-        </View>
-
-        <View className="mb-4">
-          <ContextMenuField
-            label="Bể"
-            value={formData.pondId ? String(formData.pondId) : undefined}
-            options={pondSelectOptions}
-            onSelect={(v) => {
-              if (v === '__none') {
-                setFormData({ ...formData, pondId: 0 });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.pondId;
-                  return copy;
-                });
-                return;
-              }
-              setFormData({ ...formData, pondId: Number(v) });
-              setErrors((prev) => {
-                const copy = { ...prev };
-                delete copy.pondId;
-                return copy;
-              });
-            }}
-            placeholder="Chọn bể"
-          />
-          {errors.pondId && (
-            <Text className="text-sm text-red-500">{errors.pondId}</Text>
-          )}
-        </View>
-
-        {/* Gender + Size */}
-        <View className="mb-4 flex-row">
-          <View className="mr-2 flex-1">
-            <ContextMenuField
-              label="Giới tính"
-              value={formData.gender}
-              options={genderOptionsVN as any}
-              onSelect={(v) => {
-                setFormData({ ...formData, gender: v as Gender });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.gender;
-                  return copy;
-                });
-              }}
-              placeholder="Chọn giới tính"
-            />
-            {errors.gender && (
-              <Text className="mt-1 text-sm text-red-500">{errors.gender}</Text>
-            )}
-          </View>
-
-          <View className="flex-1">
-            <ContextMenuField
-              label="Chiều dài (cm)"
-              value={formData.size}
-              options={fishSizeOptions as any}
-              onSelect={(v: string) => {
-                setFormData({ ...formData, size: v as FishSize });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.size;
-                  return copy;
-                });
-              }}
-              placeholder="Chọn kích thước"
-            />
-            {errors.size && (
-              <Text className="mt-1 text-sm text-red-500">{errors.size}</Text>
-            )}
-          </View>
-        </View>
-
-        <View className="mb-4 flex-row">
-          <View className="mr-2 flex-1">
-            <Text className="mb-2 text-base font-medium text-gray-900">
-              Nguồn gốc
-            </Text>
-            <TextInput
-              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              placeholder="Nhập nguồn gốc"
-              value={formData.origin}
-              onChangeText={(t) => {
-                setFormData({ ...formData, origin: t });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.origin;
-                  return copy;
-                });
-              }}
-            />
-            {errors.origin && (
-              <Text className="mt-1 text-sm text-red-500">{errors.origin}</Text>
-            )}
-          </View>
-
-          <View className="flex-1">
-            <ContextMenuField
-              label="Tình trạng sức khỏe"
-              value={formData.healthStatus}
-              options={healthOptionsVN as any}
-              onSelect={(v) => {
-                setFormData({ ...formData, healthStatus: v as HealthStatus });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.healthStatus;
-                  return copy;
-                });
-              }}
-              placeholder="Chọn tình trạng"
-            />
-            {errors.healthStatus && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.healthStatus}
-              </Text>
-            )}
-          </View>
-        </View>
-
-        {/* Sale Status */}
-        <View className="mb-4">
-          <ContextMenuField
-            label="Trạng thái bán"
-            value={formData.saleStatus}
-            options={saleStatusOptionsVN as any}
-            onSelect={(v) => {
-              setFormData({ ...formData, saleStatus: v as SaleStatus });
-              setErrors((prev) => {
-                const copy = { ...prev };
-                delete copy.saleStatus;
-                return copy;
-              });
-            }}
-            placeholder="Chọn trạng thái bán"
-          />
-        </View>
-
-        <View className="mb-4 flex-row">
-          <View className="mr-2 flex-1">
-            <Text className="mb-2 text-base font-medium text-gray-900">
-              Ngày sinh
-            </Text>
-            <TouchableOpacity
-              className="flex-row items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              onPress={() => {
-                setDatePickerMode('date');
-                setShowDatePicker(true);
-              }}
-            >
-              <Calendar
-                size={18}
-                color={formData.birthDate ? '#111827' : '#6b7280'}
+                }}
+                keyboardType="numeric"
+                iconBg="bg-violet-100"
               />
-              <Text
-                className={`ml-2 ${formData.birthDate ? 'text-gray-900' : 'text-gray-500'}`}
-              >
-                {formatDate(formData.birthDate, 'yyyy-MM-dd') || 'Chọn ngày'}
-              </Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
+              {errors.size && (
+                <Text className="mt-1 text-sm text-red-500">{errors.size}</Text>
+              )}
+            </View>
+
+            {/* Origin */}
+            <View className="mb-4">
+              <InputField
+                icon={<MapPin size={18} color="#f97316" />}
+                label="Nguồn gốc *"
+                placeholder="Nhập nguồn gốc"
+                value={formData.origin}
+                onChangeText={(t) => {
+                  setFormData({ ...formData, origin: t });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.origin;
+                    return copy;
+                  });
+                }}
+                iconBg="bg-orange-100"
+              />
+              {errors.origin && (
+                <Text className="mt-1 text-sm text-red-500">
+                  {errors.origin}
+                </Text>
+              )}
+            </View>
+
+            {/* Health */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                  <HeartPulse size={18} color="#f43f5e" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Tình trạng sức khỏe"
+                    value={formData.healthStatus}
+                    options={healthOptionsVN}
+                    onSelect={(v: string) => {
+                      setFormData({
+                        ...formData,
+                        healthStatus: v as HealthStatus,
+                      });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.healthStatus;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn tình trạng"
+                  />
+                  {errors.healthStatus && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.healthStatus}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Sale Status */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                  <Coins size={18} color="#f43f5e" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Trạng thái bán"
+                    value={formData.saleStatus}
+                    options={saleStatusOptionsVN}
+                    onSelect={(v: string) => {
+                      setFormData({ ...formData, saleStatus: v as SaleStatus });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.saleStatus;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn trạng thái bán"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Pattern Type */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
+                  <Blend size={18} color="#7c3aed" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Kiểu hoa văn"
+                    value={formData.patternType}
+                    options={patternOptionsVN}
+                    onSelect={(v: string) => {
+                      setFormData({
+                        ...formData,
+                        patternType: v as KoiPatternType,
+                      });
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.patternType;
+                        return copy;
+                      });
+                    }}
+                    placeholder="Chọn kiểu hoa văn"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Is Mutated toggle */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-2 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                  <Biohazard size={18} color="#d97706" />
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-base font-medium text-gray-900">
+                      Đột biến
+                    </Text>
+                    <Switch
+                      value={!!formData.isMutated}
+                      onValueChange={(val) =>
+                        setFormData({
+                          ...formData,
+                          isMutated: val,
+                          mutationType: val
+                            ? formData.mutationType
+                            : MutationType.NONE,
+                        })
+                      }
+                      trackColor={{ false: '#e5e7eb', true: '#bbf7d0' }}
+                      thumbColor={formData.isMutated ? '#16a34a' : '#f3f4f6'}
+                      ios_backgroundColor="#e5e7eb"
+                    />
+                  </View>
+                  {errors.mutationType && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.mutationType}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Mutation Type (conditional) */}
+            {formData.isMutated && (
+              <View className="mb-4">
+                <View className="flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                    <Dna size={18} color="#d97706" />
+                  </View>
+                  <View className="flex-1">
+                    <ContextMenuField
+                      label="Loại đột biến *"
+                      value={formData.mutationType}
+                      options={mutationTypeOptionsVN}
+                      onSelect={(v: string) => {
+                        setFormData({
+                          ...formData,
+                          mutationType: v as MutationType,
+                        });
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.mutationType;
+                          return copy;
+                        });
+                      }}
+                      placeholder="Chọn loại đột biến"
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* BirthDate */}
+            <View className="mb-4">
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+                  <Calendar size={18} color="#6b7280" />
+                </View>
+                <View className="flex-1">
+                  <Text className="mb-2 text-base font-medium text-gray-900">
+                    Ngày sinh
+                  </Text>
+                  <TouchableOpacity
+                    className="flex-row items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                    onPress={() => {
+                      setDatePickerMode('date');
+                      setShowDatePicker(true);
+                    }}
+                  >
+                    <Text
+                      className={`ml-0 ${formData.birthDate ? 'text-gray-900' : 'text-gray-500'}`}
+                    >
+                      {formatDate(formData.birthDate, 'dd/MM/yyyy') ||
+                        'Chọn ngày'}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={
+                        formData.birthDate
+                          ? new Date(formData.birthDate)
+                          : new Date()
+                      }
+                      mode={datePickerMode}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      maximumDate={new Date()}
+                      onChange={(e: any, selected?: Date) => {
+                        setShowDatePicker(Platform.OS === 'ios');
+                        if (!selected) return;
+                        const now = new Date();
+                        const sel = new Date(
+                          selected.getFullYear(),
+                          selected.getMonth(),
+                          selected.getDate()
+                        );
+                        const today = new Date(
+                          now.getFullYear(),
+                          now.getMonth(),
+                          now.getDate()
+                        );
+                        if (sel > today) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            birthDate: 'Không được chọn ngày trong tương lai',
+                          }));
+                          return;
+                        }
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.birthDate;
+                          return copy;
+                        });
+                        const y = selected.getFullYear();
+                        const m = String(selected.getMonth() + 1).padStart(
+                          2,
+                          '0'
+                        );
+                        const d = String(selected.getDate()).padStart(2, '0');
+                        setFormData({
+                          ...formData,
+                          birthDate: `${y}-${m}-${d}`,
+                        });
+                      }}
+                    />
+                  )}
+                  {errors.birthDate && (
+                    <Text className="mt-1 text-sm text-red-500">
+                      {errors.birthDate}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Selling Price */}
+            <View className="mb-4">
+              <InputField
+                icon={<DollarSign size={18} color="#059669" />}
+                label="Giá bán"
+                placeholder="Nhập giá bán"
+                keyboardType="numeric"
                 value={
-                  formData.birthDate ? new Date(formData.birthDate) : new Date()
+                  formData.sellingPrice && Number(formData.sellingPrice) > 0
+                    ? String(formData.sellingPrice)
+                    : ''
                 }
-                mode={datePickerMode}
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                maximumDate={new Date()}
-                onChange={(e: any, selected?: Date) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (!selected) return;
-                  const now = new Date();
-                  const sel = new Date(
-                    selected.getFullYear(),
-                    selected.getMonth(),
-                    selected.getDate()
-                  );
-                  const today = new Date(
-                    now.getFullYear(),
-                    now.getMonth(),
-                    now.getDate()
-                  );
-                  if (sel > today) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      birthDate: 'Không được chọn ngày trong tương lai',
-                    }));
+                onChangeText={(t) => {
+                  if (t.trim() === '') {
+                    setFormData({ ...formData, sellingPrice: 0 });
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.sellingPrice;
+                      return copy;
+                    });
                     return;
                   }
-                  setErrors((prev) => {
-                    const copy = { ...prev };
-                    delete copy.birthDate;
-                    return copy;
+                  const parsed = Number(t.replace(/[^0-9.-]/g, ''));
+                  setFormData({
+                    ...formData,
+                    sellingPrice: Number.isFinite(parsed) ? parsed : 0,
                   });
-                  const y = selected.getFullYear();
-                  const m = String(selected.getMonth() + 1).padStart(2, '0');
-                  const d = String(selected.getDate()).padStart(2, '0');
-                  setFormData({ ...formData, birthDate: `${y}-${m}-${d}` });
-                }}
-              />
-            )}
-            {errors.birthDate && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.birthDate}
-              </Text>
-            )}
-          </View>
-
-          <View className="flex-1">
-            <Text className="mb-2 text-base font-medium text-gray-900">
-              Giá bán
-            </Text>
-            <TextInput
-              keyboardType="numeric"
-              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              placeholder="Nhập giá bán"
-              value={
-                formData.sellingPrice && Number(formData.sellingPrice) > 0
-                  ? String(formData.sellingPrice)
-                  : ''
-              }
-              onChangeText={(t) => {
-                if (t.trim() === '') {
-                  setFormData({ ...formData, sellingPrice: 0 });
                   setErrors((prev) => {
                     const copy = { ...prev };
                     delete copy.sellingPrice;
                     return copy;
                   });
-                  return;
-                }
-                const parsed = Number(t.replace(/[^0-9.-]/g, ''));
-                setFormData({
-                  ...formData,
-                  sellingPrice: Number.isFinite(parsed) ? parsed : 0,
-                });
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.sellingPrice;
-                  return copy;
-                });
-              }}
-            />
-            {errors.sellingPrice && (
-              <Text className="mt-1 text-sm text-red-500">
-                {errors.sellingPrice}
+                }}
+                iconBg="bg-emerald-100"
+              />
+              {errors.sellingPrice && (
+                <Text className="mt-1 text-sm text-red-500">
+                  {errors.sellingPrice}
+                </Text>
+              )}
+            </View>
+
+            {/* Description */}
+            <View className="mb-4">
+              <Text className="mb-2 text-base font-medium text-gray-900">
+                Giới thiệu
               </Text>
-            )}
+              <TextInput
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                style={{ minHeight: 80 }}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                placeholder="Thông tin về cá Koi..."
+                value={formData.description}
+                onChangeText={(t) => {
+                  setFormData({ ...formData, description: t });
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.description;
+                    return copy;
+                  });
+                }}
+              />
+              {errors.description && (
+                <Text className="mt-1 text-sm text-red-500">
+                  {errors.description}
+                </Text>
+              )}
+            </View>
+
+            <View className="flex-row border-t border-gray-200 p-4">
+              <TouchableOpacity
+                className="mr-2 flex-1 rounded-2xl bg-gray-100 py-3"
+                onPress={() =>
+                  router.replace({ pathname: redirect ?? '/koi' } as any)
+                }
+              >
+                <Text className="text-center font-medium text-gray-900">
+                  Hủy
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="ml-2 flex-1 rounded-2xl py-3"
+                style={{
+                  backgroundColor: '#0A3D62',
+                  opacity: isSaving ? 0.7 : 1,
+                }}
+                onPress={() => {
+                  if (!isSaving) handleSave();
+                }}
+                disabled={isSaving}
+                accessibilityState={{ busy: isSaving, disabled: isSaving }}
+              >
+                {isSaving ? (
+                  <View className="flex-row items-center justify-center">
+                    <ActivityIndicator size="small" color="#ffffff" />
+                    <Text className="ml-2 text-center font-medium text-white">
+                      Đang lưu...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-center font-medium text-white">
+                    Lưu
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-        <View className="mb-4">
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Hình dáng
-          </Text>
-          <TextInput
-            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-            placeholder="Mô tả hình dáng"
-            value={formData.bodyShape}
-            onChangeText={(t) => {
-              setFormData({ ...formData, bodyShape: t });
-              setErrors((prev) => {
-                const copy = { ...prev };
-                delete copy.bodyShape;
-                return copy;
-              });
-            }}
-          />
-          {errors.bodyShape && (
-            <Text className="mt-1 text-sm text-red-500">
-              {errors.bodyShape}
-            </Text>
-          )}
-        </View>
-
-        <View className="mb-4">
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Màu sắc
-          </Text>
-          <TextInput
-            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-            placeholder="Mô tả màu sắc và hoa văn"
-            value={formData.colorPattern}
-            onChangeText={(t) => {
-              setFormData({ ...formData, colorPattern: t });
-              setErrors((prev) => {
-                const copy = { ...prev };
-                delete copy.colorPattern;
-                return copy;
-              });
-            }}
-          />
-          {errors.colorPattern && (
-            <Text className="mt-1 text-sm text-red-500">
-              {errors.colorPattern}
-            </Text>
-          )}
-        </View>
-
-        <View className="mb-4">
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Giới thiệu
-          </Text>
-          <TextInput
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            style={{ minHeight: 80 }}
-            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-            placeholder="Thông tin về cá Koi..."
-            value={formData.description}
-            onChangeText={(t) => {
-              setFormData({ ...formData, description: t });
-              setErrors((prev) => {
-                const copy = { ...prev };
-                delete copy.description;
-                return copy;
-              });
-            }}
-          />
-          {errors.description && (
-            <Text className="mt-1 text-sm text-red-500">
-              {errors.description}
-            </Text>
-          )}
-        </View>
-
-        <View className="flex-row border-t border-gray-200 p-4">
-          <TouchableOpacity
-            className="mr-2 flex-1 rounded-lg bg-gray-100 py-3"
-            onPress={() =>
-              router.replace({ pathname: redirect ?? '/koi' } as any)
-            }
-          >
-            <Text className="text-center font-medium text-gray-900">Hủy</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="ml-2 flex-1 rounded-lg py-3"
-            style={{ backgroundColor: '#0A3D62' }}
-            onPress={handleSave}
-          >
-            <Text className="text-center font-medium text-white">Lưu</Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
 

@@ -207,7 +207,7 @@ export default function IncidentDetailScreen() {
             </Text>
             <TouchableOpacity
               onPress={handleBack}
-              className="rounded-xl bg-blue-500 px-6 py-3"
+              className="rounded-2xl bg-blue-500 px-6 py-3"
             >
               <Text className="font-semibold text-white">Quay lại</Text>
             </TouchableOpacity>
@@ -288,7 +288,7 @@ export default function IncidentDetailScreen() {
               {incidentData.incidentTitle}
             </Text>
 
-            <View className="mb-4 rounded-xl bg-gray-50 p-4">
+            <View className="mb-4 rounded-2xl bg-gray-50 p-4">
               <Text className="mb-1 text-sm font-medium text-gray-500">
                 Loại sự cố
               </Text>
@@ -312,7 +312,7 @@ export default function IncidentDetailScreen() {
             )}
 
             {/* DateTime Info */}
-            <View className="flex-row items-center justify-between rounded-xl bg-blue-50 p-4">
+            <View className="flex-row items-center justify-between rounded-2xl bg-blue-50 p-4">
               <View className="flex-row items-center">
                 <Calendar size={18} color="#2563eb" />
                 <View className="ml-3">
@@ -348,7 +348,7 @@ export default function IncidentDetailScreen() {
               </Text>
             </View>
 
-            <View className="flex-row items-center rounded-xl bg-gray-50 p-4">
+            <View className="flex-row items-center rounded-2xl bg-gray-50 p-4">
               <View className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-blue-100">
                 <User size={24} color="#2563eb" />
               </View>
@@ -501,7 +501,7 @@ function KoiIncidentCard({ koiIncident }: { koiIncident: any }) {
   const statusInfo = getAffectedStatusInfo(koiIncident.affectedStatus);
 
   return (
-    <View className="mb-3 rounded-xl bg-blue-50 p-4">
+    <View className="mb-3 rounded-2xl bg-blue-50 p-4">
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
           <Text className="text-base font-semibold text-gray-900">
@@ -535,7 +535,7 @@ function PondIncidentCard({ pondIncident }: { pondIncident: any }) {
   const pond = pondData;
 
   return (
-    <View className="mb-3 rounded-xl bg-emerald-50 p-4">
+    <View className="mb-3 rounded-2xl bg-emerald-50 p-4">
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
           <Text className="text-base font-semibold text-gray-900">

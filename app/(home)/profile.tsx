@@ -1,5 +1,7 @@
 import { useLogout } from '@/hooks/useAuth';
 import { useUploadImage } from '@/hooks/useUpload';
+import { useUserDetails } from '@/hooks/useUserDetails';
+import { formatDate } from '@/lib/utils/formatDate';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import {
@@ -19,12 +21,13 @@ import {
   Image,
   Modal,
   Platform,
-  ScrollView,
+  RefreshControl,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -48,23 +51,73 @@ export default function ProfileScreen() {
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo>({
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@zenkoi.com',
-    phone: '0123 456 789',
-    position: 'Nhân viên chăm sóc cá',
-    birthday: '15/08/1990',
-    joinDate: '15/03/2023',
-    address: 'Quận 1, TP. Hồ Chí Minh',
-  });
+  const { profile, isLoading, updateProfile, isUpdating, refetch } =
+    useUserDetails();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!refetch) return;
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } catch (err) {
+      console.error('Failed to refresh profile:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const [userInfo, setUserInfo] = useState<UserInfo>(() => ({
+    name: '',
+    email: '',
+    phone: '',
+    position: '',
+    birthday: '',
+    joinDate: '',
+    address: '',
+    avatar: undefined,
+  }));
   const [editForm, setEditForm] = useState<UserInfo>(userInfo);
+
+  // Populate local UI state when profile loads
+  React.useEffect(() => {
+    if (profile) {
+      const mapped: UserInfo = {
+        name: profile.fullName || '',
+        email: profile.email || '',
+        phone: profile.phoneNumber || '',
+        position: profile.role || '',
+        birthday: profile.dateOfBirth || '',
+        joinDate: '',
+        address: profile.address || '',
+        avatar: profile.avatarURL || undefined,
+      };
+      setUserInfo(mapped);
+      setEditForm(mapped);
+    }
+  }, [profile]);
   const { logout } = useLogout();
   const uploadImage = useUploadImage();
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+    // Update local UI immediately
     setUserInfo(editForm);
     setShowEditModal(false);
     setShowSuccessAlert(true);
+
+    // Attempt to persist limited profile fields (dateOfBirth, avatarURL, address)
+    try {
+      if (updateProfile) {
+        await updateProfile({
+          dateOfBirth: editForm.birthday || '',
+          avatarURL: editForm.avatar || '',
+          address: editForm.address || '',
+        } as any);
+      }
+    } catch (err) {
+      console.error('Update profile failed', err);
+    }
   };
 
   const handleLogout = () => {
@@ -182,10 +235,20 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
         showsVerticalScrollIndicator={false}
+        bottomOffset={20}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={['#0A3D62']}
+            tintColor="#0A3D62"
+          />
+        }
       >
         <View className="p-4">
           {/* Header */}
@@ -208,7 +271,11 @@ export default function ProfileScreen() {
           {/* Profile Avatar */}
           <View className="mb-6 items-center">
             <View className="relative">
-              {userInfo.avatar ? (
+              {isLoading ? (
+                <View className="h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+                  <ActivityIndicator size="small" color="#0A3D62" />
+                </View>
+              ) : userInfo.avatar ? (
                 <Image
                   source={{ uri: userInfo.avatar }}
                   className="h-24 w-24 rounded-full"
@@ -232,9 +299,11 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <Text className="mt-3 text-xl font-bold text-gray-900">
-              {userInfo.name}
+              {isLoading ? 'Đang tải...' : userInfo.name}
             </Text>
-            <Text className="text-gray-600">{userInfo.position}</Text>
+            <Text className="text-gray-600">
+              {isLoading ? '' : userInfo.position}
+            </Text>
           </View>
 
           {/* Profile Information */}
@@ -258,14 +327,14 @@ export default function ProfileScreen() {
             <ProfileInfoItem
               icon={<Calendar size={20} color="#0A3D62" />}
               label="Ngày sinh"
-              value={userInfo.birthday}
+              value={formatDate(userInfo.birthday, 'dd/MM/yyyy')}
             />
 
-            <ProfileInfoItem
+            {/* <ProfileInfoItem
               icon={<Calendar size={20} color="#0A3D62" />}
               label="Ngày vào làm"
               value={userInfo.joinDate}
-            />
+            /> */}
 
             <ProfileInfoItem
               icon={<MapPin size={20} color="#0A3D62" />}
@@ -287,7 +356,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Edit Modal */}
       <Modal
@@ -318,16 +387,22 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 onPress={handleSaveProfile}
                 className="rounded-full bg-primary px-4 py-2 shadow-sm"
+                disabled={isUpdating}
               >
-                <Text className="font-semibold text-white">Lưu</Text>
+                {isUpdating ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="font-semibold text-white">Lưu</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
 
-          <ScrollView
+          <KeyboardAwareScrollView
             className="flex-1"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            bottomOffset={40}
           >
             <View className="px-6 py-3">
               {/* Form Fields */}
@@ -398,7 +473,7 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
       </Modal>
 

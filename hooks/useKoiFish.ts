@@ -179,6 +179,40 @@ export function useUpdateKoiFish() {
 }
 
 /*
+ * Hook to change pond of a koi fish
+ */
+export function useChangeKoiFishPond() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, pondId }: { id: number; pondId: number }) => {
+      const resp = await koiFishServices.changeKoiFishPond(id, pondId);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể chuyển ao cho cá');
+      return resp.result;
+    },
+    onSuccess: (_, vars) => {
+      Toast.show({
+        type: 'success',
+        text1: 'Chuyển ao thành công',
+        position: 'top',
+      });
+      qc.invalidateQueries({ queryKey: koiFishKeys.details() });
+      if (vars?.id)
+        qc.invalidateQueries({ queryKey: koiFishKeys.detail(vars.id) });
+      qc.invalidateQueries({ queryKey: koiFishKeys.lists() });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Chuyển ao thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
  * Hook to delete a Koi Fish
  */
 export function useDeleteKoiFish() {

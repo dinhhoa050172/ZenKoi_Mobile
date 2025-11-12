@@ -74,7 +74,7 @@ export default function SelectAssetModal({
 
     return (
       <TouchableOpacity
-        className={`mb-3 rounded-xl border p-4 ${
+        className={`mb-3 rounded-2xl border p-4 ${
           selectedAsset?.id === item.id
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-200 bg-white'
@@ -249,7 +249,7 @@ export default function SelectAssetModal({
             <View className="flex-row space-x-3">
               <TouchableOpacity
                 onPress={onClose}
-                className="flex-1 rounded-xl border border-gray-300 bg-white py-4"
+                className="flex-1 rounded-2xl border border-gray-300 bg-white py-4"
               >
                 <Text className="text-center text-base font-semibold text-gray-700">
                   Hủy
@@ -258,7 +258,7 @@ export default function SelectAssetModal({
 
               <TouchableOpacity
                 onPress={handleSelect}
-                className={`flex-1 rounded-xl py-4 ${
+                className={`flex-1 rounded-2xl py-4 ${
                   selectedAsset
                     ? type === 'koi'
                       ? 'bg-blue-600'

@@ -25,6 +25,18 @@ export enum FishSize {
   OVER50CM = 'Over50cm', // Trên 50 cm
 }
 
+export enum KoiPatternType {
+  NONE = 'None', // Không xác định
+  TANCHO = 'Tancho', // Đốm đỏ giữa đầu
+  MARUTEN = 'Maruten', // Đốm đầu + thân
+  NIDAN = 'Nidan', // 2 đốm đỏ
+  SANDAN = 'Sandan', // 3 đốm đỏ
+  INAZUMA = 'Inazuma', // Dải đỏ hình tia sét
+  STRAIGHT_HI = 'StraightHi', // Dải đỏ liền thân
+  MENKABURI = 'Menkaburi', // Đầu đỏ toàn phần
+  BOZU = 'Bozu', // Đầu trắng
+}
+
 export enum KoiType {
   HIGH = 'High',
   SHOW = 'Show',
@@ -37,12 +49,21 @@ export enum SaleStatus {
   SOLD = 'Sold', // Đã bán
 }
 
+export enum MutationType {
+  NONE = 'None',
+  DOITSU = 'Doitsu', // Koi không vảy
+  GINRIN = 'GinRin', // Vảy ánh kim
+  HIRENAGA = 'Hirenaga', // Đuôi dài (Butterfly Koi)
+  METALLIC = 'Metallic', // Ánh kim toàn thân
+}
+
 export interface KoiFishSearchParams {
   search?: string;
   gender?: Gender;
   health?: HealthStatus;
   varietyId?: number;
-  fishSize?: FishSize;
+  minSize?: number;
+  maxSize?: number;
   saleStatus?: SaleStatus;
   pondId?: number;
   origin?: string;
@@ -60,19 +81,21 @@ export interface BreedingProcess {
 export interface KoiFish {
   id: number;
   rfid: string;
-  size: FishSize;
+  size: string;
   type: KoiType;
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
+  patternType: KoiPatternType;
   saleStatus: SaleStatus;
   images: string[];
   videos: string[];
   sellingPrice: number;
-  bodyShape: string;
-  colorPattern: string | null;
   description: string;
   origin: string | null;
+  isMutated: boolean;
+  mutationType: MutationType;
+  mutationRate: number;
   createdAt: string;
   updatedAt: string | null;
   pond: {
@@ -93,8 +116,9 @@ export interface KoiFishRequest {
   varietyId: number;
   breedingProcessId: number | null;
   rfid: string;
-  size: FishSize;
+  size: number;
   type: KoiType;
+  patternType: KoiPatternType;
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
@@ -103,9 +127,9 @@ export interface KoiFishRequest {
   images: string[];
   videos: string[];
   sellingPrice: number;
-  bodyShape: string;
-  colorPattern: string;
   description: string;
+  isMutated: boolean;
+  mutationType: MutationType;
 }
 
 export interface KoiFishPagination {
@@ -160,7 +184,8 @@ export const convertKoiFishFilter = (
   if (filters.gender) params.gender = filters.gender;
   if (filters.health) params.health = filters.health;
   if (filters.varietyId) params.varietyId = filters.varietyId;
-  if (filters.fishSize) params.fishSize = filters.fishSize;
+  if (filters.minSize) params.minSize = filters.minSize;
+  if (filters.maxSize) params.maxSize = filters.maxSize;
   if (filters.saleStatus) params.saleStatus = filters.saleStatus;
   if (filters.pondId) params.pondId = filters.pondId;
   if (filters.origin) params.origin = filters.origin;
@@ -227,6 +252,17 @@ export const koiFishServices = {
   deleteKoiFish: async (id: number): Promise<KoiFishResponse> => {
     const response = await apiService.delete<KoiFishResponse>(
       `/api/koifish/${id}`
+    );
+    return response.data;
+  },
+
+  // Change pond of a koi fish
+  changeKoiFishPond: async (
+    id: number,
+    pondId: number
+  ): Promise<KoiFishResponse> => {
+    const response = await apiService.put<KoiFishResponse>(
+      `/api/koifish/${id}/transfer/${pondId}`
     );
     return response.data;
   },

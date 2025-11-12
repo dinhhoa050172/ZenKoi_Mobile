@@ -12,6 +12,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import { pondKeys } from './usePond';
 
 // Query keys
 export const waterParameterRecordKeys = {
@@ -123,6 +124,7 @@ export function useCreateWaterParameterRecord() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: waterParameterRecordKeys.lists() });
       qc.invalidateQueries({ queryKey: waterParameterRecordKeys.all });
+      qc.invalidateQueries({ queryKey: pondKeys.all });
       Toast.show({
         type: 'success',
         text1: 'Tạo bản ghi thành công',
@@ -173,6 +175,8 @@ export function useUpdateWaterParameterRecord() {
           queryKey: waterParameterRecordKeys.detail(vars.id),
         });
       qc.invalidateQueries({ queryKey: waterParameterRecordKeys.lists() });
+      qc.invalidateQueries({ queryKey: waterParameterRecordKeys.all });
+      qc.invalidateQueries({ queryKey: pondKeys.all });
     },
     onError: (err: any) => {
       Toast.show({
