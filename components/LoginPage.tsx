@@ -7,13 +7,12 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AnimatedBackground from './AnimatedBackground';
 
@@ -62,12 +61,9 @@ export default function LoginPage() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAwareScrollView
-        enableOnAndroid={true}
-        enableAutomaticScroll={true}
-        extraScrollHeight={Platform.OS === 'android' ? 0 : 20}
-        keyboardOpeningTime={0}
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
         {/* Background */}
         <AnimatedBackground />
@@ -147,9 +143,9 @@ export default function LoginPage() {
                   </View>
                   <Text className="ml-2 text-sm">Ghi nhớ đăng nhập</Text>
                 </TouchableOpacity>
-                <TouchableOpacity>
+                {/* <TouchableOpacity>
                   <Text className="text-sm text-primary">Quên mật khẩu?</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
 
               {/* Login button */}

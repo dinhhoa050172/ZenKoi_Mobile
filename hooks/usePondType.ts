@@ -5,7 +5,12 @@ import {
   PondTypeSearchParams,
   pondTypeServices,
 } from '@/lib/api/services/fetchPondType';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
 // Query keys
@@ -32,6 +37,38 @@ export function useGetPondTypes(
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải danh sách loại ao');
       return resp.result;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Hook for infinite scroll Pond Types
+ */
+export function useInfinitePondTypes(
+  enabled = true,
+  filters?: Omit<PondTypeSearchParams, 'pageIndex' | 'pageSize'>
+) {
+  return useInfiniteQuery({
+    queryKey: [...pondTypeKeys.lists(), 'infinite', filters],
+    queryFn: async ({ pageParam = 1 }): Promise<PondTypePagination> => {
+      const resp = await pondTypeServices.getAllPondType({
+        ...filters,
+        pageIndex: pageParam,
+        pageSize: 10,
+      });
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải danh sách loại ao');
+      return resp.result;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const currentPage = allPages.length;
+      const totalPages = Math.ceil(lastPage.totalItems / 10);
+      return currentPage < totalPages ? currentPage + 1 : undefined;
     },
     enabled,
     staleTime: 5 * 60 * 1000,

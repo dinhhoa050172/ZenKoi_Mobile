@@ -8,18 +8,27 @@ import {
 } from '@/hooks/useIncubationDailyRecord';
 import { Pond } from '@/lib/api/services/fetchPond';
 import { useQueryClient } from '@tanstack/react-query';
-import { X } from 'lucide-react-native';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Droplet,
+  Egg,
+  Info,
+  Save,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  ScrollView,
   Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Toast from 'react-native-toast-message';
 import ContextMenuField from '../ContextMenuField';
 
@@ -120,7 +129,6 @@ export function UpdateEggBatchModal({
     }
 
     const eggBatch = eggBatchQuery.data;
-
     const errors: any = {};
 
     await existingIncubationRecordsQuery.refetch();
@@ -141,14 +149,14 @@ export function UpdateEggBatchModal({
       healthy =
         dailyHealthyEggs.trim() === '' ? NaN : parseInt(dailyHealthyEggs, 10);
       if (!Number.isFinite(healthy) || healthy < 0) {
-        errors.healthyEggs = 'Vui lòng nhập số lượng trứng khỏe hợp lệ';
+        errors.healthyEggs = 'Nhập số lượng trứng khỏe lớn hơn hoặc bằng 0';
       }
     }
 
     const hatched =
       dailyHatchedEggs.trim() === '' ? NaN : parseInt(dailyHatchedEggs, 10);
     if (!Number.isFinite(hatched) || hatched < 0) {
-      errors.hatchedEggs = 'Vui lòng nhập số lượng trứng nở hợp lệ';
+      errors.hatchedEggs = 'Nhập số lượng trứng nở lớn hơn hoặc bằng 0';
     }
 
     if (!eggBatch) {
@@ -208,6 +216,13 @@ export function UpdateEggBatchModal({
     }
   };
 
+  const isLoading =
+    createIncubationMutation.status === 'pending' ||
+    createIncubationMutationV2.status === 'pending';
+
+  const hasExistingRecords =
+    (existingIncubationRecordsQuery.data?.data?.length ?? 0) > 0;
+
   return (
     <Modal
       visible={visible}
@@ -215,221 +230,357 @@ export function UpdateEggBatchModal({
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <View className="flex-1 items-center justify-center bg-black/40 p-4">
+      <View className="flex-1 items-center justify-center bg-black/50 px-4">
         <View
-          className="w-11/12 rounded-2xl bg-white"
-          style={{ maxHeight: '70%' }}
+          className="w-full max-w-lg flex-1 overflow-hidden rounded-3xl bg-white"
+          style={{ maxHeight: '85%' }}
         >
-          <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
-            <Text className="text-lg font-semibold">
-              Cập nhật tình trạng trứng
-            </Text>
-            <TouchableOpacity onPress={handleClose}>
-              <X size={20} color="#6b7280" />
-            </TouchableOpacity>
+          {/* Header */}
+          <View className="bg-green-500 pb-6 pt-4">
+            <View className="flex-row items-center justify-between px-5">
+              <View className="h-10 w-10" />
+              <View className="flex-1 items-center">
+                <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-white/20">
+                  <Egg size={24} color="white" />
+                </View>
+                <Text className="text-xs font-medium uppercase tracking-wide text-white/80">
+                  Cập nhật
+                </Text>
+                <Text className="text-xl font-bold text-white">
+                  Tình trạng ấp trứng
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleClose}
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
+                disabled={isLoading}
+              >
+                <X size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <Text className="mb-2 text-sm text-gray-600">Lô trứng:</Text>
-            {eggBatchQuery.isLoading ? (
-              <Text className="text-sm text-gray-500">
-                Đang tải lô trứng...
+          <KeyboardAwareScrollView
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: 100,
+            }}
+            bottomOffset={20}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Egg Batch Info */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Thông tin lô trứng
               </Text>
-            ) : eggBatchQuery.error ? (
-              <Text className="text-sm text-red-500">
-                Không thể tải lô trứng
-              </Text>
-            ) : eggBatchQuery.data ? (
-              <View className="rounded bg-gray-50 p-3">
-                {(existingIncubationRecordsQuery.data?.data?.length ?? 0) >
-                0 ? (
-                  incubationSummaryQuery.isLoading ? (
-                    <Text className="text-sm text-gray-600">
-                      Đang tải thông tin...
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                {eggBatchQuery.isLoading ? (
+                  <View className="flex-row items-center">
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <Text className="ml-3 text-base font-semibold text-gray-600">
+                      Đang tải lô trứng...
                     </Text>
-                  ) : incubationSummaryQuery.error ? (
-                    <Text className="text-sm text-red-500">
-                      Lỗi tải dữ liệu tóm tắt
+                  </View>
+                ) : eggBatchQuery.error ? (
+                  <View className="flex-row items-center">
+                    <View className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                      <AlertCircle size={16} color="#ef4444" />
+                    </View>
+                    <Text className="flex-1 text-base font-semibold text-red-600">
+                      Không thể tải lô trứng
                     </Text>
-                  ) : incubationSummaryQuery.data ? (
-                    (() => {
-                      const summary = incubationSummaryQuery.data;
-                      const totalEggs = eggBatchQuery.data.quantity;
-                      const remainingEggs =
-                        totalEggs -
-                        (summary.totalRottenEggs ?? 0) -
-                        (summary.totalHatchedEggs ?? 0);
-                      return (
-                        <Text className="text-sm text-gray-600">
-                          Số trứng còn lại:{' '}
-                          <Text className="font-semibold">
-                            {remainingEggs} quả
+                  </View>
+                ) : eggBatchQuery.data ? (
+                  <>
+                    {hasExistingRecords ? (
+                      incubationSummaryQuery.isLoading ? (
+                        <View className="flex-row items-center">
+                          <ActivityIndicator size="small" color="#3b82f6" />
+                          <Text className="ml-3 text-base font-semibold text-gray-600">
+                            Đang tải thông tin...
                           </Text>
+                        </View>
+                      ) : incubationSummaryQuery.data ? (
+                        (() => {
+                          const summary = incubationSummaryQuery.data;
+                          const totalEggs = eggBatchQuery.data.quantity;
+                          const remainingEggs =
+                            totalEggs -
+                            (summary.totalRottenEggs ?? 0) -
+                            (summary.totalHatchedEggs ?? 0);
+                          return (
+                            <View className="flex-row items-center">
+                              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+                                <Egg size={20} color="#f59e0b" />
+                              </View>
+                              <View className="flex-1">
+                                <Text className="text-base font-semibold text-gray-600">
+                                  Số trứng còn lại
+                                </Text>
+                                <Text className="text-xl font-bold text-gray-900">
+                                  {remainingEggs} quả
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })()
+                      ) : (
+                        <Text className="text-sm text-gray-500">
+                          Chưa có dữ liệu tóm tắt
                         </Text>
-                      );
-                    })()
-                  ) : (
-                    <Text className="text-sm text-gray-500">
-                      Chưa có dữ liệu tóm tắt
-                    </Text>
-                  )
+                      )
+                    ) : (
+                      <View className="flex-row items-center">
+                        <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                          <Egg size={20} color="#22c55e" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-base font-semibold text-gray-600">
+                            Tổng số trứng
+                          </Text>
+                          <Text className="text-xl font-bold text-gray-900">
+                            {eggBatchQuery.data.quantity} quả
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </>
                 ) : (
-                  <Text className="text-sm text-gray-600">
-                    Tổng số trứng:{' '}
-                    <Text className="font-semibold">
-                      {eggBatchQuery.data.quantity} quả
-                    </Text>
+                  <Text className="text-base font-semibold text-gray-500">
+                    Không tìm thấy lô trứng
                   </Text>
                 )}
               </View>
-            ) : (
-              <Text className="text-sm text-gray-500">
-                Không tìm thấy lô trứng
-              </Text>
-            )}
-
-            {existingIncubationRecordsQuery.isLoading ? (
-              <View className="mt-3 rounded bg-blue-50 p-3">
-                <Text className="text-sm text-blue-700">
-                  Đang kiểm tra bản ghi...
-                </Text>
-              </View>
-            ) : (existingIncubationRecordsQuery.data?.data?.length ?? 0) > 0 ? (
-              <View className="mt-3 rounded bg-green-50 p-3">
-                <Text className="text-sm text-green-700">
-                  Đã có {existingIncubationRecordsQuery.data?.data?.length ?? 0}{' '}
-                  bản ghi ấp trứng. Chỉ cần nhập số trứng nở hôm nay.
-                </Text>
-              </View>
-            ) : (
-              <View className="mt-3 rounded bg-amber-50 p-3">
-                <Text className="text-sm text-amber-700">
-                  Đây là bản ghi đầu tiên. Vui lòng nhập cả số trứng khỏe và số
-                  trứng nở.
-                </Text>
-              </View>
-            )}
-
-            {!existingIncubationRecordsQuery.isLoading &&
-              (existingIncubationRecordsQuery.data?.data?.length ?? 0) ===
-                0 && (
-                <>
-                  <Text className="mt-3 text-xs text-gray-500">
-                    Số trứng khỏe <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="mb-1 rounded border border-gray-200 p-2"
-                    value={dailyHealthyEggs}
-                    onChangeText={(t) => {
-                      setDailyHealthyEggs(t.replace(/[^0-9]/g, ''));
-                      if (dailyErrors.healthyEggs)
-                        setDailyErrors((prev) => ({
-                          ...prev,
-                          healthyEggs: undefined,
-                        }));
-                    }}
-                    placeholder="VD: 120"
-                    keyboardType="numeric"
-                  />
-                  {dailyErrors.healthyEggs ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {dailyErrors.healthyEggs}
-                    </Text>
-                  ) : null}
-                </>
-              )}
-
-            <Text className="mt-3 text-xs text-gray-500">
-              Số trứng đã nở <Text className="text-red-500">*</Text>
-            </Text>
-            <TextInput
-              className="mb-1 rounded border border-gray-200 p-2"
-              value={dailyHatchedEggs}
-              onChangeText={(t) => {
-                setDailyHatchedEggs(t.replace(/[^0-9]/g, ''));
-                if (dailyErrors.hatchedEggs)
-                  setDailyErrors((prev) => ({
-                    ...prev,
-                    hatchedEggs: undefined,
-                  }));
-              }}
-              placeholder="VD: 100"
-              keyboardType="numeric"
-            />
-            {dailyErrors.hatchedEggs ? (
-              <Text className="text-sm text-red-500">
-                {dailyErrors.hatchedEggs}
-              </Text>
-            ) : null}
-
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text className="text-sm text-gray-700">
-                Chuyển sang giai đoạn nuôi cá bột
-              </Text>
-              <Switch
-                value={dailySuccess}
-                onValueChange={(v) => setDailySuccess(v)}
-                trackColor={{ true: '#10b981', false: '#d1d5db' }}
-                thumbColor={dailySuccess ? '#ffffff' : '#ffffff'}
-              />
             </View>
 
-            {dailySuccess ? (
-              <View>
-                <ContextMenuField
-                  label="Hồ nuôi cá bột"
-                  value={transferPondLabel}
-                  options={(emptyPonds ?? []).map((p) => ({
-                    label: `${p.id}: ${p.pondName ?? p.id}`,
-                    value: `${p.id}: ${p.pondName ?? p.id}`,
-                  }))}
-                  onSelect={(v: string) => {
-                    const id = String(v).split(':')[0]?.trim();
-                    setTransferPondId(id ? Number(id) : null);
-                    setTransferPondLabel(String(v));
-                    if (dailyErrors.pond)
-                      setDailyErrors((p) => ({ ...p, pond: undefined }));
-                  }}
-                  onPress={onRefetchPonds}
-                  placeholder="Chọn hồ"
-                />
-                {dailyErrors.pond ? (
-                  <Text className="mb-2 text-sm text-red-500">
-                    {dailyErrors.pond}
+            {/* Status Info */}
+            {existingIncubationRecordsQuery.isLoading ? (
+              <View className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <View className="flex-row items-center">
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <Text className="ml-3 text-base font-medium text-blue-700">
+                    Đang kiểm tra bản ghi...
                   </Text>
-                ) : null}
+                </View>
               </View>
-            ) : null}
+            ) : hasExistingRecords ? (
+              <View className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4">
+                <View className="flex-row items-start">
+                  <View className="mr-3 mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle size={16} color="#22c55e" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold text-green-900">
+                      Đã có{' '}
+                      {existingIncubationRecordsQuery.data?.data?.length ?? 0}{' '}
+                      bản ghi
+                    </Text>
+                    <Text className="mt-1 text-base text-green-700">
+                      Chỉ cần nhập số trứng nở hôm nay
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <View className="flex-row items-start">
+                  <View className="mr-3 mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+                    <Info size={16} color="#f59e0b" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold text-amber-900">
+                      Bản ghi đầu tiên
+                    </Text>
+                    <Text className="mt-1 text-base text-amber-700">
+                      Vui lòng nhập cả số trứng khỏe và số trứng nở
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Input Fields */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Cập nhật số liệu
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                {!hasExistingRecords && (
+                  <>
+                    {/* Healthy Eggs */}
+                    <View className="mb-4 flex-row items-center">
+                      <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                        <Egg size={18} color="#22c55e" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="mb-1 text-base font-medium text-gray-600">
+                          Số trứng khỏe <Text className="text-red-500">*</Text>
+                        </Text>
+                        <TextInput
+                          className={`rounded-2xl border ${dailyErrors.healthyEggs ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                          value={dailyHealthyEggs}
+                          onChangeText={(t) => {
+                            setDailyHealthyEggs(t.replace(/[^0-9]/g, ''));
+                            if (dailyErrors.healthyEggs)
+                              setDailyErrors((prev) => ({
+                                ...prev,
+                                healthyEggs: undefined,
+                              }));
+                          }}
+                          placeholder="VD: 120"
+                          placeholderTextColor="#9ca3af"
+                          keyboardType="numeric"
+                        />
+                        {dailyErrors.healthyEggs ? (
+                          <Text className="mt-1 text-sm text-red-500">
+                            {dailyErrors.healthyEggs}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {/* Hatched Eggs */}
+                <View className="flex-row items-center">
+                  <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                    <Egg size={18} color="#3b82f6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-1 text-base font-medium text-gray-600">
+                      Số trứng đã nở <Text className="text-red-500">*</Text>
+                    </Text>
+                    <TextInput
+                      className={`rounded-2xl border ${dailyErrors.hatchedEggs ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                      value={dailyHatchedEggs}
+                      onChangeText={(t) => {
+                        setDailyHatchedEggs(t.replace(/[^0-9]/g, ''));
+                        if (dailyErrors.hatchedEggs)
+                          setDailyErrors((prev) => ({
+                            ...prev,
+                            hatchedEggs: undefined,
+                          }));
+                      }}
+                      placeholder="VD: 100"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                    />
+                    {dailyErrors.hatchedEggs ? (
+                      <Text className="mt-1 text-sm text-red-500">
+                        {dailyErrors.hatchedEggs}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Transfer to Fry Stage */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Chuyển giai đoạn
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 flex-row items-center">
+                    <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                      <ArrowRight size={18} color="#a855f7" />
+                    </View>
+                    <Text className="flex-1 text-base font-medium text-gray-700">
+                      Chuyển sang nuôi cá bột
+                    </Text>
+                  </View>
+                  <Switch
+                    value={dailySuccess}
+                    onValueChange={(v) => setDailySuccess(v)}
+                    trackColor={{ true: '#a855f7', false: '#d1d5db' }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+
+                {dailySuccess && (
+                  <View className="mt-4 flex-row items-start border-t border-gray-100 pt-4">
+                    <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                      <Droplet size={18} color="#3b82f6" />
+                    </View>
+                    <View className="flex-1">
+                      <ContextMenuField
+                        label="Hồ nuôi cá bột *"
+                        value={transferPondLabel}
+                        options={(emptyPonds ?? []).map((p) => ({
+                          label: `${p.id}: ${p.pondName ?? p.id}`,
+                          value: `${p.id}: ${p.pondName ?? p.id}`,
+                          meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
+                        }))}
+                        onSelect={(v: string) => {
+                          const id = String(v).split(':')[0]?.trim();
+                          setTransferPondId(id ? Number(id) : null);
+                          setTransferPondLabel(String(v));
+                          if (dailyErrors.pond)
+                            setDailyErrors((p) => ({ ...p, pond: undefined }));
+                        }}
+                        onPress={onRefetchPonds}
+                        placeholder="Chọn hồ"
+                      />
+                      {dailyErrors.pond ? (
+                        <Text className="mt-2 text-xs text-red-500">
+                          {dailyErrors.pond}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
 
             {dailyErrors.eggBatch ? (
-              <Text className="mb-2 text-sm text-red-500">
-                {dailyErrors.eggBatch}
-              </Text>
+              <View className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3">
+                <Text className="text-sm text-red-600">
+                  {dailyErrors.eggBatch}
+                </Text>
+              </View>
             ) : null}
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
-          <View className="flex-row justify-between border-t border-gray-100 p-4">
-            <TouchableOpacity
-              className="rounded-lg border border-gray-200 px-4 py-2"
-              onPress={handleClose}
-            >
-              <Text>Hủy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className={`rounded-lg bg-primary px-4 py-2 ${createIncubationMutation.status === 'pending' || createIncubationMutationV2.status === 'pending' ? 'opacity-60' : ''}`}
-              disabled={
-                createIncubationMutation.status === 'pending' ||
-                createIncubationMutationV2.status === 'pending'
-              }
-              onPress={handleSave}
-            >
-              {createIncubationMutation.status === 'pending' ||
-              createIncubationMutationV2.status === 'pending' ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text className="text-white">Lưu</Text>
-              )}
-            </TouchableOpacity>
+          {/* Fixed Bottom Actions */}
+          <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-5 py-4">
+            <View className="flex-row">
+              <TouchableOpacity
+                className="mr-2 flex-1 rounded-2xl border-2 border-gray-200 bg-gray-50 py-4"
+                onPress={handleClose}
+                disabled={isLoading}
+              >
+                <Text className="text-center text-base font-semibold text-gray-700">
+                  Hủy
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`ml-2 flex-1 flex-row items-center justify-center rounded-2xl py-4 ${
+                  isLoading ? 'bg-gray-300' : 'bg-green-500'
+                }`}
+                disabled={isLoading}
+                onPress={handleSave}
+              >
+                {isLoading ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text className="ml-2 text-base font-semibold text-white">
+                      Đang lưu...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} color="white" />
+                    <Text className="ml-2 text-base font-semibold text-white">
+                      Lưu
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>

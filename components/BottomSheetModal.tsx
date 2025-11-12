@@ -1,13 +1,14 @@
-import { X } from "lucide-react-native";
-import React, { useEffect, useRef } from "react";
+import { X } from 'lucide-react-native';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
+  Dimensions,
   PanResponder,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
 interface BottomSheetModalProps {
   visible: boolean;
@@ -20,12 +21,16 @@ interface BottomSheetModalProps {
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   visible,
   onClose,
-  title = "Chi tiết",
+  title = 'Chi tiết',
   children,
-  height = 500,
+  height = 80,
 }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
+
+  // Calculate actual height based on percentage
+  const screenHeight = Dimensions.get('window').height;
+  const modalHeight = (screenHeight * height) / 100;
 
   useEffect(() => {
     if (visible) {
@@ -68,7 +73,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
   const translateY = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [height, 0],
+    outputRange: [modalHeight, 0],
   });
 
   if (!visible) return null;
@@ -78,27 +83,27 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       {/* Overlay Background */}
       <Animated.View
         style={{
-          position: "absolute",
+          position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
           zIndex: 999998,
           elevation: 998,
           opacity: slideAnim,
         }}
       />
-      
+
       {/* Bottom Sheet */}
       <Animated.View
         style={{
-          position: "absolute",
+          position: 'absolute',
           left: 0,
           right: 0,
           bottom: 0,
-          height,
-          backgroundColor: "white",
+          height: modalHeight,
+          backgroundColor: 'white',
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           transform: [{ translateY }, { translateY: panY }],
@@ -107,20 +112,20 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         }}
         {...panResponder.panHandlers}
       >
-      {/* Drag handle */}
-      <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mt-3 mb-2" />
+        {/* Drag handle */}
+        <View className="mb-2 mt-3 h-1.5 w-12 self-center rounded-full bg-gray-300" />
 
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-6 mb-4">
-        <Text className="text-xl font-bold">{title}</Text>
-        <TouchableOpacity onPress={onClose}>
-          <X size={24} color="red" />
-        </TouchableOpacity>
-      </View>
+        {/* Header */}
+        <View className="mb-4 flex-row items-center justify-between px-6">
+          <Text className="text-xl font-bold">{title}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <X size={24} color="red" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Content */}
-      <ScrollView className="px-4">{children}</ScrollView>
-    </Animated.View>
+        {/* Content */}
+        <ScrollView className="px-4">{children}</ScrollView>
+      </Animated.View>
     </>
   );
 };

@@ -116,7 +116,7 @@ export default function TabLayout() {
           fontWeight: '500',
           marginTop: 2,
         },
-        tabBarIconStyle: { marginLeft: 20, marginTop: 10 },
+        tabBarIconStyle: { marginLeft: 24, marginTop: 10 },
       }}
     >
       {/* Home */}
@@ -256,8 +256,36 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="water/create-record"
+        options={{
+          href: null,
+          title: 'Thêm bản ghi thông số nước',
+        }}
+      />
+
+      <Tabs.Screen
+        name="water/edit-record"
+        options={{
+          href: null,
+          title: 'Chi tiết bản ghi thông số nước',
+        }}
+      />
+
+      <Tabs.Screen
         name="pond/index"
         options={{ href: null, title: 'Danh sách loại hồ' }}
+      />
+      <Tabs.Screen
+        name="incidents/index"
+        options={{ href: null, title: 'Danh sách loại sự cố' }}
+      />
+      <Tabs.Screen
+        name="incidents/types"
+        options={{ href: null, title: 'Loại sự cố' }}
+      />
+      <Tabs.Screen
+        name="incidents/[id]"
+        options={{ href: null, title: 'Chi tiết sự cố' }}
       />
     </Tabs>
   );

@@ -1,3 +1,5 @@
+import apiService from '../apiClient';
+
 export enum UserRole {
   Manager = 'Manager',
   FarmStaff = 'FarmStaff',
@@ -8,7 +10,6 @@ export enum UserRole {
 export enum Gender {
   Male = 'Nam',
   Female = 'Nữ',
-  Other = 'Khác',
 }
 
 export interface UserDetail {
@@ -39,9 +40,57 @@ export interface User {
   accessFailedCount: number;
 }
 
+// Interface for UserDetails/get-me API response
+export interface UserMeProfile {
+  id: number;
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  dateOfBirth: string;
+  gender: string;
+  avatarURL: string;
+  address: string;
+  role: string;
+}
+
+export interface UpdateUserDetails {
+  dateOfBirth: string;
+  gender: string;
+  avatarURL: string;
+  address: string;
+}
+
 export interface UserResponse {
   statusCode: number;
   isSuccess: boolean;
   message: string;
   result: User;
 }
+
+export interface UserMeResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: UserMeProfile;
+}
+
+export const userServices = {
+  // Get current user profile (me)
+  getMe: async (): Promise<UserMeResponse> => {
+    const response = await apiService.get<UserMeResponse>(
+      '/api/UserDetails/get-me'
+    );
+    return response.data;
+  },
+
+  // Update user profile (if needed in the future)
+  updateProfile: async (
+    profileData: UpdateUserDetails
+  ): Promise<UserMeResponse> => {
+    const response = await apiService.post<UserMeResponse, UpdateUserDetails>(
+      '/api/UserDetails/create-update-user-detail',
+      profileData
+    );
+    return response.data;
+  },
+};

@@ -1,4 +1,5 @@
 import ContextMenuField from '@/components/ContextMenuField';
+import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import Loading from '@/components/Loading';
 import { useGetKoiFish } from '@/hooks/useKoiFish';
@@ -9,7 +10,6 @@ import type {
   KoiFishSearchParams,
 } from '@/lib/api/services/fetchKoiFish';
 import {
-  FishSize,
   Gender,
   HealthStatus,
   SaleStatus,
@@ -19,10 +19,14 @@ import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useRouter } from 'expo-router';
 import {
   Calendar,
+  DollarSign,
   Edit,
   Eye,
   Filter,
+  Fish,
+  MapPin,
   Plus,
+  RefreshCcw,
   Ruler,
   Search,
   X,
@@ -61,9 +65,8 @@ export default function KoiManagementScreen() {
   const [modalVarietyId, setModalVarietyId] = useState<number | undefined>(
     undefined
   );
-  const [modalFishSize, setModalFishSize] = useState<FishSize | undefined>(
-    undefined
-  );
+  const [modalMinSize, setModalMinSize] = useState<number>(0);
+  const [modalMaxSize, setModalMaxSize] = useState<number>(999);
   const [modalSaleStatus, setModalSaleStatus] = useState<
     SaleStatus | undefined
   >(undefined);
@@ -74,13 +77,18 @@ export default function KoiManagementScreen() {
   const PRICE_STEP = 1000;
   const [modalMinPrice, setModalMinPrice] = useState<number>(PRICE_MIN);
   const [modalMaxPrice, setModalMaxPrice] = useState<number>(PRICE_MAX);
+  // Size slider range (cm)
+  const SIZE_MIN = 0;
+  const SIZE_MAX = 200;
+  const SIZE_STEP = 1;
 
   const resetModalFilters = () => {
     setModalSearch('');
     setModalGender(undefined);
     setModalHealth(undefined);
     setModalVarietyId(undefined);
-    setModalFishSize(undefined);
+    setModalMinSize(0);
+    setModalMaxSize(999);
     setModalSaleStatus(undefined);
     setModalPondId(undefined);
     setModalOrigin('');
@@ -177,6 +185,47 @@ export default function KoiManagementScreen() {
     }
   };
 
+  const getHealthColor = (h: HealthStatus) => {
+    switch (h) {
+      case HealthStatus.HEALTHY:
+        return {
+          bg: 'bg-green-100',
+          text: 'text-green-700',
+          border: 'border-green-200',
+        };
+      case HealthStatus.WARNING:
+        return {
+          bg: 'bg-yellow-100',
+          text: 'text-yellow-700',
+          border: 'border-yellow-200',
+        };
+      case HealthStatus.WEAK:
+        return {
+          bg: 'bg-orange-100',
+          text: 'text-orange-700',
+          border: 'border-orange-200',
+        };
+      case HealthStatus.SICK:
+        return {
+          bg: 'bg-red-100',
+          text: 'text-red-700',
+          border: 'border-red-200',
+        };
+      case HealthStatus.DEAD:
+        return {
+          bg: 'bg-gray-100',
+          text: 'text-gray-700',
+          border: 'border-gray-200',
+        };
+      default:
+        return {
+          bg: 'bg-gray-100',
+          text: 'text-gray-700',
+          border: 'border-gray-200',
+        };
+    }
+  };
+
   const { data: pondsPage, isLoading: pondsLoading } = useGetPonds(
     {
       pageIndex: 1,
@@ -196,19 +245,41 @@ export default function KoiManagementScreen() {
   // Derived lists for enum options
   const genderOptions = useMemo(() => Object.values(Gender), []);
   const healthOptions = useMemo(() => Object.values(HealthStatus), []);
-  const sizeOptions = useMemo(() => Object.values(FishSize), []);
   const saleStatusOptions = useMemo(() => Object.values(SaleStatus), []);
+
+  const activeFiltersCount = Object.keys(appliedFilters || {}).length;
 
   return (
     <>
       <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="p-4">
-          {/* Search */}
-          <View className="mb-4">
-            <View className="flex-row items-center rounded-2xl border border-gray-200 bg-white px-4">
+        {/* Header */}
+        <View className="bg-primary pb-6">
+          <View className="px-4 pt-2">
+            <View className="mb-4 mt-2 flex-row items-center justify-between">
+              <View>
+                <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
+                  Quản lý
+                </Text>
+                <Text className="text-2xl font-bold text-white">
+                  Hồ sơ cá Koi
+                </Text>
+              </View>
+              <TouchableOpacity
+                className="h-12 w-12 items-center justify-center rounded-full bg-white/20"
+                onPress={() =>
+                  router.push(`/koi/add?redirect=${encodeURIComponent('/koi')}`)
+                }
+              >
+                <Plus size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <View className="flex-row items-center rounded-2xl bg-white px-4 shadow-sm">
+              <Search size={20} color="#9ca3af" />
               <TextInput
-                className="flex-1 text-gray-900"
-                placeholder="Tìm kiếm ..."
+                className="flex-1 py-3 pl-3 text-base text-gray-900"
+                placeholder="Tìm kiếm theo RFID..."
                 value={searchRFID}
                 onChangeText={(t) => setSearchRFID(t)}
                 onSubmitEditing={() => {
@@ -221,7 +292,7 @@ export default function KoiManagementScreen() {
                 placeholderTextColor="#9ca3af"
               />
               <TouchableOpacity
-                className="left-4 rounded-r-2xl bg-primary p-3"
+                className="ml-2 rounded-full bg-primary p-2"
                 onPress={() => {
                   setAppliedFilters((prev: any) => ({
                     ...(prev || {}),
@@ -234,30 +305,29 @@ export default function KoiManagementScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
 
-          {/* Header */}
-          <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-bold text-gray-900">
-              Hồ sơ cá Koi
+        {/* Filter Bar */}
+        <View className="flex-row items-center justify-between bg-white px-4 py-3 shadow-sm">
+          <Text className="text-sm font-medium text-gray-700">
+            {koiList.length} cá Koi
+          </Text>
+          <TouchableOpacity
+            className="flex-row items-center rounded-full bg-gray-100 px-4 py-2"
+            onPress={() => setShowFilterSheet(true)}
+          >
+            <Filter size={16} color="#6b7280" />
+            <Text className="ml-2 text-sm font-medium text-gray-700">
+              Bộ lọc
             </Text>
-            <View className="flex-row items-center">
-              <TouchableOpacity
-                className="mr-2 p-2"
-                onPress={() => setShowFilterSheet(true)}
-              >
-                <Filter size={20} color="#6b7280" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="rounded-lg px-3 py-2"
-                style={{ backgroundColor: '#0A3D62' }}
-                onPress={() =>
-                  router.push(`/koi/add?redirect=${encodeURIComponent('/koi')}`)
-                }
-              >
-                <Plus size={16} color="white" />
-              </TouchableOpacity>
-            </View>
-          </View>
+            {activeFiltersCount > 0 && (
+              <View className="ml-2 h-5 w-5 items-center justify-center rounded-full bg-primary">
+                <Text className="text-xs font-bold text-white">
+                  {activeFiltersCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         <FlatList
@@ -265,12 +335,12 @@ export default function KoiManagementScreen() {
           contentContainerStyle={{
             paddingBottom: insets.bottom + 30,
             paddingHorizontal: 16,
+            paddingTop: 16,
           }}
           showsVerticalScrollIndicator={false}
           keyExtractor={(item) => String(item.id)}
           ListEmptyComponent={() => {
-            const hasActiveFilters =
-              Object.keys(appliedFilters || {}).length > 0;
+            const hasActiveFilters = activeFiltersCount > 0;
             return (
               <>
                 {isLoading ? (
@@ -278,53 +348,79 @@ export default function KoiManagementScreen() {
                     <Loading />
                   </View>
                 ) : isError ? (
-                  <View className="items-center py-8">
-                    <Text>
-                      Lỗi khi tải dữ liệu:{' '}
+                  <View className="items-center rounded-2xl bg-white p-8 shadow-sm">
+                    <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                      <X size={32} color="#dc2626" />
+                    </View>
+                    <Text className="mb-2 text-lg font-semibold text-gray-900">
+                      Lỗi tải dữ liệu
+                    </Text>
+                    <Text className="mb-4 text-center text-sm text-gray-600">
                       {(error as any)?.message ?? 'Không xác định'}
                     </Text>
+                    <TouchableOpacity
+                      className="rounded-2xl bg-primary px-6 py-3"
+                      onPress={() => refetch()}
+                    >
+                      <Text className="font-semibold text-white">Thử lại</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
-                  <View className="items-center py-8">
+                  <View className="items-center rounded-2xl bg-white p-8 shadow-sm">
+                    <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-blue-100">
+                      <Fish size={40} color="#3b82f6" />
+                    </View>
                     {hasActiveFilters ? (
                       <>
-                        <Text className="mb-4 text-gray-600">
-                          Không có cá Koi nào phù hợp.
+                        <Text className="mb-2 text-lg font-semibold text-gray-900">
+                          Không tìm thấy kết quả
+                        </Text>
+                        <Text className="mb-6 text-center text-sm text-gray-600">
+                          Không có cá Koi nào phù hợp với bộ lọc hiện tại
                         </Text>
                         <View className="flex-row">
                           <TouchableOpacity
-                            className="mr-2 rounded-lg bg-gray-100 px-4 py-2"
+                            className="mr-2 rounded-2xl bg-gray-100 px-6 py-3"
                             onPress={() => {
                               setAppliedFilters({});
+                              setSearchRFID('');
                               refetch();
                             }}
                           >
-                            <Text className="text-gray-900">Xóa bộ lọc</Text>
+                            <Text className="font-semibold text-gray-900">
+                              Xóa bộ lọc
+                            </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            className="rounded-lg px-4 py-2"
-                            style={{ backgroundColor: '#0A3D62' }}
+                            className="rounded-2xl bg-blue-500 px-6 py-3"
                             onPress={() => setShowFilterSheet(true)}
                           >
-                            <Text className="text-white">Chỉnh bộ lọc</Text>
+                            <Text className="font-semibold text-white">
+                              Điều chỉnh
+                            </Text>
                           </TouchableOpacity>
                         </View>
                       </>
                     ) : (
                       <>
-                        <Text className="mb-4 text-gray-600">
-                          Chưa có cá Koi nào trong hệ thống.
+                        <Text className="mb-2 text-lg font-semibold text-gray-900">
+                          Chưa có cá Koi
+                        </Text>
+                        <Text className="mb-6 text-center text-sm text-gray-600">
+                          Hệ thống chưa có cá Koi nào. Thêm cá mới để bắt đầu
+                          quản lý.
                         </Text>
                         <TouchableOpacity
-                          className="rounded-lg px-4 py-2"
-                          style={{ backgroundColor: '#0A3D62' }}
+                          className="rounded-2xl bg-blue-500 px-6 py-3"
                           onPress={() =>
                             router.push(
                               `/koi/add?redirect=${encodeURIComponent('/koi')}`
                             )
                           }
                         >
-                          <Text className="text-white">Thêm cá mới</Text>
+                          <Text className="font-semibold text-white">
+                            Thêm cá mới
+                          </Text>
                         </TouchableOpacity>
                       </>
                     )}
@@ -333,83 +429,115 @@ export default function KoiManagementScreen() {
               </>
             );
           }}
-          renderItem={({ item: koi }) => (
-            <View className="mb-4 rounded-2xl bg-white p-2 shadow-sm">
-              <View className="flex-row">
-                {koi.images && koi.images.length > 0 ? (
-                  <Image
-                    source={{ uri: koi.images[0] }}
-                    style={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: 12,
-                      marginRight: 14,
-                    }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="mr-4 h-20 w-20 rounded-lg bg-gray-200" />
-                )}
-
-                {/* Fish Info */}
-                <View className="flex-1">
-                  <Text className="mb-1 text-lg font-bold text-gray-900">
-                    {koi.rfid}
-                  </Text>
-                  <Text className="mb-2 text-sm text-gray-600">
-                    {koi.variety?.varietyName} • {genderToLabel(koi.gender)}
-                  </Text>
-
-                  <View className="mb-2 flex-row items-center">
-                    <PondSvg />
-                    <Text className="ml-1 text-sm text-gray-600">
-                      {koi.pond?.pondName ?? '—'}
-                    </Text>
-                  </View>
-
+          renderItem={({ item: koi }) => {
+            const healthColors = getHealthColor(koi.healthStatus);
+            return (
+              <View className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+                <View className="p-4">
                   <View className="flex-row">
-                    <View className="mr-4 flex-row items-center">
-                      <Ruler size={14} color="#6b7280" />
-                      <Text className="text-sm text-gray-600">
-                        {' '}
-                        {getSizeLabel(koi.size)}
+                    {/* Image */}
+                    {koi.images && koi.images.length > 0 ? (
+                      <Image
+                        source={{ uri: koi.images[0] }}
+                        style={{
+                          width: 120,
+                          height: 120,
+                          borderRadius: 16,
+                        }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="h-[120px] w-[120px] items-center justify-center rounded-2xl bg-gray-100">
+                        <Fish size={40} color="#9ca3af" />
+                      </View>
+                    )}
+
+                    {/* Fish Info */}
+                    <View className="ml-4 flex-1">
+                      <Text className="mb-1 text-lg font-bold text-gray-900">
+                        {koi.rfid}
                       </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Calendar size={14} color="#6b7280" />
-                      <Text className="text-sm text-gray-600">
-                        {' '}
-                        {formatKoiAge(koi.birthDate)}
-                      </Text>
+
+                      {/* Variety */}
+                      <View className="mb-2 flex-row items-center">
+                        <View className="rounded-full bg-purple-100 px-2 py-1">
+                          <Text className="text-sm font-medium text-purple-700">
+                            {koi.variety?.varietyName}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Pond */}
+                      <View className="mb-2 flex-row items-center">
+                        <View className="mr-1 h-5 w-5 items-center justify-center rounded-full bg-blue-100">
+                          <PondSvg size={12} color="#3b82f6" />
+                        </View>
+                        <Text className="text-sm text-gray-600">
+                          {koi.pond?.pondName ?? 'Chưa có hồ'}
+                        </Text>
+                      </View>
+
+                      {/* Size & Age */}
+                      <View className="flex-row">
+                        <View className="mr-3 flex-row items-center">
+                          <Ruler size={14} color="#6b7280" />
+                          <Text className="ml-1 text-sm text-gray-600">
+                            {getSizeLabel(koi.size)}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center">
+                          <Calendar size={14} color="#6b7280" />
+                          <Text className="ml-1 text-sm text-gray-600">
+                            {formatKoiAge(koi.birthDate)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Health Status Badge */}
+                      <View className="mt-2">
+                        <View
+                          className={`self-start rounded-full border ${healthColors.border} ${healthColors.bg} px-3 py-1`}
+                        >
+                          <Text
+                            className={`text-sm font-medium ${healthColors.text}`}
+                          >
+                            {healthToLabel(koi.healthStatus)}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Action Buttons */}
-              <View className="mt-4 flex-row border-t border-gray-100 pt-1">
-                <TouchableOpacity
-                  className="mr-2 flex-1 flex-row items-center justify-center py-2"
-                  onPress={() => router.push(`/koi/${koi.id}`)}
-                >
-                  <Eye size={16} color="#6b7280" />
-                  <Text className="ml-2 text-sm text-gray-600">Xem</Text>
-                </TouchableOpacity>
-                <Text className="self-stretch border-l border-gray-200" />
-                <TouchableOpacity
-                  className="ml-2 flex-1 flex-row items-center justify-center py-2"
-                  onPress={() =>
-                    router.push(
-                      `/koi/edit?id=${koi.id}&redirect=${encodeURIComponent('/koi')}`
-                    )
-                  }
-                >
-                  <Edit size={16} color="#6b7280" />
-                  <Text className="ml-2 text-sm text-gray-600">Sửa</Text>
-                </TouchableOpacity>
+                {/* Action Buttons */}
+                <View className="flex-row border-t border-gray-100">
+                  <TouchableOpacity
+                    className="flex-1 flex-row items-center justify-center py-3"
+                    onPress={() => router.push(`/koi/${koi.id}`)}
+                  >
+                    <Eye size={18} color="#0A3D62" />
+                    <Text className="ml-2 text-sm font-medium text-primary">
+                      Xem
+                    </Text>
+                  </TouchableOpacity>
+                  <View className="w-px bg-gray-100" />
+                  <TouchableOpacity
+                    className="flex-1 flex-row items-center justify-center py-3"
+                    onPress={() =>
+                      router.push(
+                        `/koi/edit?id=${koi.id}&redirect=${encodeURIComponent('/koi')}`
+                      )
+                    }
+                  >
+                    <Edit size={18} color="#6b7280" />
+                    <Text className="ml-2 text-sm font-medium text-gray-700">
+                      Sửa
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          )}
+            );
+          }}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
             if (!isFetchingNextPage && hasNextPage) {
@@ -423,7 +551,10 @@ export default function KoiManagementScreen() {
           ListFooterComponent={() =>
             isFetchingNextPage ? (
               <View className="items-center py-4">
-                <ActivityIndicator />
+                <ActivityIndicator color="#3b82f6" size="small" />
+                <Text className="mt-2 text-sm text-gray-500">
+                  Đang tải thêm...
+                </Text>
               </View>
             ) : null
           }
@@ -437,75 +568,138 @@ export default function KoiManagementScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowFilterSheet(false)}
       >
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView className="flex-1 bg-gray-50">
           {/* Header */}
-          <View className="flex-row items-center justify-between border-b border-gray-200 p-4">
-            <Text className="text-lg font-semibold text-gray-900">Bộ lọc</Text>
-            <TouchableOpacity
-              className="p-1"
-              onPress={() => setShowFilterSheet(false)}
-            >
-              <X size={24} color="#6b7280" />
-            </TouchableOpacity>
+          <View className="rounded-t-2xl bg-primary pb-2">
+            <View className="flex-row items-center justify-between px-4 pt-2">
+              <View className="ml-4 flex-1 items-center">
+                <Text className="text-base font-medium uppercase tracking-wide text-white/80">
+                  Tùy chỉnh
+                </Text>
+                <Text className="text-2xl font-bold text-white">Bộ lọc</Text>
+              </View>
+
+              <TouchableOpacity
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
+                onPress={() => setShowFilterSheet(false)}
+              >
+                <X size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <ScrollView className="flex-1 p-4">
-            <View>
-              {/* Bể cá */}
-              <ContextMenuField
-                label="Bể cá"
-                value={modalPondId ? String(modalPondId) : undefined}
-                options={
-                  pondsLoading
-                    ? [{ label: 'Đang tải...', value: '' }]
-                    : pondOptions.map((p) => ({
-                        label: p.pondName ?? String(p.id),
-                        value: String(p.id),
-                      }))
-                }
-                onSelect={(v) => setModalPondId(v ? Number(v) : undefined)}
-                placeholder="Chọn bể cá"
-              />
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 20,
+              paddingBottom: 100,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Pond & Variety */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Thông tin cơ bản
+              </Text>
 
-              {/* Giống */}
-              <ContextMenuField
-                label="Giống"
-                value={modalVarietyId ? String(modalVarietyId) : undefined}
-                options={
-                  varietiesLoading
-                    ? [{ label: 'Đang tải...', value: '' }]
-                    : varietyOptions.map((v) => ({
-                        label: v.varietyName ?? String(v.id),
-                        value: String(v.id),
-                      }))
-                }
-                onSelect={(v) => setModalVarietyId(v ? Number(v) : undefined)}
-                placeholder="Chọn giống"
-              />
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                <View className="mb-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                    <PondSvg size={18} />
+                  </View>
+                  <View className="flex-1">
+                    <ContextMenuField
+                      label="Bể cá"
+                      value={modalPondId ? String(modalPondId) : undefined}
+                      options={
+                        pondsLoading
+                          ? [{ label: 'Đang tải...', value: '' }]
+                          : pondOptions.map((p) => ({
+                              label: p.pondName ?? String(p.id),
+                              value: String(p.id),
+                            }))
+                      }
+                      onSelect={(v) =>
+                        setModalPondId(v ? Number(v) : undefined)
+                      }
+                      placeholder="Chọn bể cá"
+                    />
+                  </View>
+                </View>
 
-              {/* Gender */}
-              <View className="mb-2">
-                <Text className="mb-1 text-base font-medium text-gray-900">
-                  Giới tính
-                </Text>
-                <View className="flex-row flex-wrap">
+                <View className="mb-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                    <FishSvg size={20} color="#a855f7" />
+                  </View>
+                  <View className="flex-1">
+                    <ContextMenuField
+                      label="Giống"
+                      value={
+                        modalVarietyId ? String(modalVarietyId) : undefined
+                      }
+                      options={
+                        varietiesLoading
+                          ? [{ label: 'Đang tải...', value: '' }]
+                          : varietyOptions.map((v) => ({
+                              label: v.varietyName ?? String(v.id),
+                              value: String(v.id),
+                            }))
+                      }
+                      onSelect={(v) =>
+                        setModalVarietyId(v ? Number(v) : undefined)
+                      }
+                      placeholder="Chọn giống"
+                    />
+                  </View>
+                </View>
+
+                {/* Origin */}
+                <View className="flex-row items-center">
+                  <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                    <MapPin size={18} color="#f59e0b" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-1 text-base font-bold text-gray-600">
+                      Nguồn gốc
+                    </Text>
+                    <TextInput
+                      className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-1 text-base font-medium text-gray-900"
+                      placeholder="Xuất xứ"
+                      placeholderTextColor="#9ca3af"
+                      value={modalOrigin}
+                      onChangeText={setModalOrigin}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Gender */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Giới tính
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-3">
+                <View className="flex-row flex-wrap items-center">
                   {genderOptions.map((g) => {
                     const isSelected = modalGender === g;
                     return (
                       <TouchableOpacity
                         key={g}
-                        className={`mb-2 mr-2 rounded-lg border border-gray-200 px-3 py-2 ${isSelected ? 'border-blue-500' : ''}`}
-                        style={{
-                          backgroundColor: isSelected ? '#0A3D62' : '#f3f4f6',
-                        }}
+                        className={`mb-2 mr-2 rounded-2xl border px-4 py-2 ${
+                          isSelected
+                            ? 'border-blue-700 bg-primary'
+                            : 'border-gray-200 bg-gray-50'
+                        }`}
                         onPress={() =>
                           setModalGender(isSelected ? undefined : (g as Gender))
                         }
                       >
                         <Text
-                          className={
+                          className={`text-sm font-medium ${
                             isSelected ? 'text-white' : 'text-gray-700'
-                          }
+                          }`}
                         >
                           {genderToLabel(g)}
                         </Text>
@@ -514,56 +708,72 @@ export default function KoiManagementScreen() {
                   })}
                 </View>
               </View>
+            </View>
 
-              {/* Fish Size */}
-              <View className="mb-2">
-                <Text className="mb-1 text-base font-medium text-gray-900">
-                  Kích thước
-                </Text>
-                <View className="flex-row flex-wrap">
-                  {sizeOptions.map((s) => {
-                    const isSelected = modalFishSize === s;
-                    return (
-                      <TouchableOpacity
-                        key={s}
-                        className={`mb-2 mr-2 rounded-lg border border-gray-200 px-3 py-2 ${isSelected ? 'border-blue-500' : ''}`}
-                        style={{
-                          backgroundColor: isSelected ? '#0A3D62' : '#f3f4f6',
-                        }}
-                        onPress={() =>
-                          setModalFishSize(
-                            isSelected ? undefined : (s as FishSize)
-                          )
-                        }
-                      >
-                        <Text
-                          className={
-                            isSelected ? 'text-white' : 'text-gray-700'
-                          }
-                        >
-                          {getSizeLabel(s)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+            {/* Size Range */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Kích thước (cm)
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                <View className="mb-3 flex-row items-center">
+                  <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-cyan-100">
+                    <Ruler size={18} color="#06b6d4" />
+                  </View>
+                  <Text className="text-sm font-medium text-gray-700">
+                    Từ {modalMinSize} đến {modalMaxSize} cm
+                  </Text>
+                </View>
+                <View style={{ paddingHorizontal: 12 }}>
+                  <MultiSlider
+                    values={[modalMinSize, modalMaxSize]}
+                    min={SIZE_MIN}
+                    max={SIZE_MAX}
+                    step={SIZE_STEP}
+                    onValuesChange={(values: number[]) => {
+                      const [minV, maxV] = values;
+                      setModalMinSize(minV);
+                      setModalMaxSize(maxV);
+                    }}
+                    selectedStyle={{ backgroundColor: '#06b6d4' }}
+                    unselectedStyle={{ backgroundColor: '#e5e7eb' }}
+                    trackStyle={{ height: 6, borderRadius: 3 }}
+                    markerStyle={{
+                      marginTop: 3,
+                      backgroundColor: '#06b6d4',
+                      height: 20,
+                      width: 20,
+                      borderRadius: 10,
+                      borderWidth: 2,
+                      borderColor: '#fff',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 2,
+                      elevation: 3,
+                    }}
+                  />
                 </View>
               </View>
+            </View>
 
-              {/* Health */}
-              <View className="mb-2">
-                <Text className="mb-1 text-base font-medium text-gray-900">
-                  Tình trạng sức khỏe
-                </Text>
-                <View className="flex-row flex-wrap">
+            {/* Health Status */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Tình trạng sức khỏe
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-3">
+                <View className="flex-row flex-wrap items-center">
                   {healthOptions.map((h) => {
                     const isSelected = modalHealth === h;
                     return (
                       <TouchableOpacity
                         key={h}
-                        className={`mb-2 mr-2 rounded-lg border border-gray-200 px-3 py-2 ${isSelected ? 'border-blue-500' : ''}`}
-                        style={{
-                          backgroundColor: isSelected ? '#0A3D62' : '#f3f4f6',
-                        }}
+                        className={`mb-2 mr-2 rounded-2xl border px-4 py-2 ${
+                          isSelected
+                            ? 'border-blue-700 bg-primary'
+                            : 'border-gray-200 bg-gray-50'
+                        }`}
                         onPress={() =>
                           setModalHealth(
                             isSelected ? undefined : (h as HealthStatus)
@@ -571,9 +781,9 @@ export default function KoiManagementScreen() {
                         }
                       >
                         <Text
-                          className={
+                          className={`text-sm font-medium ${
                             isSelected ? 'text-white' : 'text-gray-700'
-                          }
+                          }`}
                         >
                           {healthToLabel(h)}
                         </Text>
@@ -582,22 +792,25 @@ export default function KoiManagementScreen() {
                   })}
                 </View>
               </View>
+            </View>
 
-              {/* Sale Status */}
-              <View className="mb-2">
-                <Text className="mb-1 text-base font-medium text-gray-900">
-                  Trạng thái bán
-                </Text>
-                <View className="flex-row flex-wrap">
+            {/* Sale Status */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Trạng thái bán
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-3">
+                <View className="flex-row flex-wrap items-center">
                   {saleStatusOptions.map((s) => {
                     const isSelected = modalSaleStatus === s;
                     return (
                       <TouchableOpacity
                         key={s}
-                        className={`mb-2 mr-2 rounded-lg border border-gray-200 px-3 py-2 ${isSelected ? 'border-blue-500' : ''}`}
-                        style={{
-                          backgroundColor: isSelected ? '#0A3D62' : '#f3f4f6',
-                        }}
+                        className={`mb-2 mr-2 rounded-2xl border px-4 py-2 ${
+                          isSelected
+                            ? 'border-blue-700 bg-primary'
+                            : 'border-gray-200 bg-gray-50'
+                        }`}
                         onPress={() =>
                           setModalSaleStatus(
                             isSelected ? undefined : (s as SaleStatus)
@@ -605,9 +818,9 @@ export default function KoiManagementScreen() {
                         }
                       >
                         <Text
-                          className={
+                          className={`text-sm font-medium ${
                             isSelected ? 'text-white' : 'text-gray-700'
-                          }
+                          }`}
                         >
                           {saleStatusToLabel(s)}
                         </Text>
@@ -616,27 +829,25 @@ export default function KoiManagementScreen() {
                   })}
                 </View>
               </View>
+            </View>
 
-              {/* Origin */}
-              <View className="mb-2">
-                <Text className="mb-1 text-base font-medium text-gray-900">
-                  Nguồn gốc
-                </Text>
-                <TextInput
-                  className="rounded-lg border border-gray-200 px-3 py-2"
-                  placeholder="Xuất xứ"
-                  value={modalOrigin}
-                  onChangeText={setModalOrigin}
-                />
-              </View>
-
-              {/* Price range */}
-              <View className="mb-4">
-                <Text className="mb-2 text-base font-medium text-gray-900">
-                  Giá bán (VNĐ)
-                </Text>
-                <View>
-                  <Text className="text-sm text-gray-600">{`Khoảng: ${formatCurrency(modalMinPrice)} — ${formatCurrency(modalMaxPrice)}`}</Text>
+            {/* Price Range */}
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Giá bán
+              </Text>
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                <View className="mb-3 flex-row items-center">
+                  <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                    <DollarSign size={18} color="#22c55e" />
+                  </View>
+                  <View>
+                    <Text className="text-xs text-gray-500">Khoảng giá</Text>
+                    <Text className="text-sm font-semibold text-gray-900">
+                      {formatCurrency(modalMinPrice)} -{' '}
+                      {formatCurrency(modalMaxPrice)} VNĐ
+                    </Text>
+                  </View>
                 </View>
                 <View style={{ paddingHorizontal: 12 }}>
                   <MultiSlider
@@ -649,60 +860,73 @@ export default function KoiManagementScreen() {
                       setModalMinPrice(minV);
                       setModalMaxPrice(maxV);
                     }}
-                    selectedStyle={{ backgroundColor: '#0A3D62' }}
+                    selectedStyle={{ backgroundColor: '#06b6d4' }}
                     unselectedStyle={{ backgroundColor: '#e5e7eb' }}
-                    trackStyle={{ height: 6 }}
+                    trackStyle={{ height: 6, borderRadius: 3 }}
                     markerStyle={{
-                      backgroundColor: '#0A3D62',
-                      height: 15,
-                      width: 15,
-                      top: 2,
+                      marginTop: 3,
+                      backgroundColor: '#06b6d4',
+                      height: 20,
+                      width: 20,
+                      borderRadius: 10,
+                      borderWidth: 2,
+                      borderColor: '#fff',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 2,
+                      elevation: 3,
                     }}
                   />
                 </View>
               </View>
-
-              {/* Filter Actions */}
-              <View className="flex-row border-t border-gray-200 pb-6">
-                <TouchableOpacity
-                  className="mr-2 mt-2 flex-1 rounded-lg bg-gray-100 py-3"
-                  onPress={() => {
-                    resetModalFilters();
-                    setAppliedFilters({});
-                    refetch();
-                  }}
-                >
-                  <Text className="text-center font-medium text-gray-900">
-                    Đặt lại
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="ml-2 mt-2 flex-1 rounded-lg py-3"
-                  style={{ backgroundColor: '#0A3D62' }}
-                  onPress={() => {
-                    const filters: any = {};
-                    if (modalSearch) filters.search = modalSearch;
-                    if (modalGender) filters.gender = modalGender;
-                    if (modalHealth) filters.health = modalHealth;
-                    if (modalVarietyId) filters.varietyId = modalVarietyId;
-                    if (modalFishSize) filters.fishSize = modalFishSize;
-                    if (modalSaleStatus) filters.saleStatus = modalSaleStatus;
-                    if (modalPondId) filters.pondId = modalPondId;
-                    if (modalOrigin) filters.origin = modalOrigin;
-                    if (modalMinPrice) filters.minPrice = Number(modalMinPrice);
-                    if (modalMaxPrice) filters.maxPrice = Number(modalMaxPrice);
-                    setAppliedFilters(filters);
-                    setShowFilterSheet(false);
-                    refetch();
-                  }}
-                >
-                  <Text className="text-center font-medium text-white">
-                    Áp dụng
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </ScrollView>
+
+          {/* Fixed Bottom Actions */}
+          <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-4 py-4">
+            <View className="flex-row">
+              <TouchableOpacity
+                className="mr-2 flex-1 flex-row items-center justify-center rounded-2xl bg-gray-100 py-4"
+                onPress={() => {
+                  resetModalFilters();
+                  setAppliedFilters({});
+                  setSearchRFID('');
+                  refetch();
+                }}
+              >
+                <RefreshCcw size={18} color="#6b7280" />
+                <Text className="ml-2 text-base font-semibold text-gray-700">
+                  Đặt lại
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="ml-2 flex-1 flex-row items-center justify-center rounded-2xl bg-primary py-4"
+                onPress={() => {
+                  const filters: any = {};
+                  if (modalSearch) filters.search = modalSearch;
+                  if (modalGender) filters.gender = modalGender;
+                  if (modalHealth) filters.health = modalHealth;
+                  if (modalVarietyId) filters.varietyId = modalVarietyId;
+                  if (modalMinSize) filters.minSize = modalMinSize;
+                  if (modalMaxSize) filters.maxSize = modalMaxSize;
+                  if (modalSaleStatus) filters.saleStatus = modalSaleStatus;
+                  if (modalPondId) filters.pondId = modalPondId;
+                  if (modalOrigin) filters.origin = modalOrigin;
+                  if (modalMinPrice) filters.minPrice = Number(modalMinPrice);
+                  if (modalMaxPrice) filters.maxPrice = Number(modalMaxPrice);
+                  setAppliedFilters(filters);
+                  setShowFilterSheet(false);
+                  refetch();
+                }}
+              >
+                <Filter size={18} color="white" />
+                <Text className="ml-2 text-base font-semibold text-white">
+                  Áp dụng
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </SafeAreaView>
       </Modal>
     </>

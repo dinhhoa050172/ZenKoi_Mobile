@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react-native';
+import { AlertCircle, AlertTriangle, Info } from 'lucide-react-native';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -52,7 +52,13 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
               { backgroundColor: getTypeColor() + '20' },
             ]}
           >
-            <AlertTriangle size={32} color={getTypeColor()} />
+            {type === 'info' ? (
+              <Info size={32} color={getTypeColor()} />
+            ) : type === 'warning' ? (
+              <AlertTriangle size={32} color={getTypeColor()} />
+            ) : (
+              <AlertCircle size={32} color={getTypeColor()} />
+            )}
           </View>
 
           {/* Title */}

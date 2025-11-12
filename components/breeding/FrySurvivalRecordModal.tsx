@@ -6,21 +6,30 @@ import {
 } from '@/hooks/useFrySurvivalRecord';
 import { Pond } from '@/lib/api/services/fetchPond';
 import { useQueryClient } from '@tanstack/react-query';
-import { X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import {
+  AlertCircle,
+  ArrowRight,
+  FileText,
+  Info,
+  Save,
+  X,
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  ScrollView,
   Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Toast from 'react-native-toast-message';
 import ContextMenuField from '../ContextMenuField';
 import { CustomAlert } from '../CustomAlert';
+import FishSvg from '../icons/FishSvg';
+import PondSvg from '../icons/PondSvg';
 
 interface FrySurvivalRecordModalProps {
   visible: boolean;
@@ -138,12 +147,47 @@ export function FrySurvivalRecordModal({
       queryClient.invalidateQueries({ queryKey: ['breedingProcesses'] });
       queryClient.invalidateQueries({ queryKey: ['fryFish'] });
       queryClient.invalidateQueries({ queryKey: ['frySurvivalRecords'] });
+      queryClient.invalidateQueries({
+        queryKey: ['fryFish', 'summary', fryFishQuery.data?.id],
+      });
       handleClose();
     } catch (err: any) {
       setErrorMessage(err?.message || 'Không thể tạo bản ghi');
       setShowErrorAlert(true);
     }
   };
+
+  const isLoading =
+    createFrySurvival.status === 'pending' ||
+    createClassificationStage.status === 'pending';
+
+  const hasExistingRecords =
+    (frySurvivalRecordsQuery.data?.data?.length ?? 0) > 0;
+
+  const currentCount = hasExistingRecords
+    ? (frySurvivalRecordsQuery.data?.data?.[
+        frySurvivalRecordsQuery.data.data.length - 1
+      ]?.countAlive ?? 0)
+    : (fryFishQuery.data?.initialCount ?? 0);
+
+  // When modal opens, refetch latest fry fish and survival records
+  useEffect(() => {
+    if (!visible) return;
+
+    let mounted = true;
+    (async () => {
+      const res = await fryFishQuery.refetch();
+      const fryFishId = res?.data?.id ?? fryFishQuery.data?.id;
+
+      if (mounted && fryFishId) {
+        await frySurvivalRecordsQuery.refetch();
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [visible, breedingId, fryFishQuery, frySurvivalRecordsQuery]);
 
   return (
     <>
@@ -153,172 +197,276 @@ export function FrySurvivalRecordModal({
         animationType="slide"
         onRequestClose={handleClose}
       >
-        <View className="flex-1 items-center justify-center bg-black/40 px-4">
+        <View className="flex-1 items-center justify-center bg-black/50 px-4">
           <View
-            className="w-11/12 rounded-2xl bg-white"
-            style={{ maxHeight: '75%' }}
+            className="w-full max-w-lg flex-1 overflow-hidden rounded-3xl bg-white"
+            style={{ maxHeight: '85%' }}
           >
-            <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
-              <Text className="text-lg font-semibold">Ghi nhận cá bột</Text>
-              <TouchableOpacity onPress={handleClose}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
+            {/* Header */}
+            <View className="bg-purple-600 pb-6 pt-4">
+              <View className="flex-row items-center justify-between px-5">
+                <View className="h-10 w-10" />
+                <View className="flex-1 items-center">
+                  <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-white/20">
+                    <FishSvg size={24} color="white" />
+                  </View>
+                  <Text className="text-xs font-medium uppercase tracking-wide text-white/80">
+                    Ghi nhận
+                  </Text>
+                  <Text className="text-xl font-bold text-white">
+                    Theo dõi cá bột
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
+                  disabled={isLoading}
+                >
+                  <X size={20} color="white" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <ScrollView
+            <KeyboardAwareScrollView
+              style={{ flex: 1 }}
               contentContainerStyle={{
-                paddingTop: 8,
-                paddingHorizontal: 16,
+                paddingHorizontal: 20,
+                paddingTop: 20,
+                paddingBottom: 100,
               }}
+              bottomOffset={20}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              {fryErrors.fryFish ? (
-                <Text className="mb-2 text-sm text-red-500">
-                  {fryErrors.fryFish}
+              {/* Fry Fish Info */}
+              <View className="mb-4">
+                <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                  Thông tin lô cá bột
                 </Text>
-              ) : null}
+                <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                  {fryFishQuery.isLoading ? (
+                    <View className="flex-row items-center">
+                      <ActivityIndicator size="small" color="#3b82f6" />
+                      <Text className="ml-3 text-base text-gray-600">
+                        Đang tải thông tin...
+                      </Text>
+                    </View>
+                  ) : fryFishQuery.error ? (
+                    <View className="flex-row items-center">
+                      <View className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                        <AlertCircle size={16} color="#ef4444" />
+                      </View>
+                      <Text className="flex-1 text-base text-red-600">
+                        Không thể tải thông tin cá bột
+                      </Text>
+                    </View>
+                  ) : fryFishQuery.data ? (
+                    <>
+                      <View className="mb-3 flex-row items-center">
+                        <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-purple-100">
+                          <FishSvg size={22} color="#9333ea" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-base text-gray-500">
+                            Mã lô cá bột
+                          </Text>
+                          <Text className="text-lg font-bold text-gray-900">
+                            #{fryFishQuery.data.id}
+                          </Text>
+                        </View>
+                      </View>
 
-              {fryFishQuery.isLoading ? (
-                <Text className="text-sm text-gray-500">
-                  Đang tìm lô cá bột liên quan...
-                </Text>
-              ) : fryFishQuery.error ? (
-                <Text className="text-sm text-red-500">
-                  Không thể tải thông tin cá bột
-                </Text>
-              ) : fryFishQuery.data ? (
-                <View className="mb-3 rounded bg-blue-50 p-3">
-                  <Text className="text-sm text-blue-700">
-                    Lô cá bột:{' '}
-                    <Text className="font-semibold">
-                      #{fryFishQuery.data.id}
-                    </Text>
-                  </Text>
-                  <Text className="mt-1 text-sm text-blue-700">
-                    {frySurvivalRecordsQuery.data?.data &&
-                    frySurvivalRecordsQuery.data.data.length > 0 ? (
-                      <>
-                        Số cá sống hiện tại:{' '}
-                        <Text className="font-semibold">
-                          {frySurvivalRecordsQuery.data.data[
-                            frySurvivalRecordsQuery.data.data.length - 1
-                          ]?.countAlive ?? 0}{' '}
-                          con
+                      <View className="rounded-2xl border border-purple-200 bg-purple-50 p-3">
+                        <View className="mb-2 flex-row items-center">
+                          <Info size={14} color="#9333ea" />
+                          <Text className="ml-2 text-base font-semibold text-purple-900">
+                            {hasExistingRecords
+                              ? 'Số cá sống hiện tại'
+                              : 'Số lượng ban đầu'}
+                          </Text>
+                        </View>
+                        <Text className="text-2xl font-bold text-cyan-700">
+                          {currentCount.toLocaleString()} con
                         </Text>
-                      </>
-                    ) : (
-                      <>
-                        Số lượng ban đầu:{' '}
-                        <Text className="font-semibold">
-                          {fryFishQuery.data.initialCount ?? 0} con
-                        </Text>
-                      </>
-                    )}
-                  </Text>
-                  {frySurvivalRecordsQuery.data?.data &&
-                  frySurvivalRecordsQuery.data.data.length > 0 ? (
-                    <Text className="mt-1 text-sm text-blue-700">
-                      Đã có {frySurvivalRecordsQuery.data.data.length} bản ghi
-                      theo dõi
+                        {hasExistingRecords && (
+                          <Text className="mt-1 text-base text-purple-600">
+                            Đã có {frySurvivalRecordsQuery.data?.data?.length}{' '}
+                            bản ghi theo dõi
+                          </Text>
+                        )}
+                      </View>
+                    </>
+                  ) : (
+                    <Text className="text-sm text-gray-500">
+                      Không tìm thấy lô cá bột
                     </Text>
-                  ) : null}
+                  )}
+                  {fryErrors.fryFish && (
+                    <Text className="mt-2 text-xs text-red-500">
+                      {fryErrors.fryFish}
+                    </Text>
+                  )}
                 </View>
-              ) : null}
-
-              <Text className="text-xs text-gray-500">
-                Số cá sống <Text className="text-red-500">*</Text>
-              </Text>
-              <TextInput
-                className="mb-1 rounded border border-gray-200 p-2"
-                value={fryCountAlive}
-                onChangeText={(t) => {
-                  const v = t.replace(/[^0-9]/g, '');
-                  setFryCountAlive(v);
-                  if (fryErrors.countAlive)
-                    setFryErrors((p) => ({ ...p, countAlive: undefined }));
-                }}
-                placeholder="VD: 4400"
-                keyboardType="numeric"
-              />
-              {fryErrors.countAlive ? (
-                <Text className="mb-2 text-sm text-red-500">
-                  {fryErrors.countAlive}
-                </Text>
-              ) : null}
-
-              <Text className="text-xs text-gray-500">Ghi chú</Text>
-              <TextInput
-                className="mb-2 rounded border border-gray-200 p-2"
-                value={fryNote}
-                onChangeText={(t) => {
-                  setFryNote(t);
-                }}
-                placeholder="Ghi chú (tuỳ chọn)"
-                multiline
-                numberOfLines={3}
-              />
-
-              <View className="flex-row items-center justify-between">
-                <Text className="text-sm text-gray-700">
-                  Chuyển sang giai đoạn tuyển chọn
-                </Text>
-                <Switch
-                  value={frySuccess}
-                  onValueChange={(v) => setFrySuccess(v)}
-                  trackColor={{ true: '#10b981', false: '#d1d5db' }}
-                  thumbColor={frySuccess ? '#ffffff' : '#ffffff'}
-                />
               </View>
 
-              {frySuccess ? (
-                <View className="mt-3">
-                  <ContextMenuField
-                    label="Hồ chuyển sang tuyển chọn"
-                    value={fryPondLabel}
-                    options={(emptyPonds ?? []).map((p) => ({
-                      label: `${p.id}: ${p.pondName ?? p.id}`,
-                      value: `${p.id}: ${p.pondName ?? p.id}`,
-                    }))}
-                    onSelect={(v: string) => {
-                      const id = String(v).split(':')[0]?.trim();
-                      setFryPondId(id ? Number(id) : null);
-                      setFryPondLabel(String(v));
-                      if (fryErrors.pond)
-                        setFryErrors((p) => ({ ...p, pond: undefined }));
-                    }}
-                    onPress={onRefetchPonds}
-                    placeholder="Chọn hồ"
-                  />
-                  {fryErrors.pond ? (
-                    <Text className="mb-2 text-sm text-red-500">
-                      {fryErrors.pond}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
-            </ScrollView>
+              {/* Input Fields */}
+              <View className="mb-4">
+                <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                  Cập nhật số liệu
+                </Text>
+                <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                  {/* Count Alive */}
+                  <View className="mb-4 flex-row items-center">
+                    <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                      <FishSvg size={22} color="#9333ea" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="mb-1 text-base font-medium text-gray-600">
+                        Số cá còn sống <Text className="text-red-500">*</Text>
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl border ${fryErrors.countAlive ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} px-3 py-2 text-base font-medium text-gray-900`}
+                        value={fryCountAlive}
+                        onChangeText={(t) => {
+                          const v = t.replace(/[^0-9]/g, '');
+                          setFryCountAlive(v);
+                          if (fryErrors.countAlive)
+                            setFryErrors((p) => ({
+                              ...p,
+                              countAlive: undefined,
+                            }));
+                        }}
+                        placeholder="VD: 4400"
+                        placeholderTextColor="#9ca3af"
+                        keyboardType="numeric"
+                      />
+                      {fryErrors.countAlive ? (
+                        <Text className="mt-1 text-xs text-red-500">
+                          {fryErrors.countAlive}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
 
-            <View className="flex-row justify-between border-t border-gray-100 p-4">
-              <TouchableOpacity
-                className="rounded-lg border border-gray-200 px-4 py-2"
-                onPress={handleClose}
-              >
-                <Text>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`rounded-lg bg-primary px-4 py-2 ${createFrySurvival.status === 'pending' || createClassificationStage.status === 'pending' ? 'opacity-60' : ''}`}
-                disabled={
-                  createFrySurvival.status === 'pending' ||
-                  createClassificationStage.status === 'pending'
-                }
-                onPress={handleSave}
-              >
-                {createFrySurvival.status === 'pending' ||
-                createClassificationStage.status === 'pending' ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text className="text-white">Lưu</Text>
-                )}
-              </TouchableOpacity>
+                  {/* Notes */}
+                  <View className="flex-row items-start">
+                    <View className="mr-3 mt-3 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                      <FileText size={18} color="#f59e0b" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="mb-1 text-base font-medium text-gray-600">
+                        Ghi chú (tùy chọn)
+                      </Text>
+                      <TextInput
+                        className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-base text-gray-900"
+                        value={fryNote}
+                        onChangeText={(t) => setFryNote(t)}
+                        placeholder="Thêm ghi chú về tình trạng cá..."
+                        placeholderTextColor="#9ca3af"
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Transfer Stage */}
+              <View className="mb-4">
+                <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Chuyển giai đoạn
+                </Text>
+                <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1 flex-row items-center">
+                      <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                        <ArrowRight size={18} color="#a855f7" />
+                      </View>
+                      <Text className="flex-1 text-sm font-medium text-gray-700">
+                        Chuyển sang tuyển chọn
+                      </Text>
+                    </View>
+                    <Switch
+                      value={frySuccess}
+                      onValueChange={(v) => setFrySuccess(v)}
+                      trackColor={{ true: '#a855f7', false: '#d1d5db' }}
+                      thumbColor="#ffffff"
+                    />
+                  </View>
+
+                  {frySuccess && (
+                    <View className="mt-4 flex-row items-start border-t border-gray-100 pt-4">
+                      <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                        <PondSvg size={18} color="#3b82f6" />
+                      </View>
+                      <View className="flex-1">
+                        <ContextMenuField
+                          label="Hồ tuyển chọn *"
+                          value={fryPondLabel}
+                          options={(emptyPonds ?? []).map((p) => ({
+                            label: `${p.id}: ${p.pondName ?? p.id}`,
+                            value: `${p.id}: ${p.pondName ?? p.id}`,
+                            meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
+                          }))}
+                          onSelect={(v: string) => {
+                            const id = String(v).split(':')[0]?.trim();
+                            setFryPondId(id ? Number(id) : null);
+                            setFryPondLabel(String(v));
+                            if (fryErrors.pond)
+                              setFryErrors((p) => ({ ...p, pond: undefined }));
+                          }}
+                          onPress={onRefetchPonds}
+                          placeholder="Chọn hồ"
+                        />
+                        {fryErrors.pond ? (
+                          <Text className="mt-2 text-xs text-red-500">
+                            {fryErrors.pond}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </KeyboardAwareScrollView>
+
+            {/* Fixed Bottom Actions */}
+            <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-5 py-4">
+              <View className="flex-row">
+                <TouchableOpacity
+                  className="mr-2 flex-1 rounded-2xl border-2 border-gray-200 bg-gray-50 py-4"
+                  onPress={handleClose}
+                  disabled={isLoading}
+                >
+                  <Text className="text-center text-base font-semibold text-gray-700">
+                    Hủy
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className={`ml-2 flex-1 flex-row items-center justify-center rounded-2xl py-4 ${
+                    isLoading ? 'bg-gray-300' : 'bg-purple-600'
+                  }`}
+                  disabled={isLoading}
+                  onPress={handleSave}
+                >
+                  {isLoading ? (
+                    <>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <Text className="ml-2 text-base font-semibold text-white">
+                        Đang lưu...
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={20} color="white" />
+                      <Text className="ml-2 text-base font-semibold text-white">
+                        Lưu bản ghi
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>

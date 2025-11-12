@@ -1,4 +1,6 @@
 import apiService, { RequestParams } from '../apiClient';
+import { KoiFish } from './fetchKoiFish';
+import { TypeOfPond } from './fetchPondType';
 
 export enum PondStatus {
   EMPTY = 'Empty',
@@ -11,6 +13,9 @@ export interface Pond {
   pondName: string;
   location: string;
   pondStatus: PondStatus;
+  maxFishCount: number | null;
+  currentCount: number | null;
+  currentCapacity: number | null;
   capacityLiters: number;
   depthMeters: number;
   lengthMeters: number;
@@ -20,6 +25,7 @@ export interface Pond {
   pondTypeName: string;
   areaId: number;
   areaName: string;
+  record: WaterQualityRecord | null;
 }
 
 export interface PondSearchParams {
@@ -27,6 +33,8 @@ export interface PondSearchParams {
   status?: PondStatus;
   areaId?: number;
   pondTypeId?: number;
+  pondTypeEnum?: TypeOfPond;
+  available?: boolean;
   minCapacityLiters?: number;
   maxCapacityLiters?: number;
   minDepthMeters?: number;
@@ -37,16 +45,29 @@ export interface PondSearchParams {
   pageSize?: number;
 }
 
+export interface WaterQualityRecord {
+  phLevel: number;
+  temperatureCelsius: number;
+  oxygenLevel: number;
+  ammoniaLevel: number;
+  nitriteLevel: number;
+  nitrateLevel: number;
+  carbonHardness: number;
+  waterLevelMeters: number;
+  notes: string;
+}
+
 export interface PondRequest {
-  areaId: number;
   pondTypeId: number;
+  areaId: number;
   pondName: string;
   location: string;
   pondStatus: PondStatus;
-  capacityLiters: number;
+  currentCapacity: number;
   depthMeters: number;
   lengthMeters: number;
   widthMeters: number;
+  record: WaterQualityRecord;
 }
 
 export interface PondPagination {
@@ -70,6 +91,13 @@ export interface PondResponse {
   isSuccess: boolean;
   message: string;
   result: Pond;
+}
+
+export interface FishOfPondResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiFish[];
 }
 
 // Convert PondSearchParams to RequestParams
@@ -116,6 +144,14 @@ export const pondServices = {
   // Get pond by ID
   getPondById: async (id: number): Promise<PondResponse> => {
     const response = await apiService.get<PondResponse>(`/api/pond/${id}`);
+    return response.data;
+  },
+
+  // Get fish in a pond
+  getFishOfPond: async (pondId: number): Promise<FishOfPondResponse> => {
+    const response = await apiService.get<FishOfPondResponse>(
+      `/api/pond/${pondId}/koifish`
+    );
     return response.data;
   },
 

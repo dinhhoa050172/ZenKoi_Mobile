@@ -1,6 +1,7 @@
 import { useGetClassificationStageByBreedingProcessId } from '@/hooks/useClassificationStage';
+import { useGetPondPacketFishes } from '@/hooks/usePondPacketFish';
 import { useRouter } from 'expo-router';
-import { Eye, Filter, Plus } from 'lucide-react-native';
+import { Edit, Eye, Filter, List, Package, Plus } from 'lucide-react-native';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import ClassificationRecordsList, {
@@ -11,15 +12,30 @@ import ClassificationStageInfo from './ClassificationStageInfo';
 interface ClassificationStageSectionProps {
   breedingProcessId: number;
   onStartSelection: () => void;
+  onCreatePacket?: (breedingProcessId: number) => void;
+  onEditPacket?: (breedingProcessId: number, packetFishId: number) => void;
 }
 
 export default function ClassificationStageSection({
   breedingProcessId,
   onStartSelection,
+  onCreatePacket,
+  onEditPacket,
 }: ClassificationStageSectionProps) {
   const router = useRouter();
 
-  // Get classification stage to get the ID
+  const pondPacketQuery = useGetPondPacketFishes(
+    { breedingProcessId: breedingProcessId, pageIndex: 1, pageSize: 1 },
+    !!breedingProcessId
+  );
+
+  const pondPackets = pondPacketQuery.data?.data ?? [];
+  const hasPondPacket = pondPackets.length > 0;
+  const existingPacketFishId: number | undefined = pondPackets[0]
+    ? ((pondPackets[0] as any).packetFishId ??
+      (pondPackets[0] as any).packetFish?.id)
+    : undefined;
+
   const classificationStageQuery = useGetClassificationStageByBreedingProcessId(
     breedingProcessId,
     !!breedingProcessId
@@ -27,14 +43,12 @@ export default function ClassificationStageSection({
 
   const classificationStageId = classificationStageQuery.data?.id ?? 0;
 
-  // Get count of classification records
   const { count: recordsCount, isLoading: recordsLoading } =
     useClassificationRecordsCount(
       classificationStageId,
       !!classificationStageId
     );
 
-  // Determine button text based on records count
   const selectionButtonText =
     recordsCount === 0
       ? 'Tuyển chọn lần 1'
@@ -42,63 +56,112 @@ export default function ClassificationStageSection({
 
   return (
     <View>
+      {/* Classification Stage Info Card */}
       <ClassificationStageInfo breedingProcessId={breedingProcessId} />
 
+      {/* Classification Records List */}
       <ClassificationRecordsList
         classificationStageId={classificationStageId}
       />
 
+      {/* Fish List Link (appears after 4 rounds) */}
       {recordsCount >= 4 && (
-        <View className="mt-3 flex-row justify-center">
-          <Text className="mr-4 mt-1 text-sm text-black">
-            Danh sách định danh
-          </Text>
+        <View className="mt-3 flex-row items-center justify-between gap-2">
           <TouchableOpacity
-            className="flex-row items-center rounded-lg border border-gray-300 px-3 py-1"
+            className="flex-1 flex-row items-center justify-center rounded-2xl border-2 border-indigo-200 bg-indigo-50 py-3"
             onPress={() =>
               router.push(
                 `/breeding/${breedingProcessId}/fish-list?redirect=/breeding`
               )
             }
           >
-            <Eye size={16} color="black" />
-            <Text className="ml-1 text-sm text-black">Xem chi tiết</Text>
+            <List size={18} color="#6366f1" />
+            <Text className="ml-2 text-sm font-semibold text-indigo-700">
+              Xem danh sách định danh
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-200"
+            onPress={() => router.push(`/breeding/${breedingProcessId}`)}
+          >
+            <Eye size={18} color="#6b7280" />
           </TouchableOpacity>
         </View>
       )}
 
-      <View className="mt-4 flex-row border-t border-gray-200 pt-2">
+      {/* Action Buttons */}
+      <View className="mt-3 flex-row gap-2">
         {recordsCount >= 4 ? (
-          <TouchableOpacity
-            className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-green-500 py-2"
-            onPress={() =>
-              router.push(
-                `/breeding/${breedingProcessId}/fish-list?redirect=/breeding`
-              )
-            }
-          >
-            <Plus size={16} color="white" />
-            <Text className="ml-2 font-medium text-white">Thêm cá</Text>
-          </TouchableOpacity>
+          // After 4 rounds - Show Add Fish & Packet Management
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              className="w-[50%] flex-row items-center justify-center  rounded-2xl bg-green-600 py-3"
+              onPress={() =>
+                router.push(
+                  `/breeding/${breedingProcessId}/fish-list?redirect=/breeding`
+                )
+              }
+            >
+              <Plus size={18} color="white" />
+              <Text className="ml-2 font-semibold text-white">Thêm cá</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="w-[48%] flex-row items-center justify-center  rounded-2xl bg-indigo-600 py-3"
+              onPress={() => {
+                if (hasPondPacket && existingPacketFishId) {
+                  if (onEditPacket)
+                    return onEditPacket(
+                      breedingProcessId,
+                      existingPacketFishId
+                    );
+                  return router.push(`/breeding/${breedingProcessId}`);
+                }
+                if (onCreatePacket) return onCreatePacket(breedingProcessId);
+                return router.push(`/breeding/${breedingProcessId}`);
+              }}
+              disabled={!classificationStageId}
+            >
+              {hasPondPacket ? (
+                <>
+                  <Edit size={18} color="#fff" />
+                  <Text className="ml-2 font-semibold text-white">
+                    Sửa lô cá
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Package size={18} color="#fff" />
+                  <Text className="ml-2 font-semibold text-white">
+                    Tạo lô cá
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         ) : (
-          <TouchableOpacity
-            className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-yellow-400 py-2"
-            onPress={onStartSelection}
-            disabled={recordsLoading}
-          >
-            <Filter size={16} color="white" />
-            <Text className="ml-2 font-medium text-white">
-              {recordsLoading ? 'Đang tải...' : selectionButtonText}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              className="w-[85%] flex-row items-center justify-center rounded-2xl bg-yellow-500 py-3"
+              onPress={onStartSelection}
+              disabled={recordsLoading}
+            >
+              <Filter size={18} color="white" />
+              <Text className="ml-2 font-semibold text-white">
+                {recordsLoading ? 'Đang tải...' : selectionButtonText}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Detail Button - Always shown */}
+            <TouchableOpacity
+              className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-200"
+              onPress={() => router.push(`/breeding/${breedingProcessId}`)}
+            >
+              <Eye size={18} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
         )}
-        <TouchableOpacity
-          className="flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
-          onPress={() => router.push(`/breeding/${breedingProcessId}`)}
-        >
-          <Eye size={16} color="#6b7280" />
-          <Text className="ml-2 text-gray-700">Xem chi tiết</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );

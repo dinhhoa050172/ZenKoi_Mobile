@@ -1,5 +1,6 @@
 import ClassificationStageSection from '@/components/breeding/ClassificationStageSection';
 import { CountEggModal } from '@/components/breeding/CountEggModal';
+import { CreatePacketFishModal } from '@/components/breeding/CreatePacketFishModal';
 import FryFishInfo from '@/components/breeding/FryFishInfo';
 import FryFishSummary from '@/components/breeding/FryFishSummary';
 import { FrySurvivalRecordModal } from '@/components/breeding/FrySurvivalRecordModal';
@@ -8,6 +9,7 @@ import { SelectionModal } from '@/components/breeding/SelectionModal';
 import { UpdateEggBatchModal } from '@/components/breeding/UpdateEggBatchModal';
 import ContextMenuField from '@/components/ContextMenuField';
 import { CustomAlert } from '@/components/CustomAlert';
+import FishSvg from '@/components/icons/FishSvg';
 import Loading from '@/components/Loading';
 import {
   useGetBreedingProcesses,
@@ -23,11 +25,13 @@ import {
 import { PondStatus } from '@/lib/api/services/fetchPond';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
+  Check,
   Egg,
   Eye,
   Filter,
   Fish,
   Mars,
+  RefreshCcw,
   Search,
   Venus,
   X,
@@ -37,6 +41,7 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -56,7 +61,9 @@ export default function BreedingScreen() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showFryUpdateModal, setShowFryUpdateModal] = useState(false);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
+  const [showCreatePacketModal, setShowCreatePacketModal] = useState(false);
 
+  const [editPacketFishId, setEditPacketFishId] = useState<number | null>(null);
   const [currentBreedingId, setCurrentBreedingId] = useState<number | null>(
     null
   );
@@ -89,13 +96,17 @@ export default function BreedingScreen() {
 
   // Filter modal and filter state
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filterSearch, setFilterSearch] = useState('');
-  const [filterStatusLabel, setFilterStatusLabel] = useState('Tất cả');
-  const [filterResultLabel, setFilterResultLabel] = useState('Tất cả');
-  const [filterPondId, setFilterPondId] = useState('');
-  const [filterPondLabel, setFilterPondLabel] = useState('Chọn hồ');
-  const [filterStartDateFrom, setFilterStartDateFrom] = useState('');
-  const [filterStartDateTo, setFilterStartDateTo] = useState('');
+  const [searchText, setSearchText] = useState('');
+
+  // Modal filter states
+  const [modalPondId, setModalPondId] = useState<number | undefined>(undefined);
+  const [modalPondLabel, setModalPondLabel] = useState('');
+  const [modalStatus, setModalStatus] = useState<BreedingStatus | undefined>(
+    undefined
+  );
+  const [modalResult, setModalResult] = useState<BreedingResult | undefined>(
+    undefined
+  );
 
   const [appliedFilters, setAppliedFilters] = useState<
     BreedingProcessSearchParams | undefined
@@ -121,23 +132,15 @@ export default function BreedingScreen() {
     data: pondPage,
     isLoading: pondLoading,
     refetch: refetchPonds,
-  } = useGetPonds(
-    {
-      pageIndex: 1,
-      pageSize: 200,
-    },
-    true
-  );
+  } = useGetPonds({ pageIndex: 1, pageSize: 200 }, true);
+
   const { data: emptyPondPage, refetch: refetchEmptyPonds } = useGetPonds(
-    {
-      pageIndex: 1,
-      pageSize: 200,
-      status: PondStatus.EMPTY,
-    },
+    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY },
     true
   );
 
-  // Refetch breeding data when screen gains focus
+  const pondOptions = pondPage?.data ?? [];
+
   useFocusEffect(
     useCallback(() => {
       refetchBreeding();
@@ -176,27 +179,46 @@ export default function BreedingScreen() {
     }
   };
 
+  const statusToLabel = (status: BreedingStatus) => {
+    return mapStatus(status);
+  };
+
+  const resultToLabel = (result: BreedingResult) => {
+    switch (result) {
+      case BreedingResult.SUCCESS:
+        return 'Thành công';
+      case BreedingResult.FAILED:
+        return 'Thất bại';
+      case BreedingResult.PARTIAL_SUCCESS:
+        return 'Một phần thành công';
+      default:
+        return 'Chưa rõ';
+    }
+  };
+
   const breedingListToRender: BreedingProcess[] =
     (breedingPages?.pages?.flatMap(
       (p) => (p?.data as BreedingProcess[]) || []
     ) ?? []) as BreedingProcess[];
 
+  const totalBreeding = breedingPages?.pages[0]?.totalItems || 0;
+
   const getStatusColor = (status?: BreedingStatus | string) => {
     switch (status) {
       case BreedingStatus.PAIRING:
-        return '#3b82f6'; // blue
+        return '#3b82f6';
       case BreedingStatus.SPAWNED:
-        return '#f59e0b'; // amber
+        return '#f59e0b';
       case BreedingStatus.EGG_BATCH:
-        return '#fb923c'; // orange
+        return '#fb923c';
       case BreedingStatus.FRY_FISH:
-        return '#10b981'; // green
+        return '#10b981';
       case BreedingStatus.CLASSIFICATION:
-        return '#6366f1'; // indigo
+        return '#6366f1';
       case BreedingStatus.FAILED:
-        return '#ef4444'; // red
+        return '#ef4444';
       case BreedingStatus.COMPLETE:
-        return '#06b6d4'; // teal-ish for complete
+        return '#06b6d4';
       default: {
         const s = String(status ?? '');
         if (/pairing/i.test(s)) return '#3b82f6';
@@ -206,7 +228,7 @@ export default function BreedingScreen() {
         if (/classification|tuyển/i.test(s)) return '#6366f1';
         if (/failed|hủy/i.test(s)) return '#ef4444';
         if (/complete|hoàn/i.test(s)) return '#06b6d4';
-        return '#6b7280'; // gray
+        return '#6b7280';
       }
     }
   };
@@ -241,616 +263,731 @@ export default function BreedingScreen() {
     return Math.floor(diff / (1000 * 60 * 60 * 24));
   };
 
-  const getStatusText = (status: string) => {
-    return status;
+  const resetModalFilters = () => {
+    setModalPondId(undefined);
+    setModalPondLabel('');
+    setModalStatus(undefined);
+    setModalResult(undefined);
   };
 
-  return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="p-4">
-        {/* Search */}
-        <View className="mb-4">
-          <View className="flex-row items-center rounded-2xl border border-gray-200 bg-white px-4">
-            <TextInput
-              className="flex-1 text-gray-900"
-              placeholder="Tìm kiếm ..."
-              value={filterSearch}
-              onChangeText={(t) => setFilterSearch(t)}
-              onSubmitEditing={() => {
-                setAppliedFilters((prev: any) => ({
-                  ...(prev || {}),
-                  search: filterSearch,
-                }));
-                refetchBreeding();
-              }}
-              placeholderTextColor="#9ca3af"
-            />
+  const activeFiltersCount = Object.values(appliedFilters || {}).filter(
+    (v) => v !== undefined
+  ).length;
 
-            {filterSearch ? (
-              <TouchableOpacity
-                className="p-2"
-                onPress={() => {
-                  setFilterSearch('');
-                  setAppliedFilters((prev: any) => {
-                    if (!prev) return prev;
-                    const copy = { ...prev };
-                    delete copy.search;
-                    return Object.keys(copy).length ? copy : undefined;
-                  });
+  const statusOptions = [
+    BreedingStatus.PAIRING,
+    BreedingStatus.SPAWNED,
+    BreedingStatus.EGG_BATCH,
+    BreedingStatus.FRY_FISH,
+    BreedingStatus.CLASSIFICATION,
+    BreedingStatus.COMPLETE,
+    BreedingStatus.FAILED,
+  ];
+
+  const resultOptions = [
+    BreedingResult.SUCCESS,
+    BreedingResult.FAILED,
+    BreedingResult.PARTIAL_SUCCESS,
+  ];
+
+  return (
+    <>
+      <SafeAreaView className="flex-1 bg-gray-50">
+        {/* Header */}
+        <View className="rounded-t-2xl bg-primary pb-6">
+          <View className="px-4 pt-2">
+            <View className="mb-4 mt-2">
+              <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
+                Quản lý
+              </Text>
+              <Text className="text-2xl font-bold text-white">Sinh sản</Text>
+            </View>
+
+            {/* Search Bar */}
+            <View className="flex-row items-center rounded-2xl bg-white px-4 shadow-sm">
+              <Search size={20} color="#9ca3af" />
+              <TextInput
+                placeholder="Tìm kiếm quy trình..."
+                value={searchText}
+                onChangeText={setSearchText}
+                onSubmitEditing={() => {
+                  setAppliedFilters((prev) => ({
+                    ...(prev || {}),
+                    search: searchText,
+                  }));
                   refetchBreeding();
                 }}
-                accessibilityLabel="Xóa tìm kiếm"
-              >
-                <X size={16} color="#6b7280" />
-              </TouchableOpacity>
-            ) : null}
-
-            <TouchableOpacity
-              className="left-4 rounded-r-2xl bg-primary p-3"
-              onPress={() => {
-                setAppliedFilters((prev: any) => ({
-                  ...(prev || {}),
-                  search: filterSearch,
-                }));
-                refetchBreeding();
-              }}
-            >
-              <Search size={18} color="#fff" />
-            </TouchableOpacity>
+                className="flex-1 py-3 pl-3 text-base text-gray-900"
+                placeholderTextColor="#9ca3af"
+              />
+              {searchText.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchText('');
+                    setAppliedFilters((prev) => {
+                      if (!prev) return prev;
+                      const copy = { ...prev };
+                      delete copy.search;
+                      return Object.keys(copy).length ? copy : undefined;
+                    });
+                    refetchBreeding();
+                  }}
+                  className="p-1"
+                >
+                  <X size={18} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
 
-        {/* Header */}
-        <View className="flex-row items-center justify-between">
-          <Text className="text-xl font-bold text-gray-900">
-            Quản lý sinh sản
+        {/* Filter Bar */}
+        <View className="flex-row items-center justify-between bg-white px-4 py-3 shadow-sm">
+          <Text className="text-sm font-medium text-gray-700">
+            {totalBreeding} quy trình
           </Text>
           <TouchableOpacity
-            className="rounded-lg border border-gray-300 px-3 py-2"
+            className="flex-row items-center rounded-full bg-gray-100 px-4 py-2"
             onPress={() => setShowFilterModal(true)}
           >
-            <Filter size={16} color="black" />
+            <Filter size={16} color="#6b7280" />
+            <Text className="ml-2 text-sm font-medium text-gray-700">
+              Bộ lọc
+            </Text>
+            {activeFiltersCount > 0 && (
+              <View className="ml-2 h-5 w-5 items-center justify-center rounded-full bg-blue-500">
+                <Text className="text-xs font-bold text-white">
+                  {activeFiltersCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Filter modal */}
-      <Modal
-        visible={showFilterModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/40 px-4">
-          <View className="w-11/12 rounded-2xl bg-white p-4">
-            <View className="mb-2 flex-row items-center justify-between">
-              <Text className="text-lg font-semibold">Bộ lọc</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            {pondLoading ? (
-              <View className="mb-3 rounded border border-gray-200 p-2">
-                <Text className="text-sm text-gray-600">Đang tải hồ...</Text>
-              </View>
-            ) : (
-              <ContextMenuField
-                label="Hồ"
-                value={filterPondLabel}
-                options={(pondPage?.data ?? []).map((p) => ({
-                  label: `${p.id}: ${p.pondName ?? p.id}`,
-                  value: `${p.id}: ${p.pondName ?? p.id}`,
-                }))}
-                onSelect={(v) => {
-                  const id = String(v).split(':')[0]?.trim();
-                  setFilterPondId(id ?? '');
-                  setFilterPondLabel(String(v));
-                }}
-                onPress={() => refetchPonds()}
-                placeholder="Chọn hồ"
-              />
-            )}
-
-            <ContextMenuField
-              label="Trạng thái"
-              value={filterStatusLabel}
-              options={[
-                { label: 'Tất cả', value: 'Tất cả' },
-                { label: 'Đang ghép cặp', value: 'Đang ghép cặp' },
-                { label: 'Đã đẻ', value: 'Đã đẻ' },
-                { label: 'Ấp trứng', value: 'Ấp trứng' },
-                { label: 'Nuôi cá bột', value: 'Nuôi cá bột' },
-                { label: 'Tuyển chọn', value: 'Tuyển chọn' },
-                { label: 'Hoàn thành', value: 'Hoàn thành' },
-                { label: 'Hủy ghép cặp', value: 'Hủy ghép cặp' },
-              ]}
-              onSelect={(v) => setFilterStatusLabel(v)}
-              placeholder="Chọn trạng thái"
-            />
-
-            <ContextMenuField
-              label="Kết quả"
-              value={filterResultLabel}
-              options={[
-                { label: 'Tất cả', value: 'Tất cả' },
-                { label: 'Thành công', value: 'Thành công' },
-                { label: 'Thất bại', value: 'Thất bại' },
-                { label: 'Một phần thành công', value: 'Một phần thành công' },
-                { label: 'Chưa rõ', value: 'Chưa rõ' },
-              ]}
-              onSelect={(v) => setFilterResultLabel(v)}
-              placeholder="Chọn kết quả"
-            />
-
-            <View className="mt-4 flex-row justify-between">
-              <TouchableOpacity
-                className="rounded-lg border border-gray-200 px-4 py-2"
-                onPress={() => {
-                  setFilterSearch('');
-                  setFilterPondId('');
-                  setFilterPondLabel('Chọn hồ');
-                  setFilterStatusLabel('Tất cả');
-                  setFilterResultLabel('Tất cả');
-                  setFilterStartDateFrom('');
-                  setFilterStartDateTo('');
-                  setAppliedFilters(undefined);
-                  refetchBreeding();
-                }}
-              >
-                <Text>Đặt lại</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="rounded-lg bg-primary px-4 py-2"
-                onPress={() => {
-                  const f: BreedingProcessSearchParams = {};
-                  if (filterSearch) f.search = filterSearch;
-                  if (filterPondId) f.pondId = Number(filterPondId);
-                  if (filterStatusLabel && filterStatusLabel !== 'Tất cả') {
-                    const label = filterStatusLabel;
-                    if (label === 'Đang ghép cặp')
-                      f.status = BreedingStatus.PAIRING;
-                    else if (label === 'Đã đẻ')
-                      f.status = BreedingStatus.SPAWNED;
-                    else if (label === 'Ấp trứng')
-                      f.status = BreedingStatus.EGG_BATCH;
-                    else if (label === 'Nuôi cá bột')
-                      f.status = BreedingStatus.FRY_FISH;
-                    else if (label === 'Tuyển chọn')
-                      f.status = BreedingStatus.CLASSIFICATION;
-                    else if (label === 'Hoàn thành')
-                      f.status = BreedingStatus.COMPLETE;
-                    else if (label === 'Hủy ghép cặp')
-                      f.status = BreedingStatus.FAILED;
-                  }
-                  if (filterResultLabel && filterResultLabel !== 'Tất cả') {
-                    const label = filterResultLabel;
-                    if (label === 'Thành công')
-                      f.result = BreedingResult.SUCCESS;
-                    else if (label === 'Thất bại')
-                      f.result = BreedingResult.FAILED;
-                    else if (label === 'Một phần thành công')
-                      f.result = BreedingResult.PARTIAL_SUCCESS;
-                  }
-                  if (filterStartDateFrom)
-                    f.startDateFrom = filterStartDateFrom;
-                  if (filterStartDateTo) f.startDateTo = filterStartDateTo;
-
-                  setAppliedFilters(Object.keys(f).length ? f : undefined);
-                  setShowFilterModal(false);
-                }}
-              >
-                <Text className="text-white">Áp dụng</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <FlatList
-        data={breedingListToRender}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 30,
-          paddingHorizontal: 16,
-        }}
-        showsVerticalScrollIndicator={false}
-        keyExtractor={(item) => String(item.id)}
-        ListEmptyComponent={() => (
-          <>
-            {breedingLoading ? (
-              <View className="h-[50vh] w-full items-center justify-center">
-                <Loading />
-              </View>
-            ) : (
-              <View className="mt-8 items-center">
-                <Text className="mb-4 text-gray-600">
-                  Chưa có quy trình sinh sản nào.
-                </Text>
-                {appliedFilters ? (
-                  <TouchableOpacity
-                    className="rounded-lg bg-primary px-4 py-2"
-                    onPress={() => {
-                      setAppliedFilters(undefined);
-                      setFilterSearch('');
-                      setFilterPondId('');
-                      setFilterPondLabel('Chọn hồ');
-                      setFilterStatusLabel('Tất cả');
-                      setFilterResultLabel('Tất cả');
-                      setFilterStartDateFrom('');
-                      setFilterStartDateTo('');
-                      refetchBreeding();
-                    }}
-                  >
-                    <Text className="text-white">Xóa bộ lọc</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            )}
-          </>
-        )}
-        renderItem={({ item: b }) => {
-          const statusLabel = mapStatus(b.status ?? '');
-          const color = getStatusColor(b.status ?? statusLabel);
-          const badgeBg = color + '20';
-
-          const maleFish = b.maleKoiVariety ?? '—';
-          const femaleFish = b.femaleKoiVariety ?? '—';
-          const pond = b.pondName ?? '—';
-          const eggCount = b.koiFishes?.length ?? 0;
-
-          return (
-            <View
-              key={b.id}
-              className="mb-4 rounded-2xl bg-white px-4 py-2 shadow-sm"
-            >
-              {/* Header */}
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-lg font-bold text-gray-900">
-                  {b.code !== '' ? `#${b.code}` : `Quy trình #${b.id}`}
-                </Text>
-                <View
-                  className="rounded-full px-2 py-1"
-                  style={{ backgroundColor: badgeBg }}
-                >
-                  <Text className="text-xs font-medium" style={{ color }}>
-                    {getStatusText(statusLabel)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Common top info */}
-              <View className="mb-3">
-                <View className="mb-2 flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <Text className="text-base">{maleFish}</Text>
-                    <Mars
-                      size={12}
-                      color="#6b7280"
-                      style={{ marginHorizontal: 2 }}
-                    />
-                    <Text className="text-sm"> × </Text>
-                    <Text className="text-base">{femaleFish}</Text>
-                    <Venus
-                      size={12}
-                      color="#6b7280"
-                      style={{ marginLeft: 2 }}
-                    />
+        <FlatList
+          data={breedingListToRender}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 10,
+            paddingHorizontal: 16,
+            paddingTop: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) => String(item.id)}
+          ListEmptyComponent={() => {
+            const hasActiveFilters = activeFiltersCount > 0 || searchText;
+            return (
+              <>
+                {breedingLoading ? (
+                  <View className="h-[50vh] w-full items-center justify-center">
+                    <Loading />
                   </View>
-                </View>
-
-                <View className="flex-col">
-                  <View className="flex-row items-center">
-                    <View className="mr-2 h-2 w-2 rounded-full bg-blue-500" />
-                    <Text className="text-sm text-gray-600">Hồ: {pond}</Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Text className="text-sm text-gray-600">
-                      Ngày bắt đầu quy trình: {formatDate(b.startDate)}
-                    </Text>
-                    <Text className="ml-1 text-sm text-gray-500">•</Text>
-                    <Text className="ml-1 text-sm text-gray-600">
-                      {daysSince(b.startDate)} ngày
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Variants by status */}
-              {statusLabel === 'Đang ghép cặp' && (
-                <View>
-                  <View className="mt-2 flex-row border-t border-gray-200 pt-2">
-                    <TouchableOpacity
-                      className={`mr-2 flex-1 flex-row items-center justify-center rounded-lg py-2 ${markingSpawnedId === b.id ? 'bg-green-500 opacity-60' : 'bg-green-600'}`}
-                      onPress={async () => {
-                        if (!b.id) return;
-                        setMarkingSpawnedId(b.id);
-                        try {
-                          await markAsSpawned.mutateAsync(b.id);
-                          refetchBreeding();
-                        } catch (err: any) {
-                          showCustomAlert({
-                            title: 'Lỗi',
-                            message:
-                              err?.message ?? 'Không thể cập nhật trạng thái',
-                            type: 'danger',
-                            onConfirm: () => setCustomAlertVisible(false),
-                          });
-                        } finally {
-                          setMarkingSpawnedId(null);
-                        }
-                      }}
-                      disabled={markingSpawnedId === b.id}
-                    >
-                      {markingSpawnedId === b.id ? (
-                        <View className="flex-row items-center">
-                          <ActivityIndicator size="small" color="#fff" />
-                          <Text className="ml-2 font-medium text-white">
-                            Đang cập nhật...
-                          </Text>
-                        </View>
-                      ) : (
-                        <Text className="font-medium text-white">
-                          Cập nhật: Đã đẻ
+                ) : (
+                  <View className="items-center rounded-2xl bg-white p-8 shadow-sm">
+                    <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-blue-100">
+                      <FishSvg size={40} color="#3b82f6" />
+                    </View>
+                    {hasActiveFilters ? (
+                      <>
+                        <Text className="mb-2 text-lg font-semibold text-gray-900">
+                          Không tìm thấy kết quả
                         </Text>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="ml-2 flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
-                      onPress={() => router.push(`/breeding/${b.id}`)}
-                    >
-                      <Eye size={16} color="#6b7280" />
-                      <Text className="ml-2 text-sm text-gray-600">
-                        Chi tiết
-                      </Text>
-                    </TouchableOpacity>
+                        <Text className="mb-6 text-center text-sm text-gray-600">
+                          Không có quy trình nào phù hợp với bộ lọc hiện tại
+                        </Text>
+                        <View className="flex-row">
+                          <TouchableOpacity
+                            onPress={() => {
+                              setAppliedFilters(undefined);
+                              setSearchText('');
+                              resetModalFilters();
+                            }}
+                            className="mr-2 rounded-2xl bg-gray-100 px-6 py-3"
+                          >
+                            <Text className="font-semibold text-gray-900">
+                              Xóa bộ lọc
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            className="rounded-2xl bg-primary px-6 py-3"
+                            onPress={() => setShowFilterModal(true)}
+                          >
+                            <Text className="font-semibold text-white">
+                              Điều chỉnh
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <Text className="mb-2 text-lg font-semibold text-gray-900">
+                          Chưa có quy trình sinh sản
+                        </Text>
+                        <Text className="mb-6 text-center text-sm text-gray-600">
+                          Các quy trình sinh sản sẽ được hiển thị ở đây
+                        </Text>
+                      </>
+                    )}
                   </View>
-                </View>
-              )}
+                )}
+              </>
+            );
+          }}
+          renderItem={({ item: b }) => {
+            const statusLabel = mapStatus(b.status ?? '');
+            const color = getStatusColor(b.status ?? statusLabel);
+            const badgeBg = color + '20';
 
-              {statusLabel === 'Đã đẻ' && (
-                <View>
-                  <View className="mt-2 border-t border-gray-200 pt-2">
-                    <View className="mb-2 flex-row">
+            const maleFish = b.maleKoiVariety ?? '—';
+            const femaleFish = b.femaleKoiVariety ?? '—';
+            const pond = b.pondName ?? '—';
+            const eggCount = b.koiFishes?.length ?? 0;
+
+            return (
+              <View
+                key={b.id}
+                className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm"
+              >
+                <View className="p-4">
+                  {/* Header */}
+                  <View className="mb-3 flex-row items-center justify-between">
+                    <Text className="text-lg font-bold text-gray-900">
+                      {b.code !== '' ? `#${b.code}` : `Quy trình #${b.id}`}
+                    </Text>
+                    <View
+                      className="rounded-full px-3 py-1"
+                      style={{ backgroundColor: badgeBg }}
+                    >
+                      <Text className="text-xs font-semibold" style={{ color }}>
+                        {statusLabel}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Common info */}
+                  <View className="mb-3 rounded-2xl bg-gray-50 p-3">
+                    <View className="mb-2 flex-row items-center">
+                      <Mars size={16} color="#3b82f6" />
+                      <Text className="ml-1 text-base font-medium text-gray-900">
+                        {maleFish}
+                      </Text>
+                      <Text className="mx-2 text-sm text-gray-500">
+                        <X size={16} />
+                      </Text>
+                      <Venus size={16} color="#ec4899" />
+                      <Text className="ml-1 text-base font-medium text-gray-900">
+                        {femaleFish}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <View className="mr-2 h-2 w-2 rounded-full bg-blue-500" />
+                      <Text className="text-base text-gray-600">
+                        Hồ: {pond}
+                      </Text>
+                    </View>
+                    <View className="mt-1 flex-row items-center">
+                      <Text className="text-base text-gray-600">
+                        Bắt đầu: {formatDate(b.startDate)}
+                      </Text>
+                      <Text className="mx-1 text-base text-gray-400">•</Text>
+                      <Text className="text-base text-gray-600">
+                        {daysSince(b.startDate)} ngày
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Status-specific content */}
+                  {statusLabel === 'Đang ghép cặp' && (
+                    <View className="flex-row gap-2">
                       <TouchableOpacity
-                        className="mr-2 flex-1 flex-row items-center justify-center rounded-lg py-2"
-                        style={{ backgroundColor: '#fb923c' }}
+                        className={`flex-1 flex-row items-center justify-center rounded-2xl py-3 ${
+                          markingSpawnedId === b.id
+                            ? 'bg-green-500 opacity-60'
+                            : 'bg-green-600'
+                        }`}
+                        onPress={async () => {
+                          if (!b.id) return;
+                          setMarkingSpawnedId(b.id);
+                          try {
+                            await markAsSpawned.mutateAsync(b.id);
+                            refetchBreeding();
+                          } catch (err: any) {
+                            showCustomAlert({
+                              title: 'Lỗi',
+                              message:
+                                err?.message ?? 'Không thể cập nhật trạng thái',
+                              type: 'danger',
+                              onConfirm: () => setCustomAlertVisible(false),
+                            });
+                          } finally {
+                            setMarkingSpawnedId(null);
+                          }
+                        }}
+                        disabled={markingSpawnedId === b.id}
+                      >
+                        {markingSpawnedId === b.id ? (
+                          <View className="flex-row items-center">
+                            <ActivityIndicator size="small" color="#fff" />
+                            <Text className="ml-2 font-semibold text-white">
+                              Đang cập nhật...
+                            </Text>
+                          </View>
+                        ) : (
+                          <View className="flex-row items-center">
+                            <Check size={18} color="white" />
+                            <Text className="ml-2 font-semibold text-white">
+                              Đã đẻ trứng
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-200"
+                        onPress={() => router.push(`/breeding/${b.id}`)}
+                      >
+                        <Eye size={18} color="#6b7280" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {statusLabel === 'Đã đẻ' && (
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity
+                        className="flex-1 flex-row items-center justify-center rounded-2xl bg-orange-500 py-3"
                         onPress={() => {
                           setCurrentBreedingId(b.id ?? null);
                           setShowCountModal(true);
                         }}
                       >
                         <Egg size={16} color="white" />
-                        <Text className="ml-2 font-medium text-white">
+                        <Text className="ml-2 font-semibold text-white">
                           Đếm trứng
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        className="flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
+                        className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-200"
                         onPress={() => router.push(`/breeding/${b.id}`)}
                       >
-                        <Eye size={16} color="#6b7280" />
-                        <Text className="ml-2 text-sm text-gray-700">
-                          Xem chi tiết
-                        </Text>
+                        <Eye size={18} color="#6b7280" />
                       </TouchableOpacity>
                     </View>
-                  </View>
-                </View>
-              )}
+                  )}
 
-              {statusLabel === 'Ấp trứng' && (
-                <View>
-                  <View className="rounded-lg bg-gray-50 p-3">
-                    <Text className="text-sm text-gray-600">
-                      Số trứng:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {b.totalEggs ?? 0} quả
-                      </Text>{' '}
-                      Tỷ lệ thụ tinh:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {b.fertilizationRate
-                          ? `${b.fertilizationRate.toFixed(1)}%`
-                          : '0%'}
-                      </Text>
-                    </Text>
-                    <Text className="mt-2 text-sm text-gray-600">
-                      Số ngày ấp:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {daysSince(b.startDate)} ngày
-                      </Text>
-                    </Text>
-                  </View>
-
-                  {/* Incubation Summary Component */}
-                  <IncubationSummary breedingProcessId={b.id} />
-
-                  <View className="mt-4 border-t border-gray-200 pt-2">
-                    <View className="flex-row">
-                      <TouchableOpacity
-                        className="mr-2 flex-1 flex-row items-center justify-center rounded-lg py-2"
-                        style={{ backgroundColor: '#10b981' }}
-                        onPress={() => {
-                          setCurrentBreedingId(b.id ?? null);
-                          setShowTransferModal(true);
-                        }}
-                      >
-                        <Egg size={16} color="white" />
-                        <Text className="ml-2 font-medium text-white">
-                          Cập nhập trứng
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        className="flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
-                        onPress={() => router.push(`/breeding/${b.id}`)}
-                      >
-                        <Eye size={16} color="#6b7280" />
-                        <Text className="ml-2 text-sm text-gray-700">
-                          Xem chi tiết
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              )}
-
-              {statusLabel === 'Nuôi cá bột' && (
-                <View>
-                  <FryFishInfo
-                    breedingProcessId={b.id}
-                    startDate={b.startDate}
-                  />
-
-                  <FryFishSummary breedingProcessId={b.id} />
-
-                  {/* <View className="mt-4 border-t border-gray-200 pt-2">
-                    <View className="mb-2 flex-row space-x-2">
-                      <TouchableOpacity className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-purple-600 py-2" onPress={() => setShowFryUpdateModal(true)}>
-                        <Fish size={16} color="white" />
-                        <Text className="ml-2 font-medium text-white">Cập nhật cá bột</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg bg-indigo-600 py-2" onPress={() => {}}>
-                        <Camera size={16} color="white" />
-                        <Text className="ml-2 font-medium text-white">Đếm bằng camera</Text>
-                      </TouchableOpacity>
-                    </View>
+                  {statusLabel === 'Ấp trứng' && (
                     <View>
-                      <TouchableOpacity className="w-full flex-row items-center justify-center rounded-lg border border-gray-200 py-2" onPress={() => router.push(`/breeding/${b.id}`)}>
-                        <Eye size={16} color="#6b7280" />
-                        <Text className="ml-2 text-gray-700">Chi tiết</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View> */}
+                      <View className="mb-3 rounded-2xl bg-orange-50 p-3">
+                        <View className="flex-row justify-between">
+                          <View className="items-center">
+                            <Text className="text-xs text-gray-600">
+                              Số trứng
+                            </Text>
+                            <Text className="text-lg font-bold text-orange-600">
+                              {b.totalEggs ?? 0}
+                            </Text>
+                          </View>
+                          <View className="items-center">
+                            <Text className="text-xs text-gray-600">
+                              Tỷ lệ thụ tinh
+                            </Text>
+                            <Text className="text-lg font-bold text-orange-600">
+                              {b.fertilizationRate
+                                ? `${b.fertilizationRate.toFixed(1)}%`
+                                : '0%'}
+                            </Text>
+                          </View>
+                          <View className="items-center">
+                            <Text className="text-xs text-gray-600">
+                              Số ngày ấp
+                            </Text>
+                            <Text className="text-lg font-bold text-orange-600">
+                              {daysSince(b.startDate)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
 
-                  <View className="mt-4 border-t border-gray-200 pt-2">
-                    <View className="mb-2 flex-row space-x-2">
-                      <TouchableOpacity
-                        className="mr-2 flex-1 flex-row items-center justify-center rounded-lg bg-purple-600 py-2"
-                        onPress={() => {
-                          setCurrentBreedingId(b.id ?? null);
-                          setShowFryUpdateModal(true);
+                      <IncubationSummary breedingProcessId={b.id} />
+
+                      <View className="mt-3 flex-row gap-2">
+                        <TouchableOpacity
+                          className="flex-1 flex-row items-center justify-center rounded-2xl bg-green-600 py-3"
+                          onPress={() => {
+                            setCurrentBreedingId(b.id ?? null);
+                            setShowTransferModal(true);
+                          }}
+                        >
+                          <Egg size={16} color="white" />
+                          <Text className="ml-2 font-semibold text-white">
+                            Cập nhật trứng
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-200"
+                          onPress={() => router.push(`/breeding/${b.id}`)}
+                        >
+                          <Eye size={18} color="#6b7280" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {statusLabel === 'Nuôi cá bột' && (
+                    <View>
+                      <FryFishInfo
+                        breedingProcessId={b.id}
+                        startDate={b.startDate}
+                      />
+                      <FryFishSummary breedingProcessId={b.id} />
+
+                      <View className="mt-3 flex-row gap-2">
+                        <TouchableOpacity
+                          className="flex-1 flex-row items-center justify-center rounded-2xl bg-purple-600 py-3"
+                          onPress={() => {
+                            setCurrentBreedingId(b.id ?? null);
+                            setShowFryUpdateModal(true);
+                          }}
+                        >
+                          <Fish size={16} color="white" />
+                          <Text className="ml-2 font-semibold text-white">
+                            Cập nhật cá bột
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="h-12 w-12 items-center justify-center rounded-2xl border border-gray-200"
+                          onPress={() => router.push(`/breeding/${b.id}`)}
+                        >
+                          <Eye size={18} color="#6b7280" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {statusLabel === 'Tuyển chọn' && (
+                    <View>
+                      <ClassificationStageSection
+                        breedingProcessId={b.id}
+                        onStartSelection={() => {
+                          setCurrentBreedingId(b.id);
+                          setShowSelectionModal(true);
                         }}
-                      >
-                        <Fish size={16} color="white" />
-                        <Text className="ml-2 font-medium text-white">
-                          Cập nhật cá bột
-                        </Text>
-                      </TouchableOpacity>
+                        onCreatePacket={() => {
+                          setCurrentBreedingId(b.id);
+                          setEditPacketFishId(null);
+                          setShowCreatePacketModal(true);
+                        }}
+                        onEditPacket={(
+                          breedingProcessId: number,
+                          packetFishId: number
+                        ) => {
+                          setCurrentBreedingId(breedingProcessId);
+                          setEditPacketFishId(packetFishId ?? null);
+                          setShowCreatePacketModal(true);
+                        }}
+                      />
+                    </View>
+                  )}
+
+                  {statusLabel === 'Hoàn thành' && (
+                    <View>
+                      <View className="mb-3 rounded-2xl bg-green-50 p-3">
+                        <View className="mb-2 flex-row items-center justify-between">
+                          <Text className="text-xs text-gray-600">Kết quả</Text>
+                          <Text className="font-semibold text-green-700">
+                            {mapResult(b.result)}
+                          </Text>
+                        </View>
+                        <View className="mb-2 flex-row items-center justify-between">
+                          <Text className="text-xs text-gray-600">
+                            Cá đạt chuẩn
+                          </Text>
+                          <Text className="font-semibold text-gray-900">
+                            {b.totalFishQualified || 0} con
+                          </Text>
+                        </View>
+                        <View className="mb-2 flex-row items-center justify-between">
+                          <Text className="text-xs text-gray-600">Số gói</Text>
+                          <Text className="font-semibold text-gray-900">
+                            {b.totalPackage || 0}
+                          </Text>
+                        </View>
+                        {b.endDate && (
+                          <View className="flex-row items-center justify-between">
+                            <Text className="text-xs text-gray-600">
+                              Hoàn thành
+                            </Text>
+                            <Text className="font-semibold text-gray-900">
+                              {formatDate(b.endDate)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
                       <TouchableOpacity
-                        className="flex-1 flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
+                        className="flex-row items-center justify-center rounded-2xl border border-gray-200 py-3"
                         onPress={() => router.push(`/breeding/${b.id}`)}
                       >
                         <Eye size={16} color="#6b7280" />
-                        <Text className="ml-2 text-gray-700">Chi tiết</Text>
+                        <Text className="ml-2 font-medium text-gray-700">
+                          Chi tiết
+                        </Text>
                       </TouchableOpacity>
                     </View>
-                  </View>
-                </View>
-              )}
+                  )}
 
-              {statusLabel === 'Tuyển chọn' && (
-                <View>
-                  <ClassificationStageSection
-                    breedingProcessId={b.id}
-                    onStartSelection={() => {
-                      setCurrentBreedingId(b.id);
-                      setShowSelectionModal(true);
-                    }}
-                  />
-                </View>
-              )}
+                  {statusLabel === 'Hủy ghép cặp' && (
+                    <View>
+                      <View className="mb-3 rounded-2xl bg-red-50 p-3">
+                        <View className="mb-2 flex-row items-center justify-between">
+                          <Text className="text-xs text-gray-600">Kết quả</Text>
+                          <Text className="font-semibold text-red-700">
+                            {mapResult(b.result)}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-xs text-gray-600">Số cá</Text>
+                          <Text className="font-semibold text-gray-900">
+                            {eggCount} con
+                          </Text>
+                        </View>
+                      </View>
 
-              {statusLabel === 'Hoàn thành' && (
-                <View>
-                  <View className="rounded-lg bg-green-50 p-3">
-                    <Text className="text-sm text-gray-600">
-                      Kết quả:{' '}
-                      <Text className="font-semibold text-green-700">
-                        {mapResult(b.result)}
-                      </Text>
-                    </Text>
-                    <Text className="mt-2 text-sm text-gray-600">
-                      Tổng số cá đạt chuẩn:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {b.totalFishQualified || 0} con
-                      </Text>
-                    </Text>
-                    <Text className="mt-1 text-sm text-gray-600">
-                      Số gói:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {b.totalPackage || 0} gói
-                      </Text>
-                    </Text>
-                    {b.endDate && (
-                      <Text className="mt-1 text-sm text-gray-600">
-                        Ngày hoàn thành:{' '}
-                        <Text className="font-semibold text-gray-900">
-                          {formatDate(b.endDate)}
+                      <TouchableOpacity
+                        className="flex-row items-center justify-center rounded-2xl border border-gray-200 py-3"
+                        onPress={() => router.push(`/breeding/${b.id}`)}
+                      >
+                        <Eye size={16} color="#6b7280" />
+                        <Text className="ml-2 font-medium text-gray-700">
+                          Chi tiết
                         </Text>
-                      </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          }}
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            if (!isFetchingNextPage && hasNextPage) {
+              fetchNextPage();
+            }
+          }}
+          refreshing={!!breedingRefetching}
+          onRefresh={() => refetchBreeding()}
+          ListFooterComponent={() =>
+            isFetchingNextPage ? (
+              <View className="items-center py-4">
+                <ActivityIndicator size="small" color="#3b82f6" />
+                <Text className="mt-2 text-sm text-gray-500">
+                  Đang tải thêm...
+                </Text>
+              </View>
+            ) : !hasNextPage && breedingListToRender.length > 0 ? (
+              <View className="pb-16">
+                <Text className="text-center text-sm text-gray-500">
+                  Đã hiển thị tất cả {totalBreeding} quy trình
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      </SafeAreaView>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <SafeAreaView className="flex-1 bg-gray-50">
+          {/* Header */}
+          <View className="rounded-t-2xl bg-primary pb-4">
+            <View className="flex-row items-center justify-between px-4 pt-2">
+              <View className="mt-2 flex-1 items-center">
+                <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
+                  Tùy chỉnh
+                </Text>
+                <Text className="text-xl font-bold text-white">Bộ lọc</Text>
+              </View>
+
+              <TouchableOpacity
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
+                onPress={() => setShowFilterModal(false)}
+              >
+                <X size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 20,
+              paddingBottom: 100,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="mb-4">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+                Lọc theo tiêu chí
+              </Text>
+
+              <View className="rounded-2xl border border-gray-200 bg-white p-4">
+                {/* Pond Filter */}
+                <View className="mb-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                    <FishSvg size={22} color="#3b82f6" />
+                  </View>
+                  <View className="flex-1">
+                    {pondLoading ? (
+                      <View className="rounded-2xl border border-gray-200 p-3">
+                        <Text className="text-sm text-gray-600">
+                          Đang tải hồ...
+                        </Text>
+                      </View>
+                    ) : (
+                      <ContextMenuField
+                        label="Hồ"
+                        value={modalPondLabel}
+                        placeholder="Chọn hồ"
+                        options={pondOptions.map((p) => ({
+                          label: `${p.id}: ${p.pondName ?? p.id}`,
+                          value: String(p.id),
+                        }))}
+                        onSelect={(val) => {
+                          setModalPondId(Number(val));
+                          const selected = pondOptions.find(
+                            (p) => p.id === Number(val)
+                          );
+                          setModalPondLabel(
+                            selected
+                              ? `${selected.id}: ${selected.pondName}`
+                              : ''
+                          );
+                        }}
+                        onPress={() => refetchPonds()}
+                      />
+                    )}
+                    {modalPondId && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setModalPondId(undefined);
+                          setModalPondLabel('');
+                        }}
+                        className="mt-2"
+                      >
+                        <Text className="text-sm font-medium text-blue-500">
+                          Xóa lựa chọn
+                        </Text>
+                      </TouchableOpacity>
                     )}
                   </View>
+                </View>
 
-                  <View className="mt-4 border-t border-gray-200 pt-2">
-                    <TouchableOpacity
-                      className="flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
-                      onPress={() => router.push(`/breeding/${b.id}`)}
-                    >
-                      <Eye size={16} color="#6b7280" />
-                      <Text className="ml-2 text-gray-700">Chi tiết</Text>
-                    </TouchableOpacity>
+                {/* Status Filter */}
+                <View className="mb-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                    <Egg size={18} color="#22c55e" />
+                  </View>
+                  <View className="flex-1">
+                    <ContextMenuField
+                      label="Trạng thái"
+                      value={modalStatus || ''}
+                      placeholder="Chọn trạng thái"
+                      options={statusOptions.map((s) => ({
+                        label: statusToLabel(s),
+                        value: s,
+                      }))}
+                      onSelect={(val) => setModalStatus(val as BreedingStatus)}
+                    />
+                    {modalStatus && (
+                      <TouchableOpacity
+                        onPress={() => setModalStatus(undefined)}
+                        className="mt-2"
+                      >
+                        <Text className="text-sm font-medium text-blue-500">
+                          Xóa lựa chọn
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
-              )}
 
-              {statusLabel === 'Hủy ghép cặp' && (
-                <View>
-                  <View className="rounded-lg bg-gray-50 p-3">
-                    <Text className="text-sm text-gray-600">
-                      Kết quả:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {mapResult(b.result)}
-                      </Text>
-                    </Text>
-                    <Text className="mt-2 text-sm text-gray-600">
-                      Số cá:{' '}
-                      <Text className="font-semibold text-gray-900">
-                        {eggCount} con
-                      </Text>
-                    </Text>
+                {/* Result Filter */}
+                <View className="flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                    <Filter size={18} color="#a855f7" />
                   </View>
-
-                  <View className="mt-4 border-t border-gray-200 pt-2">
-                    <TouchableOpacity
-                      className="flex-row items-center justify-center rounded-lg border border-gray-200 py-2"
-                      onPress={() => router.push(`/breeding/${b.id}`)}
-                    >
-                      <Eye size={16} color="#6b7280" />
-                      <Text className="ml-2 text-gray-700">Chi tiết</Text>
-                    </TouchableOpacity>
+                  <View className="flex-1">
+                    <ContextMenuField
+                      label="Kết quả"
+                      value={modalResult || ''}
+                      placeholder="Chọn kết quả"
+                      options={resultOptions.map((r) => ({
+                        label: resultToLabel(r),
+                        value: r,
+                      }))}
+                      onSelect={(val) => setModalResult(val as BreedingResult)}
+                    />
+                    {modalResult && (
+                      <TouchableOpacity
+                        onPress={() => setModalResult(undefined)}
+                        className="mt-2"
+                      >
+                        <Text className="text-sm font-medium text-blue-500">
+                          Xóa lựa chọn
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
-              )}
+              </View>
             </View>
-          );
-        }}
-        onEndReachedThreshold={0.5}
-        onEndReached={() => {
-          if (!isFetchingNextPage && hasNextPage) {
-            fetchNextPage();
-          }
-        }}
-        refreshing={!!breedingRefetching}
-        onRefresh={() => refetchBreeding()}
-        ListFooterComponent={() =>
-          isFetchingNextPage ? (
-            <View className="items-center py-4">
-              <ActivityIndicator size="small" color="#6b7280" />
-            </View>
-          ) : null
-        }
-      />
+          </ScrollView>
 
-      {/* Modals */}
+          {/* Fixed Bottom Actions */}
+          <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-4 py-4">
+            <View className="flex-row">
+              <TouchableOpacity
+                className="mr-2 flex-1 flex-row items-center justify-center rounded-2xl bg-gray-100 py-4"
+                onPress={() => {
+                  resetModalFilters();
+                  setAppliedFilters(undefined);
+                  setSearchText('');
+                  refetchBreeding();
+                }}
+              >
+                <RefreshCcw size={18} color="#6b7280" />
+                <Text className="ml-2 text-base font-semibold text-gray-700">
+                  Đặt lại
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="ml-2 flex-1 flex-row items-center justify-center rounded-2xl bg-primary py-4"
+                onPress={() => {
+                  const f: BreedingProcessSearchParams = {};
+                  if (searchText) f.search = searchText;
+                  if (modalPondId) f.pondId = modalPondId;
+                  if (modalStatus) f.status = modalStatus;
+                  if (modalResult) f.result = modalResult;
+
+                  setAppliedFilters(Object.keys(f).length ? f : undefined);
+                  setShowFilterModal(false);
+                  refetchBreeding();
+                }}
+              >
+                <Filter size={18} color="white" />
+                <Text className="ml-2 text-base font-semibold text-white">
+                  Áp dụng
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Count Egg Modals */}
       <CountEggModal
         visible={showCountModal}
         onClose={() => {
@@ -862,6 +999,7 @@ export default function BreedingScreen() {
         onRefetchPonds={refetchEmptyPonds}
       />
 
+      {/* Update Egg Batch Modals */}
       <UpdateEggBatchModal
         visible={showTransferModal}
         onClose={() => {
@@ -873,6 +1011,7 @@ export default function BreedingScreen() {
         onRefetchPonds={refetchEmptyPonds}
       />
 
+      {/* Fry Survival Record Modals */}
       <FrySurvivalRecordModal
         visible={showFryUpdateModal}
         onClose={() => {
@@ -884,6 +1023,7 @@ export default function BreedingScreen() {
         onRefetchPonds={refetchEmptyPonds}
       />
 
+      {/* Selection Modals */}
       <SelectionModal
         visible={showSelectionModal}
         onClose={() => {
@@ -892,6 +1032,38 @@ export default function BreedingScreen() {
         }}
         breedingId={currentBreedingId}
       />
+
+      {/* Create Packet Fish Modals */}
+      <CreatePacketFishModal
+        visible={showCreatePacketModal}
+        onClose={() => {
+          setShowCreatePacketModal(false);
+        }}
+        breedingId={currentBreedingId ?? 0}
+        ponds={(() => {
+          const emptyPonds = emptyPondPage?.data ?? [];
+          const current = breedingListToRender.find(
+            (x) => x.id === currentBreedingId
+          );
+          const currentPondId = current?.pondId;
+          const currentPondName = current?.pondName;
+          if (!currentPondId) return emptyPonds;
+          const exists = emptyPonds.some((p) => p.id === currentPondId);
+          if (!exists) {
+            return [
+              { id: currentPondId, pondName: currentPondName ?? '' },
+              ...emptyPonds,
+            ];
+          }
+          return emptyPonds;
+        })()}
+        currentPondId={(() =>
+          breedingListToRender.find((x) => x.id === currentBreedingId)
+            ?.pondId ?? undefined)()}
+        packetFishId={editPacketFishId ?? undefined}
+        onSuccess={() => refetchBreeding()}
+      />
+
       <CustomAlert
         visible={customAlertVisible}
         title={customAlertTitle}
@@ -905,6 +1077,6 @@ export default function BreedingScreen() {
           if (customAlertOnConfirm) customAlertOnConfirm();
         }}
       />
-    </SafeAreaView>
+    </>
   );
 }

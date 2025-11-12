@@ -1,3 +1,4 @@
+import { KoiFish } from '@/lib/api/services/fetchKoiFish';
 import {
   Pond,
   PondPagination,
@@ -85,6 +86,25 @@ export function useGetPondById(id: number, enabled = true) {
       return resp.result;
     },
     enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Hook to get Fish of a Pond
+ */
+export function useGetFishOfPond(pondId: number, enabled = true) {
+  return useQuery({
+    queryKey: ['ponds', pondId, 'fish'] as const,
+    queryFn: async (): Promise<KoiFish[]> => {
+      const resp = await pondServices.getFishOfPond(pondId);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải danh sách cá của ao');
+      return resp.result;
+    },
+    enabled: enabled && !!pondId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
