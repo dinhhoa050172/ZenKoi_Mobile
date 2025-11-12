@@ -1,10 +1,5 @@
 import { router } from 'expo-router';
-import {
-  CheckCircle,
-  Search,
-  X,
-  Zap
-} from 'lucide-react-native';
+import { CheckCircle, Search, X, Zap } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,10 +8,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 export default function ScanScreen() {
   const [code, setCode] = useState('');
@@ -28,14 +26,14 @@ export default function ScanScreen() {
   // Simulate RFID scanning
   const startRFIDScan = () => {
     setIsScanning(true);
-    
+
     // Simulate RFID scan delay
     setTimeout(() => {
       // Simulate scanned RFID code
       const scannedCode = `RF${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
       setCode(scannedCode);
       setIsScanning(false);
-      
+
       // Auto search after scan
       handleSearch(scannedCode);
     }, 2000);
@@ -52,12 +50,12 @@ export default function ScanScreen() {
 
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Navigate to detail page with the code
       router.push({
         pathname: '/',
-        params: { code: searchCode }
+        params: { code: searchCode },
       });
     } catch (error) {
       console.error(error);
@@ -76,60 +74,59 @@ export default function ScanScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <View className="flex-1">
         {/* Header */}
-        <View className="bg-white shadow-sm border-b border-gray-200">
+        <View className="border-b border-gray-200 bg-white shadow-sm">
           <View className="flex-row items-center justify-between p-4 pt-2">
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => router.back()}
-              className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
+              className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
             >
               <X size={20} color="red" />
             </TouchableOpacity>
-            
-            <Text className="text-gray-900 text-lg font-semibold">
+
+            <Text className="text-lg font-semibold text-gray-900">
               Quét RFID
             </Text>
-            
+
             <View className="w-10" />
           </View>
         </View>
 
-        <KeyboardAwareScrollView 
-          className="flex-1" 
-          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }} 
+        <KeyboardAwareScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
           showsVerticalScrollIndicator={false}
-          enableOnAndroid={true}
-          extraScrollHeight={20}
+          bottomOffset={20}
           keyboardShouldPersistTaps="handled"
         >
           {/* RFID Scanner Section */}
           <View className="p-6">
-            <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <View className="items-center mb-6">
-                <View className="w-20 h-20 bg-primary/10 rounded-full items-center justify-center mb-4">
+            <View className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <View className="mb-6 items-center">
+                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-primary/10">
                   <Zap size={32} color="#0A3D62" />
                 </View>
-                <Text className="text-gray-900 text-xl font-semibold mb-2">
+                <Text className="mb-2 text-xl font-semibold text-gray-900">
                   RFID Scanner
                 </Text>
-                <Text className="text-gray-600 text-center leading-5">
+                <Text className="text-center leading-5 text-gray-600">
                   Đặt thẻ RFID gần thiết bị để quét tự động
                 </Text>
               </View>
 
               {/* Manual Input */}
-              <Text className="text-gray-700 font-medium mb-3">
+              <Text className="mb-3 font-medium text-gray-700">
                 Nhập mã RFID:
               </Text>
-              
-              <View className="flex-row mb-4">
-                <View className="flex-1 relative">
+
+              <View className="mb-4 flex-row">
+                <View className="relative flex-1">
                   <TextInput
                     ref={inputRef}
                     value={code}
                     onChangeText={setCode}
                     placeholder="Nhập mã RFID..."
                     placeholderTextColor="#9ca3af"
-                    className="bg-gray-50 border border-primary/30 rounded-2xl px-4 py-3 text-gray-900 text-base focus:border-primary"
+                    className="rounded-2xl border border-primary/30 bg-gray-50 px-4 py-3 text-base text-gray-900 focus:border-primary"
                     autoCapitalize="characters"
                     autoCorrect={false}
                   />
@@ -152,20 +149,20 @@ export default function ScanScreen() {
                   !code.trim() || isLoading
                     ? 'bg-gray-300'
                     : 'bg-primary active:bg-primary/90'
-                } rounded-2xl py-3 px-6`}
+                } rounded-2xl px-6 py-3`}
               >
                 <View className="flex-row items-center justify-center">
                   {isLoading ? (
                     <>
                       <ActivityIndicator size="small" color="white" />
-                      <Text className="text-white font-semibold ml-2">
+                      <Text className="ml-2 font-semibold text-white">
                         Đang tìm kiếm...
                       </Text>
                     </>
                   ) : (
                     <>
                       <Search size={20} color="white" />
-                      <Text className="text-white font-semibold ml-2">
+                      <Text className="ml-2 font-semibold text-white">
                         Tìm kiếm
                       </Text>
                     </>
@@ -177,18 +174,18 @@ export default function ScanScreen() {
 
           {/* Instructions */}
           <View className="px-6">
-            <View className="bg-primary/5 rounded-2xl p-4 border border-primary/20">
+            <View className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
               <View className="flex-row items-start">
-                <View className="w-6 h-6 bg-primary rounded-full items-center justify-center mt-0.5 mr-3">
+                <View className="mr-3 mt-0.5 h-6 w-6 items-center justify-center rounded-full bg-primary">
                   <CheckCircle size={14} color="white" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-primary font-medium mb-2">
+                  <Text className="mb-2 font-medium text-primary">
                     Hướng dẫn sử dụng:
                   </Text>
-                  <Text className="text-primary/80 leading-5 text-sm">
-                    • Nhập mã thủ công vào ô input{'\n'}
-                    • Nhấn &quot;Tìm kiếm&quot; để xem thông tin chi tiết của cá Koi
+                  <Text className="text-sm leading-5 text-primary/80">
+                    • Nhập mã thủ công vào ô input{'\n'}• Nhấn &quot;Tìm
+                    kiếm&quot; để xem thông tin chi tiết của cá Koi
                   </Text>
                 </View>
               </View>

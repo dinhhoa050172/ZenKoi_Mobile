@@ -129,7 +129,7 @@ export const authServices = {
 
   logout: async (request: LogoutRequest): Promise<LogoutResponse> => {
     const response = await apiService.post<LogoutResponse, LogoutRequest>(
-      '/api/Accounts/sign-out',
+      '/api/accounts/sign-out',
       request
     );
     return response.data;

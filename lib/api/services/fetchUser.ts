@@ -53,6 +53,13 @@ export interface UserMeProfile {
   role: string;
 }
 
+export interface UpdateUserDetails {
+  dateOfBirth: string;
+  gender: string;
+  avatarURL: string;
+  address: string;
+}
+
 export interface UserResponse {
   statusCode: number;
   isSuccess: boolean;
@@ -78,12 +85,12 @@ export const userServices = {
 
   // Update user profile (if needed in the future)
   updateProfile: async (
-    profileData: Partial<UserMeProfile>
+    profileData: UpdateUserDetails
   ): Promise<UserMeResponse> => {
-    const response = await apiService.put<
-      UserMeResponse,
-      Partial<UserMeProfile>
-    >('/api/UserDetails/update-profile', profileData);
+    const response = await apiService.post<UserMeResponse, UpdateUserDetails>(
+      '/api/UserDetails/create-update-user-detail',
+      profileData
+    );
     return response.data;
   },
 };

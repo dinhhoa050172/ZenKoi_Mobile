@@ -32,16 +32,17 @@ export interface BreedingProcess {
   femaleKoiVariety: string;
   pondId: number;
   pondName: string;
+  hatchedTime: string | null;
   startDate: string;
   endDate: string | null;
+  totalEggs: number;
+  fertilizationRate: number;
+  survivalRate: number | null;
   status: BreedingStatus;
   result: BreedingResult;
   note: string | null;
   totalFishQualified: number;
   totalPackage: number;
-  totalEggs: number;
-  fertilizationRate: number;
-  currentSurvivalRate: number | null;
   koiFishes: number[];
 }
 
@@ -142,7 +143,7 @@ export interface FrySurvivalRecordsBreeding {
   survivalRate: number;
   countAlive: number;
   note: string | null;
-  initialCount: number | null;
+  // initialCount: number | null;
   createdAt: string;
 }
 
@@ -194,6 +195,7 @@ export interface BreedingProcessDetail {
   femaleKoiVariety: string;
   pondId: number;
   pondName: string;
+  hatchedTime: string | null;
   startDate: string;
   endDate: string | null;
   status: BreedingStatus;
@@ -203,7 +205,7 @@ export interface BreedingProcessDetail {
   totalPackage: number;
   totalEggs: number;
   fertilizationRate: number;
-  currentSurvivalRate: number | null;
+  survivalRate: number | null;
   koiFishes: KoiFish[];
   batch: EggBatchBreeding | null;
   fryFish: FryFishBreeding | null;

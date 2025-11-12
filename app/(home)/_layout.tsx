@@ -256,6 +256,22 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="water/create-record"
+        options={{
+          href: null,
+          title: 'Thêm bản ghi thông số nước',
+        }}
+      />
+
+      <Tabs.Screen
+        name="water/edit-record"
+        options={{
+          href: null,
+          title: 'Chi tiết bản ghi thông số nước',
+        }}
+      />
+
+      <Tabs.Screen
         name="pond/index"
         options={{ href: null, title: 'Danh sách loại hồ' }}
       />

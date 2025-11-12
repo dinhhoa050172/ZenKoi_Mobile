@@ -8,6 +8,7 @@ import { FrySurvivalRecordModal } from '@/components/breeding/FrySurvivalRecordM
 import { SelectionModal } from '@/components/breeding/SelectionModal';
 import { UpdateEggBatchModal } from '@/components/breeding/UpdateEggBatchModal';
 import { CustomAlert } from '@/components/CustomAlert';
+import FishSvg from '@/components/icons/FishSvg';
 import {
   useGetBreedingProcessDetailById,
   useMarkBreedingProcessAsSpawned,
@@ -25,7 +26,6 @@ import {
   FrySurvivalRecordsBreeding,
   IncubationDailyReordBreeding,
 } from '@/lib/api/services/fetchBreedingProcess';
-import { ClassificationStatus } from '@/lib/api/services/fetchClassificationStage';
 import { EggBatchStatus } from '@/lib/api/services/fetchEggBatch';
 import { FryFishStatus } from '@/lib/api/services/fetchFryFish';
 import { PondStatus } from '@/lib/api/services/fetchPond';
@@ -33,10 +33,14 @@ import { formatDate } from '@/lib/utils/formatDate';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
+  Check,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Edit,
   Egg,
+  Fish,
+  Package,
   Plus,
   Trash2,
 } from 'lucide-react-native';
@@ -67,38 +71,24 @@ export default function BreedingDetailScreen() {
   );
   const [refreshing, setRefreshing] = useState(false);
 
-  // State for UpdateEggBatchModal
+  // State for modals
   const [showUpdateEggModal, setShowUpdateEggModal] = useState(false);
-
-  // State for CountEggModal
   const [showCountEggModal, setShowCountEggModal] = useState(false);
-
-  // State for EditIncubationRecordModal
   const [showEditIncubationModal, setShowEditIncubationModal] = useState(false);
   const [editingIncubationRecord, setEditingIncubationRecord] =
     useState<IncubationDailyReordBreeding | null>(null);
   const [isFirstIncubationRecord, setIsFirstIncubationRecord] = useState(false);
-
-  // State for ChangePondModal (for fry fish)
   const [showChangePondModal, setShowChangePondModal] = useState(false);
-
-  // State for ChangePondModal (for classification)
   const [
     showChangePondModalClassification,
     setShowChangePondModalClassification,
   ] = useState(false);
-
-  // State for FrySurvivalRecordModal
   const [showFrySurvivalRecordModal, setShowFrySurvivalRecordModal] =
     useState(false);
-
-  // State for EditFrySurvivalRecordModal
   const [showEditFrySurvivalModal, setShowEditFrySurvivalModal] =
     useState(false);
   const [editingFrySurvivalRecord, setEditingFrySurvivalRecord] =
     useState<FrySurvivalRecordsBreeding | null>(null);
-
-  // State for EditClassificationRecordModal
   const [showEditClassificationModal, setShowEditClassificationModal] =
     useState(false);
   const [editingClassificationRecord, setEditingClassificationRecord] =
@@ -107,18 +97,12 @@ export default function BreedingDetailScreen() {
     editingClassificationRecordIndex,
     setEditingClassificationRecordIndex,
   ] = useState(0);
-
-  // State for SelectionModal
   const [showSelectionModal, setShowSelectionModal] = useState(false);
-
-  // State for Create Packet Fish Modal
   const [showCreatePacketModal, setShowCreatePacketModal] = useState(false);
   const [editPacketFishId, setEditPacketFishId] = useState<number | null>(null);
-
-  // State for marking as spawned
   const [isMarkingSpawned, setIsMarkingSpawned] = useState(false);
 
-  // State for Custom Alerts
+  // Delete alert state
   const [deleteAlert, setDeleteAlert] = useState<{
     visible: boolean;
     type: 'incubation' | 'frySurvival' | 'classification' | null;
@@ -131,23 +115,16 @@ export default function BreedingDetailScreen() {
     message: '',
   });
 
-  // Delete mutations
+  // Mutations
   const deleteIncubationMutation = useDeleteIncubationDailyRecord();
   const deleteFrySurvivalMutation = useDeleteFrySurvivalRecord();
   const deleteClassificationMutation = useDeleteClassificationRecord();
   const markAsSpawnedMutation = useMarkBreedingProcessAsSpawned();
-
-  // Update mutations
   const updateFryFishMutation = useUpdateFryFish();
   const updateClassificationStageMutation = useUpdateClassificationStage();
 
-  // Get empty ponds for modal
   const { data: emptyPondPage, refetch: refetchEmptyPonds } = useGetPonds(
-    {
-      pageIndex: 1,
-      pageSize: 200,
-      status: PondStatus.EMPTY,
-    },
+    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY },
     true
   );
 
@@ -172,7 +149,7 @@ export default function BreedingDetailScreen() {
     setRefreshing(false);
   }, [breedingDetailQuery]);
 
-  // State cho việc đóng/mở các card theo giai đoạn
+  // Expanded sections state
   const [expandedSections, setExpandedSections] = useState({
     pairing: false,
     spawned: false,
@@ -182,7 +159,7 @@ export default function BreedingDetailScreen() {
     complete: false,
   });
 
-  // Auto expand card based on current status
+  // Auto expand based on status
   useEffect(() => {
     if (breedingDetailQuery.data?.status) {
       const status = breedingDetailQuery.data.status;
@@ -198,184 +175,105 @@ export default function BreedingDetailScreen() {
   }, [breedingDetailQuery.data?.status]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Hàm chuyển đổi BreedingStatus sang tiếng Việt
+  // Status text helpers
   const getBreedingStatusText = (status: BreedingStatus) => {
-    switch (status) {
-      case BreedingStatus.PAIRING:
-        return 'Đang ghép cặp';
-      case BreedingStatus.SPAWNED:
-        return 'Đã đẻ';
-      case BreedingStatus.EGG_BATCH:
-        return 'Ấp trứng';
-      case BreedingStatus.FRY_FISH:
-        return 'Nuôi cá bột';
-      case BreedingStatus.CLASSIFICATION:
-        return 'Tuyển chọn';
-      case BreedingStatus.COMPLETE:
-        return 'Hoàn thành';
-      case BreedingStatus.FAILED:
-        return 'Hủy ghép cặp';
-      default:
-        return status;
-    }
+    const map = {
+      [BreedingStatus.PAIRING]: 'Đang ghép cặp',
+      [BreedingStatus.SPAWNED]: 'Đã đẻ',
+      [BreedingStatus.EGG_BATCH]: 'Ấp trứng',
+      [BreedingStatus.FRY_FISH]: 'Nuôi cá bột',
+      [BreedingStatus.CLASSIFICATION]: 'Tuyển chọn',
+      [BreedingStatus.COMPLETE]: 'Hoàn thành',
+      [BreedingStatus.FAILED]: 'Hủy ghép cặp',
+    };
+    return map[status] || status;
   };
 
-  // Hàm chuyển đổi EggBatchStatus sang tiếng Việt
   const getEggBatchStatusText = (status: EggBatchStatus) => {
-    switch (status) {
-      case EggBatchStatus.COLLECTED:
-        return 'Đã thu';
-      case EggBatchStatus.INCUBATING:
-        return 'Đang ấp';
-      case EggBatchStatus.PARTIALLY_HATCHED:
-        return 'Đã nở một phần';
-      case EggBatchStatus.SUCCESS:
-        return 'Thành công';
-      case EggBatchStatus.FAILED:
-        return 'Thất bại';
-      default:
-        return status;
-    }
+    const map = {
+      [EggBatchStatus.COLLECTED]: 'Đã thu',
+      [EggBatchStatus.INCUBATING]: 'Đang ấp',
+      [EggBatchStatus.PARTIALLY_HATCHED]: 'Đã nở một phần',
+      [EggBatchStatus.SUCCESS]: 'Thành công',
+      [EggBatchStatus.FAILED]: 'Thất bại',
+    };
+    return map[status] || status;
   };
 
-  // Hàm chuyển đổi FryFishStatus sang tiếng Việt
   const getFryFishStatusText = (status: FryFishStatus) => {
-    switch (status) {
-      case FryFishStatus.HATCHED:
-        return 'Vừa nở';
-      case FryFishStatus.GROWING:
-        return 'Đang phát triển';
-      case FryFishStatus.SELECTING:
-        return 'Đang chọn lọc';
-      case FryFishStatus.COMPLETED:
-        return 'Hoàn thành';
-      case FryFishStatus.DEAD:
-        return 'Chết';
-      default:
-        return status;
-    }
+    const map = {
+      [FryFishStatus.HATCHED]: 'Vừa nở',
+      [FryFishStatus.GROWING]: 'Đang phát triển',
+      [FryFishStatus.SELECTING]: 'Đang chọn lọc',
+      [FryFishStatus.COMPLETED]: 'Hoàn thành',
+      [FryFishStatus.DEAD]: 'Chết',
+    };
+    return map[status] || status;
   };
 
-  // Hàm chuyển đổi ClassificationStatus sang tiếng Việt
-  const getClassificationStatusText = (status: ClassificationStatus) => {
-    switch (status) {
-      case ClassificationStatus.PREPARING:
-        return 'Đang chuẩn bị';
-      case ClassificationStatus.STAGE1:
-        return 'Giai đoạn 1';
-      case ClassificationStatus.STAGE2:
-        return 'Giai đoạn 2';
-      case ClassificationStatus.STAGE3:
-        return 'Giai đoạn 3';
-      case ClassificationStatus.STAGE4:
-        return 'Giai đoạn 4';
-      case ClassificationStatus.SUCCESS:
-        return 'Thành công';
-      default:
-        return status;
-    }
-  };
+  // const getClassificationStatusText = (status: ClassificationStatus) => {
+  //   const map = {
+  //     [ClassificationStatus.PREPARING]: 'Đang chuẩn bị',
+  //     [ClassificationStatus.STAGE1]: 'Giai đoạn 1',
+  //     [ClassificationStatus.STAGE2]: 'Giai đoạn 2',
+  //     [ClassificationStatus.STAGE3]: 'Giai đoạn 3',
+  //     [ClassificationStatus.STAGE4]: 'Giai đoạn 4',
+  //     [ClassificationStatus.SUCCESS]: 'Thành công',
+  //   };
+  //   return map[status] || status;
+  // };
 
   const getStatusColor = (status: BreedingStatus) => {
-    switch (status) {
-      case BreedingStatus.PAIRING:
-        return '#3b82f6';
-      case BreedingStatus.SPAWNED:
-        return '#f59e0b';
-      case BreedingStatus.EGG_BATCH:
-        return '#f59e0b';
-      case BreedingStatus.FRY_FISH:
-        return '#10b981';
-      case BreedingStatus.CLASSIFICATION:
-        return '#6366f1';
-      case BreedingStatus.COMPLETE:
-        return '#10b981';
-      case BreedingStatus.FAILED:
-        return '#ef4444';
-      default:
-        return '#6b7280';
-    }
+    const map = {
+      [BreedingStatus.PAIRING]: '#3b82f6',
+      [BreedingStatus.SPAWNED]: '#f59e0b',
+      [BreedingStatus.EGG_BATCH]: '#fb923c',
+      [BreedingStatus.FRY_FISH]: '#10b981',
+      [BreedingStatus.CLASSIFICATION]: '#6366f1',
+      [BreedingStatus.COMPLETE]: '#06b6d4',
+      [BreedingStatus.FAILED]: '#ef4444',
+    };
+    return map[status] || '#6b7280';
   };
 
   if (breedingDetailQuery.isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-row items-center border-b border-gray-200 bg-white p-4">
-          <TouchableOpacity
-            className="mr-3"
-            onPress={() => router.push('/breeding')}
-          >
-            <ArrowLeft size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="flex-1 text-lg font-semibold text-gray-900">
-            Chi tiết chu kỳ sinh sản
-          </Text>
+        <View className="bg-primary pb-4">
+          <View className="flex-row items-center px-4 pt-2">
+            <TouchableOpacity
+              className="mr-3"
+              onPress={() => router.push('/breeding')}
+            >
+              <ArrowLeft size={24} color="white" />
+            </TouchableOpacity>
+            <Text className="flex-1 text-lg font-semibold text-white">
+              Chi tiết sinh sản
+            </Text>
+          </View>
         </View>
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 40,
+            padding: 16,
+          }}
         >
-          {/* Skeleton Basic Info */}
-          <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
+          {/* Skeleton cards */}
+          <View className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
             <View className="mb-4 h-6 w-32 rounded bg-gray-200" />
-            <View className="flex-row flex-wrap">
-              <View className="w-1/2 pr-4">
-                <View className="mb-4">
-                  <View className="mb-1 h-4 w-20 rounded bg-gray-200" />
-                  <View className="h-5 w-full rounded bg-gray-200" />
-                </View>
-                <View className="mb-4">
-                  <View className="mb-1 h-4 w-20 rounded bg-gray-200" />
-                  <View className="h-5 w-full rounded bg-gray-200" />
-                </View>
-              </View>
-              <View className="w-1/2 pl-4">
-                <View className="mb-4">
-                  <View className="mb-1 h-4 w-20 rounded bg-gray-200" />
-                  <View className="h-5 w-full rounded bg-gray-200" />
-                </View>
-                <View className="mb-4">
-                  <View className="mb-1 h-4 w-20 rounded bg-gray-200" />
-                  <View className="h-5 w-full rounded bg-gray-200" />
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Skeleton Stats */}
-          <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
-            <View className="mb-4 h-6 w-40 rounded bg-gray-200" />
-            <View className="flex-row flex-wrap">
-              {[1, 2, 3, 4].map((i) => (
-                <View key={i} className="mb-4 w-1/2">
-                  <View className="mb-1 h-3 w-20 rounded bg-gray-200" />
-                  <View className="h-7 w-24 rounded bg-gray-200" />
+            <View className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <View key={i} className="flex-row justify-between">
+                  <View className="h-4 w-20 rounded bg-gray-200" />
+                  <View className="h-4 w-32 rounded bg-gray-300" />
                 </View>
               ))}
             </View>
-          </View>
-
-          {/* Skeleton Progress */}
-          <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
-            <View className="mb-4 h-6 w-36 rounded bg-gray-200" />
-            {[1, 2, 3].map((i) => (
-              <View key={i} className="mb-4">
-                <View className="flex-row items-center justify-between py-2">
-                  <View className="flex-row items-center">
-                    <View className="mr-3 h-3 w-3 rounded-full bg-gray-200" />
-                    <View className="h-5 w-32 rounded bg-gray-200" />
-                  </View>
-                  <View className="h-5 w-5 rounded bg-gray-200" />
-                </View>
-              </View>
-            ))}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -385,16 +283,18 @@ export default function BreedingDetailScreen() {
   if (breedingDetailQuery.isError || !breedingDetailQuery.data) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-row items-center border-b border-gray-200 bg-white p-4">
-          <TouchableOpacity
-            className="mr-3"
-            onPress={() => router.push('/breeding')}
-          >
-            <ArrowLeft size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="flex-1 text-lg font-semibold text-gray-900">
-            Chi tiết chu kỳ sinh sản
-          </Text>
+        <View className="bg-primary pb-4">
+          <View className="flex-row items-center px-4 pt-2">
+            <TouchableOpacity
+              className="mr-3"
+              onPress={() => router.push('/breeding')}
+            >
+              <ArrowLeft size={24} color="white" />
+            </TouchableOpacity>
+            <Text className="flex-1 text-lg font-semibold text-white">
+              Chi tiết sinh sản
+            </Text>
+          </View>
         </View>
         <View className="flex-1 items-center justify-center">
           <Text className="text-gray-600">Không thể tải dữ liệu</Text>
@@ -404,10 +304,8 @@ export default function BreedingDetailScreen() {
   }
 
   const breedingDetail = breedingDetailQuery.data;
-  // Guarded array for incubation daily records to avoid possible undefined access
   const incubationRecords = breedingDetail.batch?.incubationDailyRecords ?? [];
 
-  // Pond options for CreatePacketFishModal: include current pond first if missing
   const pondOptions = (() => {
     const emptyPonds = emptyPondPage?.data ?? [];
     const currentPondId = breedingDetail.pondId;
@@ -415,29 +313,54 @@ export default function BreedingDetailScreen() {
 
     if (!currentPondExists) {
       return [
-        {
-          id: currentPondId,
-          pondName: breedingDetail.pondName,
-        } as any,
+        { id: currentPondId, pondName: breedingDetail.pondName } as any,
         ...emptyPonds,
       ];
     }
     return emptyPonds;
   })();
 
+  const statusColor = getStatusColor(breedingDetail.status);
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="flex-row items-center border-b border-gray-200 bg-white p-4">
-        <TouchableOpacity
-          className="mr-3"
-          onPress={() => router.push('/breeding')}
-        >
-          <ArrowLeft size={24} color="#374151" />
-        </TouchableOpacity>
-        <Text className="flex-1 text-lg font-semibold text-gray-900">
-          Chi tiết chu kỳ sinh sản
-        </Text>
+      {/* Header với gradient */}
+      <View className="rounded-t-2xl bg-primary pb-6">
+        <View className="px-4 pt-3">
+          <View className="mb-4 flex-row items-center">
+            <TouchableOpacity
+              className="mr-3"
+              onPress={() => router.push('/breeding')}
+            >
+              <ArrowLeft size={24} color="white" />
+            </TouchableOpacity>
+            <View className="flex-1">
+              <Text className="text-base font-medium uppercase tracking-wide text-white/80">
+                Chi tiết
+              </Text>
+              <Text className="text-2xl font-bold text-white">
+                {breedingDetail.code !== ''
+                  ? `#${breedingDetail.code}`
+                  : `Quy trình #${breedingDetail.id}`}
+              </Text>
+            </View>
+          </View>
+
+          {/* Status Badge */}
+          <View className="flex-row items-center justify-between rounded-2xl bg-white/10 p-3">
+            <Text className="text-base font-medium text-white/90">
+              Trạng thái hiện tại
+            </Text>
+            <View className="rounded-full bg-white px-3 py-1">
+              <Text
+                className="text-base font-semibold"
+                style={{ color: statusColor }}
+              >
+                {getBreedingStatusText(breedingDetail.status)}
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -453,318 +376,232 @@ export default function BreedingDetailScreen() {
           />
         }
       >
-        {/* Basic Info Card */}
-        <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
-          <Text className="mb-4 text-lg font-semibold text-gray-900">
-            Thông tin cơ bản
-          </Text>
-
-          {/* Info Grid */}
-          <View className="flex-row flex-wrap">
-            {/* Left Column */}
-            <View className="w-1/2 pr-4">
-              <View className="mb-4">
-                <Text className="mb-1 text-sm text-gray-600">Mã chu kỳ:</Text>
-                <Text className="text-base font-medium text-gray-900">
-                  {breedingDetail.code}
-                </Text>
-              </View>
-
-              <View className="mb-4">
-                <Text className="mb-1 text-sm text-gray-600">Cá đực:</Text>
-                <Text className="text-base font-medium text-gray-900">
-                  {breedingDetail.maleKoiRFID} - {breedingDetail.maleKoiVariety}
-                </Text>
-              </View>
-
-              <View className="mb-4">
-                <Text className="mb-1 text-sm text-gray-600">Bể nuôi:</Text>
-                <Text className="text-base font-medium text-gray-900">
-                  {breedingDetail.pondName}
-                </Text>
-              </View>
-            </View>
-
-            {/* Right Column */}
-            <View className="w-1/2 pl-4">
-              <View className="mb-4">
-                <Text className="mb-1 text-sm text-gray-600">Trạng thái:</Text>
-                <View
-                  className="self-start rounded-full px-3 py-1"
-                  style={{
-                    backgroundColor:
-                      getStatusColor(breedingDetail.status) + '20',
-                  }}
-                >
-                  <Text
-                    className="text-sm font-medium"
-                    style={{ color: getStatusColor(breedingDetail.status) }}
-                  >
-                    {getBreedingStatusText(breedingDetail.status)}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="mb-4">
-                <Text className="mb-1 text-sm text-gray-600">Cá cái:</Text>
-                <Text className="text-base font-medium text-gray-900">
-                  {breedingDetail.femaleKoiRFID} -{' '}
-                  {breedingDetail.femaleKoiVariety}
-                </Text>
-              </View>
-
-              <View className="mb-4">
-                <Text className="mb-1 text-sm text-gray-600">
-                  Ngày bắt đầu:
-                </Text>
-                <Text className="text-base font-medium text-gray-900">
-                  {formatDate(breedingDetail.startDate, 'dd/MM/yyyy')}
-                </Text>
-              </View>
-            </View>
+        {/* Stats Grid */}
+        <View className="mx-4 mt-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <View className="border-b border-gray-100 px-4 py-3">
+            <Text className="text-lg font-semibold text-gray-900">
+              Thống kê tổng quan
+            </Text>
+          </View>
+          <View className="flex-row flex-wrap p-2">
+            <StatCard
+              label="Số trứng"
+              value={(breedingDetail.totalEggs ?? 0).toLocaleString()}
+              color="#fb923c"
+            />
+            <StatCard
+              label="Tỷ lệ thụ tinh"
+              value={`${(breedingDetail.fertilizationRate ?? 0).toFixed(1)}%`}
+              color="#10b981"
+            />
+            <StatCard
+              label="Tỷ lệ sống"
+              value={
+                breedingDetail.survivalRate != null
+                  ? `${breedingDetail.survivalRate.toFixed(1)}%`
+                  : 'N/A'
+              }
+              color="#3b82f6"
+            />
+            <StatCard
+              label="Cá đạt chuẩn"
+              value={(breedingDetail.totalFishQualified ?? 0).toLocaleString()}
+              color="#6366f1"
+            />
           </View>
         </View>
 
-        {/* Current Stats */}
-        <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
-          <Text className="mb-4 text-lg font-semibold text-gray-900">
-            Thống kê tổng quan
-          </Text>
-
-          <View className="flex-row flex-wrap">
-            <View className="mb-4 w-1/2">
-              <Text className="text-xs text-gray-500">Số trứng</Text>
-              <Text className="text-lg font-bold text-gray-900">
-                {(breedingDetail.totalEggs ?? 0).toLocaleString()}
-              </Text>
-            </View>
-
-            <View className="mb-4 w-1/2">
-              <Text className="text-xs text-gray-500">Tỷ lệ thụ tinh</Text>
-              <Text className="text-lg font-bold text-gray-900">
-                {(breedingDetail.fertilizationRate ?? 0).toFixed(1)}%
-              </Text>
-            </View>
-
-            <View className="mb-4 w-1/2">
-              <Text className="text-xs text-gray-500">Tỷ lệ sống hiện tại</Text>
-              <Text className="text-lg font-bold text-gray-900">
-                {breedingDetail.currentSurvivalRate != null
-                  ? `${breedingDetail.currentSurvivalRate.toFixed(1)}%`
-                  : 'N/A'}
-              </Text>
-            </View>
-
-            <View className="mb-4 w-1/2">
-              <Text className="text-xs text-gray-500">Cá đạt chuẩn</Text>
-              <Text className="text-lg font-bold text-gray-900">
-                {(breedingDetail.totalFishQualified ?? 0).toLocaleString()}
-              </Text>
-            </View>
+        {/* Basic Info */}
+        <View className="mx-4 mt-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <View className="border-b border-gray-100 px-4 py-3">
+            <Text className="text-lg font-semibold text-gray-900">
+              Thông tin cơ bản
+            </Text>
+          </View>
+          <View className="p-4">
+            <InfoRow
+              label="Cá đực"
+              value={`${breedingDetail.maleKoiRFID} - ${breedingDetail.maleKoiVariety}`}
+            />
+            <InfoRow
+              label="Cá cái"
+              value={`${breedingDetail.femaleKoiRFID} - ${breedingDetail.femaleKoiVariety}`}
+            />
+            <InfoRow label="Bể nuôi" value={breedingDetail.pondName} />
+            <InfoRow
+              label="Ngày bắt đầu"
+              value={formatDate(breedingDetail.startDate, 'dd/MM/yyyy')}
+              isLast
+            />
           </View>
         </View>
 
-        {/* Breeding Progress Sections */}
-        <View className="mx-4 mt-4 rounded-2xl bg-white p-4 shadow-sm">
-          <Text className="mb-4 text-lg font-semibold text-gray-900">
-            Tiến trình sinh sản
-          </Text>
-
-          {/* Ghép cặp - Pairing */}
-          <View className="mb-4">
-            <TouchableOpacity
-              className="flex-row items-center justify-between py-2"
-              onPress={() => toggleSection('pairing')}
-            >
-              <View className="flex-row items-center">
-                <View
-                  className="mr-3 h-3 w-3 rounded-full"
-                  style={{
-                    backgroundColor:
-                      breedingDetail.status === BreedingStatus.PAIRING
-                        ? '#3b82f6'
-                        : '#10b981',
-                  }}
+        {/* Progress Timeline */}
+        <View className="mx-4 mt-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <View className="border-b border-gray-100 px-4 py-3">
+            <Text className="text-base font-semibold text-gray-900">
+              Tiến trình sinh sản
+            </Text>
+          </View>
+          <View className="p-4">
+            {/* Pairing */}
+            <TimelineItem
+              title="Ghép cặp"
+              isActive={breedingDetail.status === BreedingStatus.PAIRING}
+              isCompleted={breedingDetail.status !== BreedingStatus.PAIRING}
+              isExpanded={expandedSections.pairing}
+              onToggle={() => toggleSection('pairing')}
+              icon={
+                <FishSvg
+                  size={16}
+                  color={
+                    breedingDetail.status === BreedingStatus.PAIRING
+                      ? '#3b82f6'
+                      : '#10b981'
+                  }
                 />
-                <Text className="text-base font-medium text-gray-900">
-                  Ghép cặp
-                </Text>
-              </View>
-              {expandedSections.pairing ? (
-                <ChevronDown size={20} color="#6b7280" />
-              ) : (
-                <ChevronRight size={20} color="#6b7280" />
-              )}
-            </TouchableOpacity>
-
-            {expandedSections.pairing && (
-              <View className="ml-6 mt-2 border-l border-gray-200 pl-3">
-                <Text className="mb-2 text-sm text-gray-600">
+              }
+            >
+              <View className="mt-2 rounded-2xl bg-gray-50 p-3">
+                <Text className="mb-1 text-lg text-gray-600">
                   {formatDate(breedingDetail.startDate, 'dd/MM/yyyy')} -{' '}
                   {breedingDetail.status === BreedingStatus.PAIRING
                     ? 'Đang tiến hành'
                     : 'Hoàn thành'}
                 </Text>
-                <Text className="text-base font-medium text-gray-900">
-                  Ghép cặp
-                </Text>
-                <Text className="mt-1 text-sm text-gray-600">
-                  Cá đực: {breedingDetail.maleKoiRFID} -{' '}
-                  {breedingDetail.maleKoiVariety}
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  Cá cái: {breedingDetail.femaleKoiRFID} -{' '}
-                  {breedingDetail.femaleKoiVariety}
-                </Text>
                 {breedingDetail.note && (
-                  <Text className="mt-2 text-sm italic text-gray-500">
+                  <Text className="text-base italic text-gray-500">
                     Ghi chú: {breedingDetail.note}
                   </Text>
                 )}
 
                 {breedingDetail.status === BreedingStatus.PAIRING && (
-                  <View className="mt-3 flex-row border-t border-gray-200 pt-3">
-                    <TouchableOpacity
-                      className={`flex-1 flex-row items-center justify-center rounded-lg py-2.5 ${isMarkingSpawned ? 'bg-green-500 opacity-60' : 'bg-green-600'}`}
-                      onPress={async () => {
-                        setIsMarkingSpawned(true);
-                        try {
-                          await markAsSpawnedMutation.mutateAsync(
-                            breedingDetail.id
-                          );
-                          await breedingDetailQuery.refetch();
-                          Toast.show({
-                            type: 'success',
-                            text1: 'Thành công',
-                            text2: 'Đã cập nhật trạng thái sang "Đã đẻ"',
-                          });
-                        } catch (err: any) {
-                          Toast.show({
-                            type: 'error',
-                            text1: 'Lỗi',
-                            text2:
-                              err?.message ?? 'Không thể cập nhật trạng thái',
-                          });
-                        } finally {
-                          setIsMarkingSpawned(false);
-                        }
-                      }}
-                      disabled={isMarkingSpawned}
-                    >
-                      {isMarkingSpawned ? (
-                        <View className="flex-row items-center">
-                          <ActivityIndicator size="small" color="#fff" />
-                          <Text className="ml-2 font-medium text-white">
-                            Đang cập nhật...
-                          </Text>
-                        </View>
-                      ) : (
-                        <Text className="font-medium text-white">Đã đẻ</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    className={`mt-3 flex-row items-center justify-center rounded-2xl py-3 ${
+                      isMarkingSpawned
+                        ? 'bg-green-500 opacity-60'
+                        : 'bg-green-600'
+                    }`}
+                    onPress={async () => {
+                      setIsMarkingSpawned(true);
+                      try {
+                        await markAsSpawnedMutation.mutateAsync(
+                          breedingDetail.id
+                        );
+                        await breedingDetailQuery.refetch();
+                        Toast.show({
+                          type: 'success',
+                          text1: 'Thành công',
+                          text2: 'Đã cập nhật trạng thái sang "Đã đẻ"',
+                        });
+                      } catch (err: any) {
+                        Toast.show({
+                          type: 'error',
+                          text1: 'Lỗi',
+                          text2:
+                            err?.message ?? 'Không thể cập nhật trạng thái',
+                        });
+                      } finally {
+                        setIsMarkingSpawned(false);
+                      }
+                    }}
+                    disabled={isMarkingSpawned}
+                  >
+                    {isMarkingSpawned ? (
+                      <View className="flex-row items-center">
+                        <ActivityIndicator size="small" color="#fff" />
+                        <Text className="ml-2 font-semibold text-white">
+                          Đang cập nhật...
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        <Check size={20} color="#fff" />
+                        <Text className="ml-2 font-semibold text-white">
+                          Đánh dấu đã đẻ
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 )}
               </View>
-            )}
-          </View>
+            </TimelineItem>
 
-          {/* Đẻ trứng - Spawned */}
-          {(breedingDetail.status === BreedingStatus.SPAWNED ||
-            breedingDetail.status === BreedingStatus.EGG_BATCH ||
-            breedingDetail.status === BreedingStatus.FRY_FISH ||
-            breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-            breedingDetail.status === BreedingStatus.COMPLETE) && (
-            <View className="mb-4">
-              <TouchableOpacity
-                className="flex-row items-center justify-between py-2"
-                onPress={() => toggleSection('spawned')}
-              >
-                <View className="flex-row items-center">
-                  <View
-                    className="mr-3 h-3 w-3 rounded-full"
-                    style={{
-                      backgroundColor:
-                        breedingDetail.status === BreedingStatus.SPAWNED
-                          ? '#f59e0b'
-                          : '#10b981',
-                    }}
+            {/* Spawned */}
+            {(breedingDetail.status === BreedingStatus.SPAWNED ||
+              breedingDetail.status === BreedingStatus.EGG_BATCH ||
+              breedingDetail.status === BreedingStatus.FRY_FISH ||
+              breedingDetail.status === BreedingStatus.CLASSIFICATION ||
+              breedingDetail.status === BreedingStatus.COMPLETE) && (
+              <TimelineItem
+                title="Đẻ trứng"
+                isActive={breedingDetail.status === BreedingStatus.SPAWNED}
+                isCompleted={breedingDetail.status !== BreedingStatus.SPAWNED}
+                isExpanded={expandedSections.spawned}
+                onToggle={() => toggleSection('spawned')}
+                icon={
+                  <Egg
+                    size={16}
+                    color={
+                      breedingDetail.status === BreedingStatus.SPAWNED
+                        ? '#f59e0b'
+                        : '#10b981'
+                    }
                   />
-                  <Text className="text-base font-medium text-gray-900">
-                    Đẻ trứng
-                  </Text>
-                </View>
-                {expandedSections.spawned ? (
-                  <ChevronDown size={20} color="#6b7280" />
-                ) : (
-                  <ChevronRight size={20} color="#6b7280" />
-                )}
-              </TouchableOpacity>
-
-              {expandedSections.spawned && (
-                <View className="ml-6 mt-2 border-l border-gray-200 pl-3">
-                  <Text className="mb-2 text-sm text-gray-600">
-                    {breedingDetail.status === BreedingStatus.SPAWNED
-                      ? 'Đang tiến hành'
-                      : 'Hoàn thành'}
-                  </Text>
-                  <Text className="mb-2 text-base font-medium text-gray-900">
-                    Thông tin đẻ trứng
-                  </Text>
-                  <Text className="text-sm text-gray-900">
-                    Số trứng: {(breedingDetail.totalEggs ?? 0).toLocaleString()}{' '}
-                    trứng
-                  </Text>
-                  <Text className="text-sm text-gray-900">
-                    Tỷ lệ thụ tinh:{' '}
-                    {(breedingDetail.fertilizationRate ?? 0).toFixed(1)}%
-                  </Text>
+                }
+              >
+                <View className="mt-2 rounded-2xl bg-orange-50 p-3">
+                  <InfoRow
+                    label="Số trứng"
+                    value={`${(breedingDetail.totalEggs ?? 0).toLocaleString()} trứng`}
+                  />
+                  <InfoRow
+                    label="Tỷ lệ thụ tinh"
+                    value={`${(breedingDetail.fertilizationRate ?? 0).toFixed(1)}%`}
+                    isLast
+                  />
 
                   {breedingDetail.status === BreedingStatus.SPAWNED && (
-                    <View className="mt-3 flex-row border-t border-gray-200 pt-3">
-                      <TouchableOpacity
-                        className="flex-1 flex-row items-center justify-center rounded-lg bg-orange-500 py-2.5"
-                        onPress={() => setShowCountEggModal(true)}
-                      >
-                        <Egg size={20} color="#fff" className="mr-2" />
-                        <Text className="font-medium text-white">
-                          Đếm trứng
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Ấp trứng - Egg Batch */}
-          {(breedingDetail.status === BreedingStatus.EGG_BATCH ||
-            breedingDetail.status === BreedingStatus.FRY_FISH ||
-            breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-            breedingDetail.status === BreedingStatus.COMPLETE) &&
-            breedingDetail.batch && (
-              <View className="mb-4">
-                {breedingDetail.status === BreedingStatus.EGG_BATCH ? (
-                  <View className="flex-row items-center justify-between py-2">
                     <TouchableOpacity
-                      className="flex-row items-center"
-                      onPress={() => toggleSection('eggBatch')}
+                      className="mt-3 flex-row items-center justify-center rounded-2xl bg-orange-500 py-3"
+                      onPress={() => setShowCountEggModal(true)}
                     >
-                      <View
-                        className="mr-3 h-3 w-3 rounded-full"
-                        style={{
-                          backgroundColor:
-                            breedingDetail.status === BreedingStatus.EGG_BATCH
-                              ? '#f59e0b'
-                              : '#10b981',
-                        }}
-                      />
-                      <Text className="text-base font-medium text-gray-900">
-                        Ấp trứng
+                      <Egg size={18} color="#fff" />
+                      <Text className="ml-2 font-semibold text-white">
+                        Đếm trứng
                       </Text>
                     </TouchableOpacity>
+                  )}
+                </View>
+              </TimelineItem>
+            )}
 
-                    <View className="flex-row items-center">
+            {/* Egg Batch */}
+            {(breedingDetail.status === BreedingStatus.EGG_BATCH ||
+              breedingDetail.status === BreedingStatus.FRY_FISH ||
+              breedingDetail.status === BreedingStatus.CLASSIFICATION ||
+              breedingDetail.status === BreedingStatus.COMPLETE) &&
+              breedingDetail.batch && (
+                <TimelineItem
+                  title="Ấp trứng"
+                  isActive={breedingDetail.status === BreedingStatus.EGG_BATCH}
+                  isCompleted={
+                    breedingDetail.status !== BreedingStatus.EGG_BATCH
+                  }
+                  isExpanded={expandedSections.eggBatch}
+                  onToggle={() => toggleSection('eggBatch')}
+                  icon={
+                    <Egg
+                      size={16}
+                      color={
+                        breedingDetail.status === BreedingStatus.EGG_BATCH
+                          ? '#fb923c'
+                          : '#10b981'
+                      }
+                    />
+                  }
+                  actionButton={
+                    breedingDetail.status === BreedingStatus.EGG_BATCH ? (
                       <TouchableOpacity
                         onPress={() => {
                           if (incubationRecords.length === 0) {
@@ -778,215 +615,178 @@ export default function BreedingDetailScreen() {
                             });
                           }
                         }}
-                        className="mr-3 p-1"
+                        className="p-1"
                       >
                         <Edit size={18} color="#3b82f6" />
                       </TouchableOpacity>
-                      {expandedSections.eggBatch ? (
-                        <ChevronDown size={20} color="#6b7280" />
-                      ) : (
-                        <ChevronRight size={20} color="#6b7280" />
+                    ) : null
+                  }
+                >
+                  <View className="mt-2 rounded-2xl bg-orange-50 p-3">
+                    <View className="mb-3 flex-row items-center justify-between">
+                      <Text className="text-lg font-bold text-gray-900">
+                        Thông tin lô trứng
+                      </Text>
+                      {breedingDetail.status === BreedingStatus.EGG_BATCH && (
+                        <TouchableOpacity
+                          onPress={() => setShowUpdateEggModal(true)}
+                          className="flex-row items-center gap-1 rounded-2xl bg-blue-500 px-3 py-1.5"
+                        >
+                          <Plus size={14} color="#fff" />
+                          <Text className="text-base font-semibold text-white">
+                            Bản ghi
+                          </Text>
+                        </TouchableOpacity>
                       )}
                     </View>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    className="flex-row items-center justify-between py-2"
-                    onPress={() => toggleSection('eggBatch')}
-                  >
-                    <View className="flex-row items-center">
-                      <View
-                        className="mr-3 h-3 w-3 rounded-full"
-                        style={{ backgroundColor: '#10b981' }}
-                      />
-                      <Text className="text-base font-medium text-gray-900">
-                        Ấp trứng
-                      </Text>
-                    </View>
-                    {expandedSections.eggBatch ? (
-                      <ChevronDown size={20} color="#6b7280" />
-                    ) : (
-                      <ChevronRight size={20} color="#6b7280" />
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                {expandedSections.eggBatch && (
-                  <View className="ml-6 mt-2 border-l border-gray-200 pl-3">
-                    <View className="mb-3">
-                      <Text className="mb-2 text-sm text-gray-600">
-                        {formatDate(
-                          breedingDetail.batch.spawnDate,
+                    <InfoRow
+                      label="Số lượng"
+                      value={`${(breedingDetail.batch.quantity ?? 0).toLocaleString()} trứng`}
+                    />
+                    <InfoRow
+                      label="Tỷ lệ thụ tinh"
+                      value={`${(breedingDetail.batch.fertilizationRate ?? 0).toFixed(1)}%`}
+                    />
+                    {breedingDetail.batch.hatchingTime && (
+                      <InfoRow
+                        label="Thời gian ấp"
+                        value={formatDate(
+                          breedingDetail.batch.hatchingTime,
                           'dd/MM/yyyy'
                         )}
-                      </Text>
-                      <View className="mb-2 flex-row items-center justify-between">
-                        <Text className="text-base font-medium text-gray-900">
-                          Thông tin ấp trứng
-                        </Text>
-                        {breedingDetail.status === BreedingStatus.EGG_BATCH && (
-                          <TouchableOpacity
-                            onPress={() => {
-                              setShowUpdateEggModal(true);
-                            }}
-                            className="flex-row items-center gap-1 rounded-full bg-blue-500 px-3 py-1"
-                          >
-                            <Text className="text-xs font-medium text-white">
-                              + Bản ghi
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <Text className="text-sm text-gray-900">
-                        Số lượng:{' '}
-                        {(breedingDetail.batch.quantity ?? 0).toLocaleString()}{' '}
-                        trứng
-                      </Text>
-                      <Text className="text-sm text-gray-900">
-                        Tỷ lệ thụ tinh:{' '}
-                        {(breedingDetail.batch.fertilizationRate ?? 0).toFixed(
-                          1
-                        )}
-                        %
-                      </Text>
-                      {breedingDetail.batch.hatchingTime && (
-                        <Text className="text-sm text-gray-900">
-                          Thời gian ấp:{' '}
-                          {formatDate(
-                            breedingDetail.batch.hatchingTime,
-                            'dd/MM/yyyy'
-                          )}
-                        </Text>
-                      )}
-                      <Text className="text-sm text-gray-900">
-                        Trạng thái:{' '}
-                        {getEggBatchStatusText(breedingDetail.batch.status)}
-                      </Text>
+                      />
+                    )}
+                    <InfoRow
+                      label="Trạng thái"
+                      value={getEggBatchStatusText(breedingDetail.batch.status)}
+                      isLast
+                    />
 
-                      {/* Daily Records */}
-                      {incubationRecords.length > 0 && (
-                        <View className="mt-3">
-                          <Text className="mb-2 text-sm font-medium text-gray-900">
-                            Theo dõi hàng ngày
-                          </Text>
-                          <View className="space-y-2">
-                            <View className="flex-row items-center border-b border-gray-200 pb-2">
-                              <Text className="flex-1 text-xs font-medium text-gray-600">
-                                Ngày
+                    {/* Daily Records Table */}
+                    {incubationRecords.length > 0 && (
+                      <View className="mt-3">
+                        <Text className="mb-2 text-base font-bold text-gray-900">
+                          Theo dõi hàng ngày
+                        </Text>
+                        <View className="overflow-hidden rounded-lg border border-orange-200">
+                          <View className="flex-row bg-orange-100 p-2">
+                            <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
+                              Ngày
+                            </Text>
+                            <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
+                              Khỏe
+                            </Text>
+                            <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
+                              Hỏng
+                            </Text>
+                            <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
+                              Nở
+                            </Text>
+                            {breedingDetail.status ===
+                              BreedingStatus.EGG_BATCH && (
+                              <Text className="w-16 text-center text-sm font-semibold text-gray-700">
+                                Thao tác
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
-                                Khỏe
+                            )}
+                          </View>
+                          {incubationRecords.map((record, index) => (
+                            <View
+                              key={record.id}
+                              className={`flex-row items-center p-2 ${index !== incubationRecords.length - 1 ? 'border-b border-orange-100' : ''}`}
+                            >
+                              <Text className="flex-1 text-center text-sm text-gray-900">
+                                {formatDate(record.dayNumber, 'dd/MM')}
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
-                                Hỏng
+                              <Text className="flex-1 text-center text-sm text-gray-900">
+                                {record.healthyEggs}
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
-                                Nở
+                              <Text className="flex-1 text-center text-sm text-gray-900">
+                                {record.rottenEggs || 0}
                               </Text>
-                              {breedingDetail.status ===
-                                BreedingStatus.EGG_BATCH && (
-                                <Text className="w-16 text-center text-xs font-medium text-gray-600">
-                                  Thao tác
-                                </Text>
-                              )}
-                            </View>
-                            {incubationRecords.map((record, index) => (
-                              <View
-                                key={record.id}
-                                className="flex-row items-center py-1"
-                              >
-                                <Text className="flex-1 text-sm text-gray-900">
-                                  {formatDate(record.dayNumber, 'dd/MM')}
-                                </Text>
-                                <Text className="flex-1 text-center text-sm text-gray-900">
-                                  {record.healthyEggs}
-                                </Text>
-                                <Text className="flex-1 text-center text-sm text-gray-900">
-                                  {record.rottenEggs || 0}
-                                </Text>
-                                <Text className="flex-1 text-center text-sm text-gray-900">
-                                  {record.hatchedEggs}
-                                </Text>
-                                {index === incubationRecords.length - 1 &&
-                                breedingDetail.status ===
-                                  BreedingStatus.EGG_BATCH ? (
-                                  <View className="w-16 flex-row items-center justify-center gap-1">
-                                    <TouchableOpacity
-                                      onPress={() => {
-                                        setEditingIncubationRecord(record);
-                                        setIsFirstIncubationRecord(index === 0);
-                                        setShowEditIncubationModal(true);
-                                      }}
-                                      className="p-1"
-                                    >
-                                      <Edit size={16} color="#3b82f6" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                      onPress={() => {
-                                        setDeleteAlert({
-                                          visible: true,
-                                          type: 'incubation',
-                                          recordId: record.id,
-                                          message:
-                                            'Bạn có chắc chắn muốn xóa bản ghi ấp trứng này?',
-                                        });
-                                      }}
-                                      className="p-1"
-                                      disabled={
+                              <Text className="flex-1 text-center text-sm text-gray-900">
+                                {record.hatchedEggs}
+                              </Text>
+                              {index === incubationRecords.length - 1 &&
+                              breedingDetail.status ===
+                                BreedingStatus.EGG_BATCH ? (
+                                <View className="w-16 flex-row items-center justify-center gap-1">
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      setEditingIncubationRecord(record);
+                                      setIsFirstIncubationRecord(index === 0);
+                                      setShowEditIncubationModal(true);
+                                    }}
+                                    className="p-1"
+                                  >
+                                    <Edit size={18} color="#3b82f6" />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      setDeleteAlert({
+                                        visible: true,
+                                        type: 'incubation',
+                                        recordId: record.id,
+                                        message:
+                                          'Bạn có chắc chắn muốn xóa bản ghi ấp trứng này?',
+                                      });
+                                    }}
+                                    className="p-1"
+                                    disabled={
+                                      deleteIncubationMutation.status ===
+                                      'pending'
+                                    }
+                                  >
+                                    <Trash2
+                                      size={18}
+                                      color={
                                         deleteIncubationMutation.status ===
                                         'pending'
+                                          ? '#9ca3af'
+                                          : '#ef4444'
                                       }
-                                    >
-                                      <Trash2
-                                        size={16}
-                                        color={
-                                          deleteIncubationMutation.status ===
-                                          'pending'
-                                            ? '#9ca3af'
-                                            : '#ef4444'
-                                        }
-                                      />
-                                    </TouchableOpacity>
-                                  </View>
-                                ) : (
-                                  breedingDetail.status ===
-                                    BreedingStatus.EGG_BATCH && (
-                                    <View className="w-16" />
-                                  )
-                                )}
-                              </View>
-                            ))}
-                          </View>
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+                              ) : (
+                                breedingDetail.status ===
+                                  BreedingStatus.EGG_BATCH && (
+                                  <View className="w-16" />
+                                )
+                              )}
+                            </View>
+                          ))}
                         </View>
-                      )}
-                    </View>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-            )}
+                </TimelineItem>
+              )}
 
-          {/* Nuôi cá bột - Fry Fish */}
-          {(breedingDetail.status === BreedingStatus.FRY_FISH ||
-            breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-            breedingDetail.status === BreedingStatus.COMPLETE) &&
-            breedingDetail.fryFish && (
-              <View className="mb-4">
-                {breedingDetail.status === BreedingStatus.FRY_FISH ? (
-                  <View className="flex-row items-center justify-between py-2">
-                    <TouchableOpacity
-                      className="flex-row items-center"
-                      onPress={() => toggleSection('fryFish')}
-                    >
-                      <View
-                        className="mr-3 h-3 w-3 rounded-full"
-                        style={{ backgroundColor: '#10b981' }}
-                      />
-                      <Text className="text-base font-medium text-gray-900">
-                        Nuôi cá bột
-                      </Text>
-                    </TouchableOpacity>
-
-                    <View className="flex-row items-center">
+            {/* Fry Fish */}
+            {(breedingDetail.status === BreedingStatus.FRY_FISH ||
+              breedingDetail.status === BreedingStatus.CLASSIFICATION ||
+              breedingDetail.status === BreedingStatus.COMPLETE) &&
+              breedingDetail.fryFish && (
+                <TimelineItem
+                  title="Nuôi cá bột"
+                  isActive={breedingDetail.status === BreedingStatus.FRY_FISH}
+                  isCompleted={
+                    breedingDetail.status !== BreedingStatus.FRY_FISH
+                  }
+                  isExpanded={expandedSections.fryFish}
+                  onToggle={() => toggleSection('fryFish')}
+                  icon={
+                    <FishSvg
+                      size={16}
+                      color={
+                        breedingDetail.status === BreedingStatus.FRY_FISH
+                          ? '#10b981'
+                          : '#10b981'
+                      }
+                    />
+                  }
+                  actionButton={
+                    breedingDetail.status === BreedingStatus.FRY_FISH ? (
                       <TouchableOpacity
                         onPress={() => {
                           if (
@@ -1003,213 +803,178 @@ export default function BreedingDetailScreen() {
                             setShowChangePondModal(true);
                           }
                         }}
-                        className="mr-3 p-1"
+                        className="p-1"
                       >
                         <Edit size={18} color="#3b82f6" />
                       </TouchableOpacity>
-                      {expandedSections.fryFish ? (
-                        <ChevronDown size={20} color="#6b7280" />
-                      ) : (
-                        <ChevronRight size={20} color="#6b7280" />
+                    ) : null
+                  }
+                >
+                  <View className="mt-2 rounded-2xl bg-green-50 p-3">
+                    <View className="mb-3 flex-row items-center justify-between">
+                      <Text className="text-base font-bold text-gray-900">
+                        Thông tin nuôi cá bột
+                      </Text>
+                      {breedingDetail.status === BreedingStatus.FRY_FISH && (
+                        <TouchableOpacity
+                          onPress={() => setShowFrySurvivalRecordModal(true)}
+                          className="flex-row items-center gap-1 rounded-2xl bg-green-600 px-3 py-1.5"
+                        >
+                          <Plus size={14} color="#fff" />
+                          <Text className="text-base font-semibold text-white">
+                            Bản ghi
+                          </Text>
+                        </TouchableOpacity>
                       )}
                     </View>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    className="flex-row items-center justify-between py-2"
-                    onPress={() => toggleSection('fryFish')}
-                  >
-                    <View className="flex-row items-center">
-                      <View
-                        className="mr-3 h-3 w-3 rounded-full"
-                        style={{ backgroundColor: '#10b981' }}
-                      />
-                      <Text className="text-base font-medium text-gray-900">
-                        Nuôi cá bột
-                      </Text>
-                    </View>
-                    {expandedSections.fryFish ? (
-                      <ChevronDown size={20} color="#6b7280" />
-                    ) : (
-                      <ChevronRight size={20} color="#6b7280" />
-                    )}
-                  </TouchableOpacity>
-                )}
+                    <InfoRow
+                      label="Số lượng ban đầu"
+                      value={`${(breedingDetail.fryFish.initialCount ?? 0).toLocaleString()} con`}
+                    />
+                    <InfoRow
+                      label="Tỷ lệ sống hiện tại"
+                      value={`${(breedingDetail.fryFish.currentSurvivalRate ?? 0).toFixed(1)}%`}
+                    />
+                    <InfoRow
+                      label="Trạng thái"
+                      value={getFryFishStatusText(
+                        breedingDetail.fryFish.status
+                      )}
+                      isLast
+                    />
 
-                {expandedSections.fryFish && (
-                  <View className="ml-6 mt-2 border-l border-gray-200 pl-3">
-                    <View className="mb-3">
-                      <Text className="mb-2 text-sm text-gray-600">
-                        {formatDate(
-                          breedingDetail.fryFish.startDate,
-                          'dd/MM/yyyy'
-                        )}{' '}
-                        -{' '}
-                        {breedingDetail.fryFish.endDate &&
-                        breedingDetail.fryFish.endDate !== '0001-01-01T00:00:00'
-                          ? formatDate(
-                              breedingDetail.fryFish.endDate,
-                              'dd/MM/yyyy'
-                            )
-                          : 'Đang nuôi'}
-                      </Text>
-                      <View className="mb-2 flex-row items-center justify-between">
-                        <Text className="text-base font-medium text-gray-900">
-                          Tỷ lệ sống theo thời gian
-                        </Text>
-                        {breedingDetail.status === BreedingStatus.FRY_FISH && (
-                          <TouchableOpacity
-                            onPress={() => setShowFrySurvivalRecordModal(true)}
-                            className="flex-row items-center gap-1 rounded-full bg-blue-500 px-3 py-1"
-                          >
-                            <Text className="text-xs font-medium text-white">
-                              + Bản ghi
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <Text className="text-sm text-gray-900">
-                        Số lượng ban đầu:{' '}
-                        {(
-                          breedingDetail.fryFish.initialCount ?? 0
-                        ).toLocaleString()}{' '}
-                        con
-                      </Text>
-                      <Text className="text-sm text-gray-900">
-                        Tỷ lệ sống hiện tại:{' '}
-                        {(
-                          breedingDetail.fryFish.currentSurvivalRate ?? 0
-                        ).toFixed(1)}
-                        %
-                      </Text>
-                      <Text className="text-sm text-gray-900">
-                        Trạng thái:{' '}
-                        {getFryFishStatusText(breedingDetail.fryFish.status)}
-                      </Text>
-
-                      {/* Survival Records */}
-                      {breedingDetail.fryFish.frySurvivalRecords &&
-                        breedingDetail.fryFish.frySurvivalRecords.length >
-                          0 && (
-                          <View className="mt-3">
-                            <Text className="mb-2 text-sm font-medium text-gray-900">
-                              Bản ghi theo dõi
-                            </Text>
-                            <View className="space-y-2">
-                              <View className="flex-row items-center border-b border-gray-200 pb-2">
-                                <Text className="flex-1 text-xs font-medium text-gray-600">
-                                  Ngày
+                    {/* Survival Records Table */}
+                    {breedingDetail.fryFish.frySurvivalRecords &&
+                      breedingDetail.fryFish.frySurvivalRecords.length > 0 && (
+                        <View className="mt-3">
+                          <Text className="mb-2 text-base font-bold text-gray-900">
+                            Bản ghi theo dõi
+                          </Text>
+                          <View className="overflow-hidden rounded-lg border border-green-200">
+                            <View className="flex-row bg-green-100 p-2">
+                              <Text className="flex-1 text-center text-base font-semibold text-gray-700">
+                                Ngày
+                              </Text>
+                              <Text className="flex-1 text-center text-base font-semibold text-gray-700">
+                                Còn sống
+                              </Text>
+                              <Text className="flex-1 text-center text-base font-semibold text-gray-700">
+                                Tỷ lệ
+                              </Text>
+                              {breedingDetail.status ===
+                                BreedingStatus.FRY_FISH && (
+                                <Text className="w-16 text-center text-base font-semibold text-gray-700">
+                                  Thao tác
                                 </Text>
-                                <Text className="flex-1 text-center text-xs font-medium text-gray-600">
-                                  Còn sống
-                                </Text>
-                                <Text className="flex-1 text-center text-xs font-medium text-gray-600">
-                                  Tỷ lệ
-                                </Text>
-                                {breedingDetail.status ===
-                                  BreedingStatus.FRY_FISH && (
-                                  <Text className="w-16 text-center text-xs font-medium text-gray-600">
-                                    Thao tác
-                                  </Text>
-                                )}
-                              </View>
-                              {breedingDetail.fryFish.frySurvivalRecords.map(
-                                (record, index) => (
-                                  <View
-                                    key={record.id}
-                                    className="flex-row items-center py-1"
-                                  >
-                                    <Text className="flex-1 text-sm text-gray-900">
-                                      {formatDate(record.dayNumber, 'dd/MM')}
-                                    </Text>
-                                    <Text className="flex-1 text-center text-sm text-gray-900">
-                                      {record.countAlive ?? 0}
-                                    </Text>
-                                    <Text className="flex-1 text-center text-sm text-gray-900">
-                                      {(record.survivalRate ?? 0).toFixed(1)}%
-                                    </Text>
-                                    {index ===
-                                      (breedingDetail.fryFish
-                                        ?.frySurvivalRecords?.length ?? 0) -
-                                        1 &&
-                                    breedingDetail.status ===
-                                      BreedingStatus.FRY_FISH ? (
-                                      <View className="w-16 flex-row items-center justify-center gap-1">
-                                        <TouchableOpacity
-                                          onPress={() => {
-                                            setEditingFrySurvivalRecord(record);
-                                            setShowEditFrySurvivalModal(true);
-                                          }}
-                                          className="p-1"
-                                        >
-                                          <Edit size={16} color="#3b82f6" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                          onPress={() => {
-                                            setDeleteAlert({
-                                              visible: true,
-                                              type: 'frySurvival',
-                                              recordId: record.id,
-                                              message:
-                                                'Bạn có chắc chắn muốn xóa bản ghi theo dõi cá bột này?',
-                                            });
-                                          }}
-                                          className="p-1"
-                                          disabled={
-                                            deleteFrySurvivalMutation.status ===
-                                            'pending'
-                                          }
-                                        >
-                                          <Trash2
-                                            size={16}
-                                            color={
-                                              deleteFrySurvivalMutation.status ===
-                                              'pending'
-                                                ? '#9ca3af'
-                                                : '#ef4444'
-                                            }
-                                          />
-                                        </TouchableOpacity>
-                                      </View>
-                                    ) : (
-                                      breedingDetail.status ===
-                                        BreedingStatus.FRY_FISH && (
-                                        <View className="w-16" />
-                                      )
-                                    )}
-                                  </View>
-                                )
                               )}
                             </View>
+                            {breedingDetail.fryFish.frySurvivalRecords.map(
+                              (record, index) => (
+                                <View
+                                  key={record.id}
+                                  className={`flex-row items-center p-2 ${
+                                    index !==
+                                    (breedingDetail.fryFish?.frySurvivalRecords
+                                      ?.length ?? 0) -
+                                      1
+                                      ? 'border-b border-green-100'
+                                      : ''
+                                  }`}
+                                >
+                                  <Text className="flex-1 text-center text-base text-gray-900">
+                                    {formatDate(record.dayNumber, 'dd/MM')}
+                                  </Text>
+                                  <Text className="flex-1 text-center text-base text-gray-900">
+                                    {record.countAlive ?? 0}
+                                  </Text>
+                                  <Text className="flex-1 text-center text-base text-gray-900">
+                                    {(record.survivalRate ?? 0).toFixed(1)}%
+                                  </Text>
+                                  {index ===
+                                    (breedingDetail.fryFish?.frySurvivalRecords
+                                      ?.length ?? 0) -
+                                      1 &&
+                                  breedingDetail.status ===
+                                    BreedingStatus.FRY_FISH ? (
+                                    <View className="w-16 flex-row items-center justify-center gap-1">
+                                      <TouchableOpacity
+                                        onPress={() => {
+                                          setEditingFrySurvivalRecord(record);
+                                          setShowEditFrySurvivalModal(true);
+                                        }}
+                                        className="p-1"
+                                      >
+                                        <Edit size={18} color="#3b82f6" />
+                                      </TouchableOpacity>
+                                      <TouchableOpacity
+                                        onPress={() => {
+                                          setDeleteAlert({
+                                            visible: true,
+                                            type: 'frySurvival',
+                                            recordId: record.id,
+                                            message:
+                                              'Bạn có chắc chắn muốn xóa bản ghi theo dõi cá bột này?',
+                                          });
+                                        }}
+                                        className="p-1"
+                                        disabled={
+                                          deleteFrySurvivalMutation.status ===
+                                          'pending'
+                                        }
+                                      >
+                                        <Trash2
+                                          size={18}
+                                          color={
+                                            deleteFrySurvivalMutation.status ===
+                                            'pending'
+                                              ? '#9ca3af'
+                                              : '#ef4444'
+                                          }
+                                        />
+                                      </TouchableOpacity>
+                                    </View>
+                                  ) : (
+                                    breedingDetail.status ===
+                                      BreedingStatus.FRY_FISH && (
+                                      <View className="w-16" />
+                                    )
+                                  )}
+                                </View>
+                              )
+                            )}
                           </View>
-                        )}
-                    </View>
+                        </View>
+                      )}
                   </View>
-                )}
-              </View>
-            )}
+                </TimelineItem>
+              )}
 
-          {/* Tuyển chọn - Classification */}
-          {(breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-            breedingDetail.status === BreedingStatus.COMPLETE) &&
-            breedingDetail.classificationStage && (
-              <View className="mb-4">
-                {breedingDetail.status === BreedingStatus.CLASSIFICATION ? (
-                  <View className="flex-row items-center justify-between py-2">
-                    <TouchableOpacity
-                      className="flex-row items-center"
-                      onPress={() => toggleSection('classification')}
-                    >
-                      <View
-                        className="mr-3 h-3 w-3 rounded-full"
-                        style={{ backgroundColor: '#6366f1' }}
-                      />
-                      <Text className="text-base font-medium text-gray-900">
-                        Tuyển chọn
-                      </Text>
-                    </TouchableOpacity>
-
-                    <View className="flex-row items-center">
+            {/* Classification */}
+            {(breedingDetail.status === BreedingStatus.CLASSIFICATION ||
+              breedingDetail.status === BreedingStatus.COMPLETE) &&
+              breedingDetail.classificationStage && (
+                <TimelineItem
+                  title="Tuyển chọn"
+                  isActive={
+                    breedingDetail.status === BreedingStatus.CLASSIFICATION
+                  }
+                  isCompleted={
+                    breedingDetail.status === BreedingStatus.COMPLETE
+                  }
+                  isExpanded={expandedSections.classification}
+                  onToggle={() => toggleSection('classification')}
+                  icon={
+                    <Package
+                      size={16}
+                      color={
+                        breedingDetail.status === BreedingStatus.CLASSIFICATION
+                          ? '#6366f1'
+                          : '#10b981'
+                      }
+                    />
+                  }
+                  actionButton={
+                    breedingDetail.status === BreedingStatus.CLASSIFICATION ? (
                       <TouchableOpacity
                         onPress={() => {
                           if (
@@ -1228,100 +993,48 @@ export default function BreedingDetailScreen() {
                             setShowChangePondModalClassification(true);
                           }
                         }}
-                        className="mr-3 p-1"
+                        className="p-1"
                       >
                         <Edit size={18} color="#3b82f6" />
                       </TouchableOpacity>
-                      {expandedSections.classification ? (
-                        <ChevronDown size={20} color="#6b7280" />
-                      ) : (
-                        <ChevronRight size={20} color="#6b7280" />
-                      )}
-                    </View>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    className="flex-row items-center justify-between py-2"
-                    onPress={() => toggleSection('classification')}
-                  >
-                    <View className="flex-row items-center">
-                      <View
-                        className="mr-3 h-3 w-3 rounded-full"
-                        style={{ backgroundColor: '#10b981' }}
-                      />
-                      <Text className="text-base font-medium text-gray-900">
-                        Tuyển chọn
+                    ) : null
+                  }
+                >
+                  <View className="mt-2 rounded-2xl bg-indigo-50 p-3">
+                    <View className="mb-3 flex-row items-center justify-between">
+                      <Text className="text-lg font-bold text-gray-900">
+                        Hiệu quả tuyển chọn
                       </Text>
-                    </View>
-                    {expandedSections.classification ? (
-                      <ChevronDown size={20} color="#6b7280" />
-                    ) : (
-                      <ChevronRight size={20} color="#6b7280" />
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                {expandedSections.classification && (
-                  <View className="ml-6 mt-2 border-l border-gray-200 pl-3">
-                    <View className="mb-3">
-                      <Text className="mb-2 text-sm text-gray-600">
-                        {formatDate(
-                          breedingDetail.classificationStage.startDate,
-                          'dd/MM/yyyy'
-                        )}{' '}
-                        -{' '}
-                        {getClassificationStatusText(
-                          breedingDetail.classificationStage.status
-                        )}
-                      </Text>
-                      <View className="mb-2 flex-row items-center justify-between">
-                        <Text className="text-base font-medium text-gray-900">
-                          Hiệu quả tuyển chọn
-                        </Text>
-                        <View className="flex-row items-center gap-2">
-                          {breedingDetail.status ===
-                            BreedingStatus.CLASSIFICATION &&
-                            (!breedingDetail.classificationStage
-                              .classificationRecords ||
-                              breedingDetail.classificationStage
-                                .classificationRecords.length < 4) && (
-                              <TouchableOpacity
-                                onPress={() => setShowSelectionModal(true)}
-                                className="flex-row items-center gap-1 rounded-full bg-blue-500 px-3 py-2"
-                              >
-                                <Plus size={18} color="#fff" />
-                                <Text className="text-xs font-medium text-white">
-                                  Bản ghi
-                                </Text>
-                              </TouchableOpacity>
-                            )}
-                          {breedingDetail.status ===
-                            BreedingStatus.CLASSIFICATION &&
+                      <View className="flex-row items-center gap-2">
+                        {breedingDetail.status ===
+                          BreedingStatus.CLASSIFICATION &&
+                          (!breedingDetail.classificationStage
+                            .classificationRecords ||
                             breedingDetail.classificationStage
-                              .classificationRecords.length === 4 && (
-                              <TouchableOpacity
-                                onPress={() =>
-                                  router.push(
-                                    `/breeding/${breedingId}/fish-list?redirect=/breeding/${breedingId}`
-                                  )
-                                }
-                                className="flex-row items-center gap-1 rounded-full bg-green-600 px-3 py-2"
-                              >
-                                <Text className="text-xs font-medium text-white">
-                                  Danh sách cá
-                                </Text>
-                              </TouchableOpacity>
-                            )}
-                        </View>
+                              .classificationRecords.length < 4) && (
+                            <TouchableOpacity
+                              onPress={() => setShowSelectionModal(true)}
+                              className="flex-row items-center gap-1 rounded-2xl bg-indigo-600 px-3 py-1.5"
+                            >
+                              <Plus size={14} color="#fff" />
+                              <Text className="text-base font-semibold text-white">
+                                Bản ghi
+                              </Text>
+                            </TouchableOpacity>
+                          )}
                       </View>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="text-sm text-gray-900">
-                          Tổng số cá:{' '}
-                          {(
-                            breedingDetail.classificationStage.totalCount ?? 0
-                          ).toLocaleString()}{' '}
-                          con
-                        </Text>
+                    </View>
+
+                    <View className="mb-3 flex-row items-center justify-between">
+                      <Text className="text-base font-semibold text-gray-600">
+                        Tổng số cá:{' '}
+                        {(
+                          breedingDetail.classificationStage.totalCount ?? 0
+                        ).toLocaleString()}{' '}
+                        con
+                      </Text>
+                      {breedingDetail.classificationStage.classificationRecords
+                        .length >= 3 && (
                         <TouchableOpacity
                           onPress={async () => {
                             try {
@@ -1339,51 +1052,52 @@ export default function BreedingDetailScreen() {
                             }
                             setShowCreatePacketModal(true);
                           }}
-                          className="rounded-full bg-blue-500 px-3 py-2"
+                          className="flex-row items-center gap-1 rounded-2xl bg-blue-500 px-3 py-1.5"
                         >
                           {hasPondPacket ? (
-                            <View className="flex-row items-center">
-                              <Edit size={16} color="#fff" />
-                              <Text className="ml-2 text-xs font-medium text-white">
-                                Sửa lô cá
+                            <>
+                              <Edit size={14} color="#fff" />
+                              <Text className="text-base font-semibold text-white">
+                                Sửa lô
                               </Text>
-                            </View>
+                            </>
                           ) : (
-                            <View className="flex-row items-center">
-                              <Plus size={16} color="#fff" />
-                              <Text className="ml-2 text-xs font-medium text-white">
-                                Tạo lô cá
+                            <>
+                              <Plus size={14} color="#fff" />
+                              <Text className="text-base font-semibold text-white">
+                                Tạo lô
                               </Text>
-                            </View>
+                            </>
                           )}
                         </TouchableOpacity>
-                      </View>
+                      )}
+                    </View>
 
-                      {/* Classification Records Table */}
-                      {breedingDetail.classificationStage
-                        .classificationRecords &&
-                        breedingDetail.classificationStage.classificationRecords
-                          .length > 0 && (
-                          <View className="mt-3">
-                            <View className="mb-1 flex-row rounded bg-gray-50 p-2">
-                              <Text className="w-12 text-center text-xs font-medium text-gray-600">
+                    {/* Classification Records Table */}
+                    {breedingDetail.classificationStage.classificationRecords &&
+                      breedingDetail.classificationStage.classificationRecords
+                        .length > 0 && (
+                        <View className="mt-3">
+                          <View className="overflow-hidden rounded-lg border border-indigo-200">
+                            <View className="flex-row bg-indigo-100 p-2">
+                              <Text className="w-10 text-center text-sm font-semibold text-gray-700">
                                 Lần
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
+                              <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
                                 Show
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
+                              <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
                                 High
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
+                              <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
                                 Pond
                               </Text>
-                              <Text className="flex-1 text-center text-xs font-medium text-gray-600">
+                              <Text className="flex-1 text-center text-sm font-semibold text-gray-700">
                                 Cull
                               </Text>
                               {breedingDetail.status ===
                                 BreedingStatus.CLASSIFICATION && (
-                                <Text className="w-16 text-center text-xs font-medium text-gray-600">
+                                <Text className="w-16 text-center text-sm font-semibold text-gray-700">
                                   Thao tác
                                 </Text>
                               )}
@@ -1393,9 +1107,16 @@ export default function BreedingDetailScreen() {
                               (record, idx) => (
                                 <View
                                   key={record.id}
-                                  className="flex-row items-center border-b border-gray-100 p-2"
+                                  className={`flex-row items-center p-2 ${
+                                    idx !==
+                                    (breedingDetail.classificationStage
+                                      ?.classificationRecords?.length ?? 0) -
+                                      1
+                                      ? 'border-b border-indigo-100'
+                                      : ''
+                                  }`}
                                 >
-                                  <Text className="w-12 text-center text-sm text-gray-900">
+                                  <Text className="w-10 text-center text-sm text-gray-900">
                                     {record.stageNumber || idx + 1}
                                   </Text>
                                   <Text className="flex-1 text-center text-sm text-gray-900">
@@ -1429,7 +1150,7 @@ export default function BreedingDetailScreen() {
                                         }}
                                         className="p-1"
                                       >
-                                        <Edit size={16} color="#3b82f6" />
+                                        <Edit size={18} color="#3b82f6" />
                                       </TouchableOpacity>
                                       <TouchableOpacity
                                         onPress={() => {
@@ -1448,7 +1169,7 @@ export default function BreedingDetailScreen() {
                                         }
                                       >
                                         <Trash2
-                                          size={16}
+                                          size={18}
                                           color={
                                             deleteClassificationMutation.status ===
                                             'pending'
@@ -1467,82 +1188,73 @@ export default function BreedingDetailScreen() {
                                 </View>
                               )
                             )}
+                          </View>
 
-                            <View className="mt-3">
-                              <Text className="mb-1 text-sm font-medium text-gray-900">
-                                Tổng kết:
-                              </Text>
-                              <Text className="text-sm text-gray-900">
-                                Show:{' '}
-                                {breedingDetail.classificationStage
-                                  .showQualifiedCount ?? 0}{' '}
-                                con
-                              </Text>
-                              <Text className="text-sm text-gray-900">
-                                High:{' '}
-                                {breedingDetail.classificationStage
-                                  .highQualifiedCount ?? 0}{' '}
-                                con
-                              </Text>
-                              <Text className="text-sm text-gray-900">
-                                Pond:{' '}
-                                {breedingDetail.classificationStage
-                                  .pondQualifiedCount ?? 0}{' '}
-                                con
-                              </Text>
-                              <Text className="text-sm text-gray-900">
-                                Cull:{' '}
-                                {breedingDetail.classificationStage
-                                  .cullQualifiedCount ?? 0}{' '}
-                                con
-                              </Text>
-                              {breedingDetail.classificationStage.notes && (
-                                <Text className="mt-2 text-sm italic text-gray-500">
-                                  Ghi chú:{' '}
-                                  {breedingDetail.classificationStage.notes}
+                          <View className="mt-3 rounded-lg bg-white p-3">
+                            <Text className="mb-2 text-lg font-bold text-gray-900">
+                              Tổng kết:
+                            </Text>
+                            <View className="flex-row flex-wrap">
+                              <View className="w-1/2 py-1">
+                                <Text className="text-base text-gray-600">
+                                  Show:{' '}
+                                  <Text className="font-medium text-gray-900">
+                                    {breedingDetail.classificationStage
+                                      .showQualifiedCount ?? 0}
+                                  </Text>
                                 </Text>
-                              )}
+                              </View>
+                              <View className="w-1/2 py-1">
+                                <Text className="text-base text-gray-600">
+                                  High:{' '}
+                                  <Text className="font-medium text-gray-900">
+                                    {breedingDetail.classificationStage
+                                      .highQualifiedCount ?? 0}
+                                  </Text>
+                                </Text>
+                              </View>
+                              <View className="w-1/2 py-1">
+                                <Text className="text-base text-gray-600">
+                                  Pond:{' '}
+                                  <Text className="font-medium text-gray-900">
+                                    {breedingDetail.classificationStage
+                                      .pondQualifiedCount ?? 0}
+                                  </Text>
+                                </Text>
+                              </View>
+                              <View className="w-1/2 py-1">
+                                <Text className="text-base text-gray-600">
+                                  Cull:{' '}
+                                  <Text className="font-medium text-gray-900">
+                                    {breedingDetail.classificationStage
+                                      .cullQualifiedCount ?? 0}
+                                  </Text>
+                                </Text>
+                              </View>
                             </View>
                           </View>
-                        )}
-                    </View>
+                        </View>
+                      )}
                   </View>
-                )}
-              </View>
-            )}
+                </TimelineItem>
+              )}
 
-          {/* Hoàn thành - Complete */}
-          {breedingDetail.status === BreedingStatus.COMPLETE && (
-            <View className="mb-4">
-              <TouchableOpacity
-                className="flex-row items-center justify-between py-2"
-                onPress={() => toggleSection('complete')}
+            {/* Complete */}
+            {breedingDetail.status === BreedingStatus.COMPLETE && (
+              <TimelineItem
+                title="Hoàn thành"
+                isActive={false}
+                isCompleted={true}
+                isExpanded={expandedSections.complete}
+                onToggle={() => toggleSection('complete')}
+                icon={<CheckCircle2 size={16} color="#10b981" />}
               >
-                <View className="flex-row items-center">
-                  <View className="mr-3 h-3 w-3 rounded-full bg-green-500" />
-                  <Text className="text-base font-medium text-gray-900">
-                    Hoàn thành
-                  </Text>
-                </View>
-                {expandedSections.complete ? (
-                  <ChevronDown size={20} color="#6b7280" />
-                ) : (
-                  <ChevronRight size={20} color="#6b7280" />
-                )}
-              </TouchableOpacity>
-
-              {expandedSections.complete && (
-                <View className="ml-6 mt-2 border-l border-gray-200 pl-3">
-                  <Text className="mb-2 text-sm text-gray-600">
-                    {breedingDetail.endDate
-                      ? formatDate(breedingDetail.endDate, 'dd/MM/yyyy')
-                      : 'N/A'}
-                  </Text>
-                  <View className="mb-2 flex-row items-center justify-between">
-                    <Text className="text-base font-medium text-gray-900">
+                <View className="mt-2 rounded-2xl bg-teal-50 p-3">
+                  <View className="mb-3 flex-row items-center justify-between">
+                    <Text className="text-sm font-medium text-gray-900">
                       Kết quả tổng quan
                     </Text>
-                    <View className="flex-row items-center gap-2">
+                    <View className="flex-row gap-2">
                       <TouchableOpacity
                         onPress={async () => {
                           try {
@@ -1560,57 +1272,63 @@ export default function BreedingDetailScreen() {
                           }
                           setShowCreatePacketModal(true);
                         }}
-                        className="rounded-full bg-blue-500 px-3 py-2"
+                        className="flex-row items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5"
                       >
                         {hasPondPacket ? (
-                          <View className="flex-row items-center">
-                            <Edit size={16} color="#fff" className="mr-2" />
-                            <Text className="text-xs font-medium text-white">
-                              Sửa lô cá
+                          <>
+                            <Edit size={14} color="#fff" />
+                            <Text className="text-xs font-semibold text-white">
+                              Sửa lô
                             </Text>
-                          </View>
+                          </>
                         ) : (
-                          <View className="flex-row items-center">
-                            <Plus size={16} color="#fff" className="mr-2" />
-                            <Text className="text-xs font-medium text-white">
-                              Tạo lô cá
+                          <>
+                            <Plus size={14} color="#fff" />
+                            <Text className="text-xs font-semibold text-white">
+                              Tạo lô
                             </Text>
-                          </View>
+                          </>
                         )}
                       </TouchableOpacity>
-
                       <TouchableOpacity
                         onPress={() =>
                           router.push(
                             `/breeding/${breedingId}/fish-list?redirect=/breeding/${breedingId}`
                           )
                         }
-                        className="flex-row items-center gap-1 rounded-full bg-green-600 px-3 py-2"
+                        className="flex-row items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5"
                       >
-                        <Text className="text-xs font-medium text-white">
-                          Danh sách cá
+                        <Fish size={14} color="#fff" />
+                        <Text className="text-xs font-semibold text-white">
+                          Danh sách
                         </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <Text className="text-sm text-gray-900">
-                    Tổng số cá đạt chuẩn:{' '}
-                    {(breedingDetail.totalFishQualified ?? 0).toLocaleString()}{' '}
-                    con
-                  </Text>
-                  <Text className="text-sm text-gray-900">
-                    Số lô cá:{' '}
-                    {(breedingDetail.totalPackage ?? 0).toLocaleString()} lô
-                  </Text>
-                  <Text className="text-sm text-gray-900">
-                    Tỷ lệ thụ tinh:{' '}
-                    {(breedingDetail.fertilizationRate ?? 0).toFixed(1)}%
-                  </Text>
-                  {breedingDetail.currentSurvivalRate != null && (
-                    <Text className="text-sm text-gray-900">
-                      Tỷ lệ sống cuối:{' '}
-                      {breedingDetail.currentSurvivalRate.toFixed(2)}%
-                    </Text>
+                  <InfoRow
+                    label="Cá đạt chuẩn"
+                    value={`${(breedingDetail.totalFishQualified ?? 0).toLocaleString()} con`}
+                  />
+                  <InfoRow
+                    label="Số lô cá"
+                    value={`${(breedingDetail.totalPackage ?? 0).toLocaleString()} lô`}
+                  />
+                  <InfoRow
+                    label="Tỷ lệ thụ tinh"
+                    value={`${(breedingDetail.fertilizationRate ?? 0).toFixed(1)}%`}
+                  />
+                  {breedingDetail.survivalRate != null && (
+                    <InfoRow
+                      label="Tỷ lệ sống cuối"
+                      value={`${breedingDetail.survivalRate.toFixed(2)}%`}
+                    />
+                  )}
+                  {breedingDetail.endDate && (
+                    <InfoRow
+                      label="Ngày hoàn thành"
+                      value={formatDate(breedingDetail.endDate, 'dd/MM/yyyy')}
+                      isLast
+                    />
                   )}
                   {breedingDetail.note && (
                     <Text className="mt-2 text-sm italic text-gray-500">
@@ -1618,18 +1336,16 @@ export default function BreedingDetailScreen() {
                     </Text>
                   )}
                 </View>
-              )}
-            </View>
-          )}
+              </TimelineItem>
+            )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Create Packet Fish Modal */}
+      {/* All Modals */}
       <CreatePacketFishModal
         visible={showCreatePacketModal}
-        onClose={() => {
-          setShowCreatePacketModal(false);
-        }}
+        onClose={() => setShowCreatePacketModal(false)}
         breedingId={breedingId}
         ponds={pondOptions}
         currentPondId={breedingDetail.pondId}
@@ -1637,7 +1353,6 @@ export default function BreedingDetailScreen() {
         onSuccess={() => breedingDetailQuery.refetch()}
       />
 
-      {/* Update Egg Batch Modal */}
       <UpdateEggBatchModal
         visible={showUpdateEggModal}
         onClose={() => {
@@ -1649,7 +1364,6 @@ export default function BreedingDetailScreen() {
         onRefetchPonds={refetchEmptyPonds}
       />
 
-      {/* Count Egg Modal */}
       <CountEggModal
         visible={showCountEggModal}
         onClose={() => {
@@ -1697,7 +1411,6 @@ export default function BreedingDetailScreen() {
         }
       />
 
-      {/* Edit Incubation Record Modal */}
       <EditIncubationRecordModal
         visible={showEditIncubationModal}
         onClose={() => {
@@ -1709,7 +1422,6 @@ export default function BreedingDetailScreen() {
         isFirstRecord={isFirstIncubationRecord}
       />
 
-      {/* Change Pond Modal for Fry Fish */}
       <ChangePondModal
         visible={showChangePondModal}
         onClose={() => {
@@ -1755,7 +1467,6 @@ export default function BreedingDetailScreen() {
         }}
       />
 
-      {/* Fry Survival Record Modal */}
       <FrySurvivalRecordModal
         visible={showFrySurvivalRecordModal}
         onClose={() => {
@@ -1767,7 +1478,6 @@ export default function BreedingDetailScreen() {
         onRefetchPonds={refetchEmptyPonds}
       />
 
-      {/* Edit Fry Survival Record Modal */}
       <EditFrySurvivalRecordModal
         visible={showEditFrySurvivalModal}
         onClose={() => {
@@ -1779,7 +1489,6 @@ export default function BreedingDetailScreen() {
         fryFishId={breedingDetail.fryFish?.id ?? 0}
       />
 
-      {/* Edit Classification Record Modal */}
       <EditClassificationRecordModal
         visible={showEditClassificationModal}
         onClose={() => {
@@ -1791,7 +1500,6 @@ export default function BreedingDetailScreen() {
         recordIndex={editingClassificationRecordIndex}
       />
 
-      {/* Selection Modal for New Classification Record */}
       <SelectionModal
         visible={showSelectionModal}
         onClose={() => {
@@ -1801,7 +1509,6 @@ export default function BreedingDetailScreen() {
         breedingId={breedingDetail?.id ?? null}
       />
 
-      {/* Change Pond Modal for Classification */}
       <ChangePondModal
         visible={showChangePondModalClassification}
         onClose={() => {
@@ -1848,7 +1555,6 @@ export default function BreedingDetailScreen() {
         }}
       />
 
-      {/* Custom Alert for Delete Confirmation */}
       <CustomAlert
         visible={deleteAlert.visible}
         title="Xác nhận xóa"
@@ -1889,7 +1595,6 @@ export default function BreedingDetailScreen() {
                 break;
             }
 
-            // Close alert and refetch data
             setDeleteAlert({
               visible: false,
               type: null,
@@ -1911,3 +1616,89 @@ export default function BreedingDetailScreen() {
     </SafeAreaView>
   );
 }
+
+// Helper Components
+const StatCard = ({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color: string;
+}) => (
+  <View className="w-1/2 p-2">
+    <View className="rounded-2xl bg-gray-50 p-3">
+      <Text className="mb-1 text-base text-gray-600">{label}</Text>
+      <Text className="text-xl font-bold" style={{ color }}>
+        {value}
+      </Text>
+    </View>
+  </View>
+);
+
+const InfoRow = ({
+  label,
+  value,
+  isLast,
+}: {
+  label: string;
+  value: string;
+  isLast?: boolean;
+}) => (
+  <View
+    className={`flex-row justify-between py-2 ${!isLast ? 'border-b border-gray-100' : ''}`}
+  >
+    <Text className="text-base font-bold">{label}</Text>
+    <Text className="text-base font-medium">{value}</Text>
+  </View>
+);
+
+const TimelineItem = ({
+  title,
+  isActive,
+  isCompleted,
+  isExpanded,
+  onToggle,
+  icon,
+  actionButton,
+  children,
+}: {
+  title: string;
+  isActive: boolean;
+  isCompleted: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+  icon: React.ReactNode;
+  actionButton?: React.ReactNode;
+  children?: React.ReactNode;
+}) => (
+  <View className="mb-3">
+    <View className="flex-row items-center justify-between">
+      <TouchableOpacity
+        className="mr-2 flex-1 flex-row items-center rounded-2xl bg-gray-50 p-3"
+        onPress={onToggle}
+      >
+        <View
+          className={`mr-3 rounded-full p-2 ${isActive ? 'bg-blue-100' : 'bg-green-100'}`}
+        >
+          {icon}
+        </View>
+        <Text className="flex-1 text-lg font-medium text-gray-900">
+          {title}
+        </Text>
+        {isExpanded ? (
+          <ChevronDown size={20} color="#6b7280" />
+        ) : (
+          <ChevronRight size={20} color="#6b7280" />
+        )}
+      </TouchableOpacity>
+      {actionButton && <View>{actionButton}</View>}
+    </View>
+    {isExpanded && (
+      <View className="ml-6 mt-2 border-l-2 border-gray-200 pl-4">
+        {children}
+      </View>
+    )}
+  </View>
+);

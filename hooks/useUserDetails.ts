@@ -1,4 +1,8 @@
-import { UserMeProfile, userServices } from '@/lib/api/services/fetchUser';
+import {
+  UpdateUserDetails,
+  UserMeProfile,
+  userServices,
+} from '@/lib/api/services/fetchUser';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
@@ -51,7 +55,7 @@ export function useUpdateUserProfile() {
   const { syncUserFromProfile } = useAuthStore();
 
   return useMutation({
-    mutationFn: async (profileData: Partial<UserMeProfile>) => {
+    mutationFn: async (profileData: UpdateUserDetails) => {
       const resp = await userServices.updateProfile(profileData);
       if (!resp.isSuccess) {
         throw new Error(
@@ -152,13 +156,25 @@ export function useUserDetails(options?: {
   const syncMutation = useSyncUserToAuthStore();
   const updateMutation = useUpdateUserProfile();
 
-  // Auto-sync user profile to auth store when data is loaded
+  // Auto-sync user profile to auth store when data is loaded.
+  // Guard against repeated calls by remembering last synced profile id.
+  const lastSyncedId = React.useRef<number | null>(null);
   React.useEffect(() => {
-    if (autoSync && userProfileQuery.data && userProfileQuery.isSuccess) {
-      syncMutation.mutate(userProfileQuery.data);
-    }
+    if (!autoSync || !userProfileQuery.data || !userProfileQuery.isSuccess)
+      return;
+
+    const id = userProfileQuery.data?.id;
+    if (typeof id === 'number' && lastSyncedId.current === id) return;
+
+    // mark as synced for this id and call the mutation
+    if (typeof id === 'number') lastSyncedId.current = id;
+    // use mutate (stable) to sync profile into auth store
+    syncMutation.mutate(userProfileQuery.data);
+    // NOTE: if multiple components mount and call this hook, this prevents
+    // repeated syncs for the same profile id.
   }, [
     userProfileQuery.data,
+    userProfileQuery.data?.id,
     userProfileQuery.isSuccess,
     autoSync,
     syncMutation,

@@ -135,7 +135,7 @@ export default function IncidentTypesScreen() {
           <View className="mb-3 flex-row items-start justify-between">
             <View className="flex-1 flex-row items-start">
               <View
-                className="mr-3 rounded-xl p-2.5"
+                className="mr-3 rounded-2xl p-2.5"
                 style={{ backgroundColor: severityInfo.bgColor }}
               >
                 <TypeIcon size={20} color={severityInfo.color} />
@@ -257,7 +257,7 @@ export default function IncidentTypesScreen() {
           </View>
 
           {/* Search Bar */}
-          <View className="mt-4 flex-row items-center rounded-xl bg-white/90 px-4 py-3">
+          <View className="mt-4 flex-row items-center rounded-2xl bg-white/90 px-4 py-3">
             <Search size={20} color="#6b7280" />
             <TextInput
               value={searchQuery}

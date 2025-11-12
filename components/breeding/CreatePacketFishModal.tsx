@@ -15,7 +15,18 @@ import {
   PacketFishRequest,
 } from '@/lib/api/services/fetchPacketFish';
 import * as ImagePicker from 'expo-image-picker';
-import { Plus } from 'lucide-react-native';
+import {
+  Camera,
+  DollarSign,
+  Droplet,
+  FileText,
+  Image as ImageIcon,
+  Layers,
+  Plus,
+  Ruler,
+  Save,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,7 +38,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import FishSvg from '../icons/FishSvg';
 
 type Props = {
   visible: boolean;
@@ -96,7 +110,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
     }
   }, [visible, ponds, currentPondId]);
 
-  // When editing an existing packet, fill the form with fetched data
   useEffect(() => {
     if (packetQuery.data) {
       const p = packetQuery.data as PacketFish;
@@ -142,7 +155,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       const uri = (result as any).assets?.[0]?.uri;
       if (!uri) return;
 
-      // Close the image options modal immediately when upload will start
       setShowImageOptions(false);
 
       const filename = uri.split('/').pop() || `photo.jpg`;
@@ -165,7 +177,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
         );
       } finally {
         setIsUploading(false);
-        setShowImageOptions(false);
       }
     } catch (err) {
       console.warn('pickImageFromLibrary error', err);
@@ -224,7 +235,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
         );
       } finally {
         setIsUploading(false);
-        setShowImageOptions(false);
       }
     } catch (err) {
       console.warn('takePhoto error', err);
@@ -252,7 +262,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
 
     setSubmitting(true);
     try {
-      // Build PacketFishRequest
       const birthDate =
         breedingDetailQuery.data?.fryFish?.startDate ||
         breedingDetailQuery.data?.startDate ||
@@ -271,7 +280,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       };
 
       if (packetFishId) {
-        // Edit existing packet: update packet fish only
         await updatePacketMutation.mutateAsync({
           id: packetFishId,
           data: packetReq,
@@ -281,14 +289,12 @@ export const CreatePacketFishModal: React.FC<Props> = ({
         onClose();
         onSuccess && onSuccess();
       } else {
-        // Create packet fish
         const created = await createPacketMutation.mutateAsync(packetReq);
         const packetId = (created as PacketFish)?.id;
         if (!packetId)
           throw new Error('Không lấy được thông tin lô cá vừa tạo');
 
         try {
-          // Create PondPacketFish
           if (!selectedPondId) throw new Error('Chưa chọn hồ cho lô cá');
           await createPondPacketMutation.mutateAsync({
             pondId: selectedPondId,
@@ -301,7 +307,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
           onClose();
           onSuccess && onSuccess();
         } catch (err: any) {
-          // If creating pond-packet fails, rollback packet fish creation
           try {
             if (packetId) {
               await deletePacketMutation.mutateAsync(packetId);
@@ -324,230 +329,373 @@ export const CreatePacketFishModal: React.FC<Props> = ({
     }
   };
 
+  const getSizeLabel = (s: FishSize) => {
+    const labels: Record<FishSize, string> = {
+      [FishSize.UNDER10CM]: '< 10 cm',
+      [FishSize.FROM10TO20CM]: '10-20 cm',
+      [FishSize.FROM21TO25CM]: '21-25 cm',
+      [FishSize.FROM26TO30CM]: '26-30 cm',
+      [FishSize.FROM31TO40CM]: '31-40 cm',
+      [FishSize.FROM41TO45CM]: '41-45 cm',
+      [FishSize.FROM46TO50CM]: '46-50 cm',
+      [FishSize.OVER50CM]: '> 50 cm',
+    };
+    return labels[s] || s;
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="rounded-t-2xl bg-white p-4">
-          <Text className="mb-3 text-lg font-semibold text-gray-900">
-            {packetFishId ? 'Cập nhật lô cá' : 'Tạo lô cá'}
-          </Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView className="flex-1 bg-gray-50">
+        {/* Header */}
+        <View className="rounded-t-2xl bg-primary pb-3">
+          <View className="flex-row items-center justify-between px-5 pt-3">
+            <View className="ml-5 flex-1 items-center">
+              <Text className="text-base font-medium uppercase tracking-wide text-white/80">
+                {packetFishId ? 'Chỉnh sửa' : 'Tạo mới'}
+              </Text>
+              <Text className="text-2xl font-bold text-white">Lô cá</Text>
+            </View>
 
-          <ContextMenuField
-            label="Chọn hồ"
-            value={selectedPondId ? String(selectedPondId) : undefined}
-            placeholder="Chọn hồ"
-            options={(ponds ?? []).map((p) => ({
-              label: p.pondName,
-              value: String(p.id),
-            }))}
-            onSelect={(v) => setSelectedPondId(Number(v))}
-          />
+            <TouchableOpacity
+              onPress={onClose}
+              className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
+              disabled={submitting}
+            >
+              <X size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Tên lô
-          </Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Tên"
-            className="mb-3 mt-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-          />
-
-          <Text className="mb-2 text-base font-medium text-gray-900">
-            Mô tả
-          </Text>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Mô tả (tùy chọn)"
-            className="mb-3 mt-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-            multiline
-          />
-
-          {/* Images gallery */}
-          <View className="mb-3">
-            <Text className="mb-2 text-base font-medium text-gray-900">
-              Ảnh lô cá
+        <KeyboardAwareScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            paddingBottom: 100,
+          }}
+          bottomOffset={20}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Basic Info */}
+          <View className="mb-4">
+            <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+              Thông tin cơ bản
             </Text>
-            <View className="-m-2 flex-row flex-wrap">
-              {images.map((url, idx) => (
-                <View key={idx} className="p-2" style={{ width: '33.3333%' }}>
-                  <View className="relative">
-                    <RNImage
-                      source={{ uri: url }}
-                      style={{ height: 96, width: '100%', borderRadius: 8 }}
-                    />
+
+            <View className="rounded-2xl border border-gray-200 bg-white p-4">
+              {/* Pond Selection */}
+              <View className="mb-4 flex-row items-start">
+                <View className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                  <Droplet size={18} color="#3b82f6" />
+                </View>
+                <View className="flex-1">
+                  <ContextMenuField
+                    label="Chọn hồ *"
+                    value={selectedPondId ? String(selectedPondId) : undefined}
+                    placeholder="Chọn hồ"
+                    options={(ponds ?? []).map((p) => ({
+                      label: p.pondName,
+                      value: String(p.id),
+                    }))}
+                    onSelect={(v) => setSelectedPondId(Number(v))}
+                  />
+                </View>
+              </View>
+
+              {/* Name */}
+              <View className="mb-4 flex-row items-center">
+                <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                  <FishSvg size={18} color="#a855f7" />
+                </View>
+                <View className="flex-1">
+                  <Text className="mb-1 text-base font-medium text-gray-600">
+                    Tên lô <Text className="text-red-500">*</Text>
+                  </Text>
+                  <TextInput
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="VD: Lô cá Koi đẹp A1"
+                    placeholderTextColor="#9ca3af"
+                    className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-base font-medium text-gray-900"
+                  />
+                </View>
+              </View>
+
+              {/* Description */}
+              <View className="flex-row items-start">
+                <View className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                  <FileText size={18} color="#f59e0b" />
+                </View>
+                <View className="flex-1">
+                  <Text className="mb-1 text-base font-medium text-gray-600">
+                    Mô tả (tùy chọn)
+                  </Text>
+                  <TextInput
+                    value={description}
+                    onChangeText={setDescription}
+                    placeholder="Thêm mô tả chi tiết về lô cá..."
+                    placeholderTextColor="#9ca3af"
+                    className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-base text-gray-900"
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Images */}
+          <View className="mb-4">
+            <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+              Hình ảnh ({images.length}/6)
+            </Text>
+            <View className="rounded-2xl border border-gray-200 bg-white p-4">
+              <View className="flex-row flex-wrap" style={{ margin: -6 }}>
+                {images.map((url, idx) => (
+                  <View key={idx} style={{ width: '50%', padding: 6 }}>
+                    <View className="relative">
+                      <RNImage
+                        source={{ uri: url }}
+                        style={{
+                          height: 150,
+                          width: '100%',
+                          borderRadius: 12,
+                        }}
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm"
+                        onPress={() =>
+                          setImages((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                      >
+                        <X size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                {images.length < 6 && (
+                  <View style={{ width: '50%', padding: 6 }}>
                     <TouchableOpacity
-                      className="absolute right-1 top-1 rounded-full bg-white px-2 py-1"
-                      onPress={() =>
-                        setImages((prev) => prev.filter((_, i) => i !== idx))
-                      }
+                      className="h-[150px] w-full items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50"
+                      onPress={() => setShowImageOptions(true)}
+                      disabled={isUploading}
                     >
-                      <Text className="text-sm text-red-500">✕</Text>
+                      {isUploading ? (
+                        <ActivityIndicator color="#3b82f6" />
+                      ) : (
+                        <>
+                          <View className="mb-1 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                            <Plus size={26} color="#3b82f6" />
+                          </View>
+                          <Text className="text-base text-gray-500">
+                            Thêm ảnh
+                          </Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Details */}
+          <View className="mb-4">
+            <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+              Chi tiết lô cá
+            </Text>
+
+            <View className="rounded-2xl border border-gray-200 bg-white p-4">
+              {/* Size & Price Row */}
+              <View className="mb-4 flex-row">
+                <View className="mr-2 flex-1">
+                  <View className="mb-2 flex-row items-center">
+                    <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-cyan-100">
+                      <Ruler size={22} color="#06b6d4" />
+                    </View>
+                    <Text className="text-base font-medium text-gray-600">
+                      Kích thước
+                    </Text>
+                  </View>
+                  <ContextMenuField
+                    label=""
+                    value={String(size)}
+                    options={Object.values(FishSize).map((v) => ({
+                      label: getSizeLabel(v),
+                      value: String(v),
+                    }))}
+                    onSelect={(v) => setSize(v as FishSize)}
+                    placeholder="Chọn kích thước"
+                  />
                 </View>
-              ))}
 
-              {(images.length ?? 0) < 6 && (
-                <View className="p-2" style={{ width: '33.3333%' }}>
-                  <TouchableOpacity
-                    className="h-28 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50"
-                    onPress={() => setShowImageOptions(true)}
-                  >
-                    {isUploading ? (
-                      <ActivityIndicator />
-                    ) : (
-                      <View className="flex-row items-center space-x-2">
-                        <Plus size={20} color="#6b7280" />
-                        <Text className="text-gray-500">Thêm ảnh</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
+                <View className="ml-2 flex-1">
+                  <View className="mb-2 flex-row items-center">
+                    <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                      <DollarSign size={22} color="#22c55e" />
+                    </View>
+                    <Text className="text-base font-medium text-gray-600">
+                      Giá (VNĐ)
+                    </Text>
+                  </View>
+                  <TextInput
+                    value={pricePerPacket}
+                    onChangeText={setPricePerPacket}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="#9ca3af"
+                    className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
+                  />
                 </View>
-              )}
+              </View>
+
+              {/* Fish Count & Availability Row */}
+              <View className="flex-row items-center">
+                <View className="flex-1">
+                  <View className="mb-2 flex-row items-center">
+                    <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-indigo-100">
+                      <Layers size={22} color="#6366f1" />
+                    </View>
+                    <Text className="text-base font-medium text-gray-600">
+                      Số cá/lô
+                    </Text>
+                  </View>
+                  <TextInput
+                    value={fishPerPacket}
+                    onChangeText={setFishPerPacket}
+                    keyboardType="numeric"
+                    placeholder="10"
+                    placeholderTextColor="#9ca3af"
+                    className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
+                  />
+                </View>
+
+                <View className="ml-4 mt-12 flex-row items-center">
+                  <Text className="mr-3 text-base font-medium text-gray-700">
+                    Đang bán
+                  </Text>
+                  <Switch
+                    value={isAvailable}
+                    onValueChange={setIsAvailable}
+                    trackColor={{ true: '#22c55e', false: '#d1d5db' }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+              </View>
             </View>
           </View>
+        </KeyboardAwareScrollView>
 
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 pr-2">
-              <ContextMenuField
-                label="Kích thước"
-                value={String(size)}
-                options={Object.values(FishSize).map((v) => ({
-                  label:
-                    v === FishSize.UNDER10CM
-                      ? 'Dưới 10 cm'
-                      : v === FishSize.FROM10TO20CM
-                        ? '10 - 20 cm'
-                        : v === FishSize.FROM21TO25CM
-                          ? '21 - 25 cm'
-                          : v === FishSize.FROM26TO30CM
-                            ? '26 - 30 cm'
-                            : v === FishSize.FROM31TO40CM
-                              ? '31 - 40 cm'
-                              : v === FishSize.FROM41TO45CM
-                                ? '41 - 45 cm'
-                                : v === FishSize.FROM46TO50CM
-                                  ? '46 - 50 cm'
-                                  : 'Trên 50 cm',
-                  value: String(v),
-                }))}
-                onSelect={(v) => setSize(v as FishSize)}
-                placeholder="Chọn kích thước"
-              />
-            </View>
-
-            <View className="flex-1 pl-2">
-              <Text className="mb-2 text-base font-medium text-gray-900">
-                Giá mỗi lô (VNĐ)
-              </Text>
-              <TextInput
-                value={pricePerPacket}
-                onChangeText={setPricePerPacket}
-                keyboardType="numeric"
-                className="mb-3 mt-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              />
-            </View>
-          </View>
-
-          {/* Số cá mỗi lô */}
-
-          <View className="flex-row items-center justify-between">
-            <View className="mb-3 flex-1 pr-2">
-              <Text className="mb-2 text-base font-medium text-gray-900">
-                Số cá mỗi lô (con)
-              </Text>
-              <TextInput
-                value={fishPerPacket}
-                onChangeText={setFishPerPacket}
-                keyboardType="numeric"
-                className="mb-3 mt-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-              />
-            </View>
-
-            <View className="mt-6 flex-1 flex-row items-center justify-between pl-2">
-              <Text className="mb-2 text-base font-medium text-gray-900">
-                Đang bán
-              </Text>
-              <Switch value={isAvailable} onValueChange={setIsAvailable} />
-            </View>
-          </View>
-
-          <View className="flex-row items-center justify-between">
+        {/* Fixed Bottom Actions */}
+        <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-5 py-4">
+          <View className="flex-row">
             <TouchableOpacity
-              onPress={() => {
-                if (submitting) return;
-                onClose();
-              }}
-              className="mr-2 flex-1 items-center justify-center rounded-lg border border-gray-200 px-4 py-2"
+              onPress={onClose}
+              className="mr-2 flex-1 rounded-2xl border-2 border-gray-200 bg-gray-50 py-4"
+              disabled={submitting}
             >
-              <Text>Hủy</Text>
+              <Text className="text-center text-base font-semibold text-gray-700">
+                Hủy
+              </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               onPress={handleSubmit}
-              className="ml-2 flex-1 items-center justify-center rounded-lg bg-primary px-4 py-2"
+              className={`ml-2 flex-1 flex-row items-center justify-center rounded-2xl py-4 ${
+                submitting ? 'bg-gray-300' : 'bg-primary'
+              }`}
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color="#fff" />
+                <>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text className="ml-2 text-base font-semibold text-white">
+                    Đang lưu...
+                  </Text>
+                </>
               ) : (
-                <Text className="text-white">
-                  {packetFishId ? 'Cập nhật lô cá' : 'Tạo lô cá'}
-                </Text>
+                <>
+                  <Save size={20} color="white" />
+                  <Text className="ml-2 text-base font-semibold text-white">
+                    {packetFishId ? 'Cập nhật' : 'Tạo lô'}
+                  </Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
-          <CustomAlert
-            visible={customAlert.visible}
-            title={customAlert.title ?? 'Lỗi'}
-            message={customAlert.message ?? ''}
-            type={customAlert.type ?? 'danger'}
-            cancelText="Đóng"
-            confirmText="OK"
-            onCancel={() => setCustomAlert({ ...customAlert, visible: false })}
-            onConfirm={() => setCustomAlert({ ...customAlert, visible: false })}
-          />
+        </View>
 
-          {/* Image options modal */}
-          <Modal
-            visible={showImageOptions}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShowImageOptions(false)}
-          >
-            <View className="flex-1 items-center justify-center bg-black/50 p-4">
-              <View className="w-full max-w-sm rounded-2xl bg-white p-4">
+        {/* Image Options Modal */}
+        <Modal
+          visible={showImageOptions}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowImageOptions(false)}
+        >
+          <View className="flex-1 items-center justify-center bg-black/50 px-4">
+            <View className="w-full max-w-sm overflow-hidden rounded-2xl bg-white">
+              <View className="border-b border-gray-200 p-4">
+                <Text className="text-center text-lg font-semibold text-gray-900">
+                  Chọn ảnh
+                </Text>
+              </View>
+
+              <View className="p-4">
                 <TouchableOpacity
-                  className="mb-3 items-center rounded-lg border border-gray-200 bg-white py-4"
-                  onPress={() => pickImageFromLibrary()}
+                  className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
+                  onPress={pickImageFromLibrary}
                 >
+                  <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                    <ImageIcon size={20} color="#3b82f6" />
+                  </View>
                   <Text className="text-base font-medium text-gray-900">
                     Chọn từ thư viện
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="mb-3 items-center rounded-lg border border-gray-200 bg-white py-4"
-                  onPress={() => takePhoto()}
+                  className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
+                  onPress={takePhoto}
                 >
+                  <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-purple-100">
+                    <Camera size={20} color="#a855f7" />
+                  </View>
                   <Text className="text-base font-medium text-gray-900">
                     Chụp ảnh
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="items-center rounded-lg border border-gray-200 bg-white py-3"
+                  className="rounded-2xl bg-gray-100 py-3"
                   onPress={() => setShowImageOptions(false)}
                 >
-                  <Text className="text-base text-red-500">Hủy</Text>
+                  <Text className="text-center text-base font-medium text-gray-700">
+                    Hủy
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </Modal>
-        </View>
-      </View>
+          </View>
+        </Modal>
+
+        <CustomAlert
+          visible={customAlert.visible}
+          title={customAlert.title ?? 'Lỗi'}
+          message={customAlert.message ?? ''}
+          type={customAlert.type ?? 'danger'}
+          cancelText="Đóng"
+          confirmText="OK"
+          onCancel={() => setCustomAlert({ ...customAlert, visible: false })}
+          onConfirm={() => setCustomAlert({ ...customAlert, visible: false })}
+        />
+      </SafeAreaView>
     </Modal>
   );
 };

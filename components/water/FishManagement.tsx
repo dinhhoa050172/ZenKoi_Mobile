@@ -1,14 +1,8 @@
-import { ChevronDown, ChevronUp, Minus, Plus } from 'lucide-react-native';
+import { useGetFishOfPond } from '@/hooks/usePond';
+import { router } from 'expo-router';
+import { ChevronDown, ChevronUp, Eye, Minus, Plus } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-
-interface FishData {
-  id: string;
-  name: string;
-  species: string;
-  age: string;
-  health: 'good' | 'fair' | 'poor';
-}
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 interface FishManagementProps {
   pondId: number;
@@ -22,89 +16,43 @@ export default function FishManagement({
   onToggle,
 }: FishManagementProps) {
   const [showAllFish, setShowAllFish] = useState(false);
-  const [showAddFishForm, setShowAddFishForm] = useState(false);
-  const [showRemoveFishForm, setShowRemoveFishForm] = useState(false);
+  const [, setShowAddFishForm] = useState(false);
+  const [, setShowRemoveFishForm] = useState(false);
 
-  // Mock data - replace with real API call later
-  const fishData: FishData[] = [
-    {
-      id: '1',
-      name: 'Koi Kohaku #001',
-      species: 'Kohaku',
-      age: '2 năm',
-      health: 'good',
-    },
-    {
-      id: '2',
-      name: 'Koi Sanke #002',
-      species: 'Sanke',
-      age: '3 năm',
-      health: 'good',
-    },
-    {
-      id: '3',
-      name: 'Koi Showa #003',
-      species: 'Showa',
-      age: '1.5 năm',
-      health: 'fair',
-    },
-    {
-      id: '4',
-      name: 'Koi Taisho #004',
-      species: 'Taisho Sanke',
-      age: '2.5 năm',
-      health: 'good',
-    },
-    {
-      id: '5',
-      name: 'Koi Chagoi #005',
-      species: 'Chagoi',
-      age: '4 năm',
-      health: 'good',
-    },
-    {
-      id: '6',
-      name: 'Koi Bekko #006',
-      species: 'Shiro Bekko',
-      age: '1 năm',
-      health: 'fair',
-    },
-    {
-      id: '7',
-      name: 'Koi Utsurimono #007',
-      species: 'Ki Utsuri',
-      age: '3.5 năm',
-      health: 'poor',
-    },
-  ];
+  // Fetch fish list for this pond
+  const { data: fishData, isLoading } = useGetFishOfPond(pondId, !!pondId);
 
-  const getFishHealthColor = (health: string) => {
+  const mapHealthToBadge = (health?: string) => {
     switch (health) {
-      case 'good':
-        return 'bg-green-100 text-green-800';
-      case 'fair':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'poor':
-        return 'bg-red-100 text-red-800';
+      case 'Healthy':
+        return { wrapper: 'bg-green-100 text-green-800', text: 'Khỏe mạnh' };
+      case 'Warning':
+        return { wrapper: 'bg-yellow-100 text-yellow-800', text: 'Cảnh báo' };
+      case 'Weak':
+        return { wrapper: 'bg-orange-100 text-orange-800', text: 'Yếu' };
+      case 'Sick':
+        return { wrapper: 'bg-red-100 text-red-800', text: 'Bị bệnh' };
+      case 'Dead':
+        return { wrapper: 'bg-red-100 text-red-800', text: 'Chết' };
       default:
-        return 'bg-gray-100 text-gray-800';
+        return { wrapper: 'bg-gray-100 text-gray-800', text: 'Không rõ' };
     }
   };
 
-  const getFishHealthText = (health: string) => {
-    switch (health) {
-      case 'good':
-        return 'Tốt';
-      case 'fair':
-        return 'Khá';
-      case 'poor':
-        return 'Yếu';
-      default:
-        return 'Không rõ';
+  const calcAge = (birthDate?: string) => {
+    if (!birthDate) return '';
+    try {
+      const b = new Date(birthDate);
+      const diff = Date.now() - b.getTime();
+      const years = diff / (1000 * 60 * 60 * 24 * 365);
+      if (years < 1) return `${Math.round(years * 12)} tháng`;
+      return `${+years.toFixed(1)} năm`;
+    } catch {
+      return '';
     }
   };
 
-  const displayedFish = showAllFish ? fishData : fishData.slice(0, 3);
+  const displayedFish = (fishData || []).slice(0, showAllFish ? undefined : 3);
 
   return (
     <View className="mb-4 rounded-2xl bg-white shadow-sm">
@@ -118,7 +66,7 @@ export default function FishManagement({
           </Text>
           <View className="rounded-full bg-blue-100 px-2 py-1">
             <Text className="text-xs font-medium text-blue-800">
-              {fishData.length} con
+              {fishData?.length ?? 0} con
             </Text>
           </View>
         </View>
@@ -151,30 +99,62 @@ export default function FishManagement({
 
           {/* Fish List */}
           <View className="space-y-2">
-            {displayedFish.map((fish) => (
-              <View
-                key={fish.id}
-                className="mb-2 flex-row items-center justify-between rounded-2xl bg-gray-50 p-3"
-              >
-                <View className="flex-1">
-                  <Text className="font-medium text-gray-900">{fish.name}</Text>
-                  <Text className="text-sm text-gray-600">
-                    {fish.species} • {fish.age}
-                  </Text>
-                </View>
-                <View
-                  className={`rounded-full px-2 py-1 ${getFishHealthColor(fish.health)}`}
-                >
-                  <Text className="text-xs font-medium">
-                    {getFishHealthText(fish.health)}
-                  </Text>
-                </View>
+            {isLoading ? (
+              <View className="items-center py-6">
+                <ActivityIndicator />
+                <Text className="mt-2 text-sm text-gray-500">
+                  Đang tải danh sách cá...
+                </Text>
               </View>
-            ))}
+            ) : (fishData?.length || 0) === 0 ? (
+              <View className="items-center py-6">
+                <Text className="text-sm text-gray-600">
+                  Chưa có cá trong hồ
+                </Text>
+              </View>
+            ) : (
+              displayedFish.map((fish) => {
+                const title =
+                  fish.rfid || fish.variety?.varietyName || `ID ${fish.id}`;
+                const species = fish.variety?.varietyName || '-';
+                const age = calcAge(fish.birthDate);
+                const health = mapHealthToBadge(
+                  fish.healthStatus as unknown as string
+                );
+
+                return (
+                  <View
+                    key={String(fish.id)}
+                    className="mb-2 flex-row items-center justify-between rounded-2xl bg-gray-50 p-3"
+                  >
+                    <View className="flex-1">
+                      <Text className="font-medium text-gray-900">{title}</Text>
+                      <Text className="text-sm text-gray-600">
+                        {species} • {age}
+                      </Text>
+                    </View>
+                    <View
+                      className={`rounded-full px-2 py-1 ${health.wrapper} mr-2`}
+                    >
+                      <Text className="text-xs font-medium">{health.text}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push(`/koi/${fish.id}?redirect=water/${pondId}`)
+                      }
+                      className="items-center justify-center rounded-full bg-white p-2"
+                      accessibilityLabel="Xem chi tiết cá"
+                    >
+                      <Eye size={16} color="#6b7280" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            )}
           </View>
 
           {/* Show More/Less Button */}
-          {fishData.length > 3 && (
+          {(fishData?.length || 0) > 3 && (
             <TouchableOpacity
               onPress={() => setShowAllFish(!showAllFish)}
               className="mt-3 py-2"
@@ -182,7 +162,7 @@ export default function FishManagement({
               <Text className="text-center font-medium text-blue-500">
                 {showAllFish
                   ? 'Ẩn bớt'
-                  : `Xem thêm ${fishData.length - 3} con cá`}
+                  : `Xem thêm ${(fishData?.length || 0) - 3} con cá`}
               </Text>
             </TouchableOpacity>
           )}

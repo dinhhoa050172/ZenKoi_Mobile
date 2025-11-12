@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import {
   useGetBreedingProcessDetailById,
@@ -8,10 +9,13 @@ import { formatKoiAge } from '@/lib/utils/formatKoiAge';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  AlertTriangle,
   ArrowLeft,
   Calendar,
+  CheckCircle2,
   Edit,
   Eye,
+  Fish,
   Plus,
   Ruler,
 } from 'lucide-react-native';
@@ -88,29 +92,6 @@ export default function FishListScreen() {
     }
   };
 
-  const getSizeLabel = (size?: string) => {
-    switch (size) {
-      case 'Under10cm':
-        return '< 10 cm';
-      case 'From10To20cm':
-        return '10 - 20 cm';
-      case 'From21To25cm':
-        return '21 - 25 cm';
-      case 'From26To30cm':
-        return '26 - 30 cm';
-      case 'From31To40cm':
-        return '31 - 40 cm';
-      case 'From41To45cm':
-        return '41 - 45 cm';
-      case 'From46To50cm':
-        return '46 - 50 cm';
-      case 'Over50cm':
-        return '> 50 cm';
-      default:
-        return String(size ?? '—');
-    }
-  };
-
   const genderToLabel = (g: string) => {
     switch (g) {
       case 'Male':
@@ -124,21 +105,32 @@ export default function FishListScreen() {
     }
   };
 
+  const currentFishCount = koiFishList?.length ?? 0;
+  const expectedCount =
+    breedingDetail?.classificationStage?.showQualifiedCount ?? 0;
+  const isComplete = currentFishCount === expectedCount;
+  const progress =
+    expectedCount > 0 ? (currentFishCount / expectedCount) * 100 : 0;
+
   // Skeleton loading component
   const renderSkeleton = () => (
     <>
       {[1, 2, 3, 4].map((item) => (
-        <View key={item} className="my-4 rounded-2xl bg-white p-2 shadow-sm">
-          <View className="flex-row">
-            {/* Image skeleton */}
-            <View className="mr-4 h-20 w-20 animate-pulse rounded-lg bg-gray-200" />
+        <View
+          key={item}
+          className="mb-3 overflow-hidden rounded-2xl border border-gray-200 bg-white"
+        >
+          <View className="p-4">
+            <View className="flex-row">
+              {/* Image skeleton */}
+              <View className="mr-4 h-24 w-24 animate-pulse rounded-2xl bg-gray-200" />
 
-            {/* Content skeleton */}
-            <View className="flex-1">
-              <View className="mb-2 h-5 w-24 animate-pulse rounded bg-gray-200" />
-              <View className="mb-2 h-4 w-32 animate-pulse rounded bg-gray-200" />
-              <View className="mb-2 h-4 w-20 animate-pulse rounded bg-gray-200" />
-              <View className="h-4 w-40 animate-pulse rounded bg-gray-200" />
+              {/* Content skeleton */}
+              <View className="flex-1 justify-center">
+                <View className="mb-2 h-5 w-32 animate-pulse rounded-lg bg-gray-200" />
+                <View className="mb-2 h-4 w-40 animate-pulse rounded bg-gray-200" />
+                <View className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+              </View>
             </View>
           </View>
         </View>
@@ -149,26 +141,36 @@ export default function FishListScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="flex-row items-center border-b border-gray-200 bg-white p-4">
-        <TouchableOpacity className="mr-3" onPress={handleBack}>
-          <ArrowLeft size={24} color="#374151" />
-        </TouchableOpacity>
-        <Text className="flex-1 text-lg font-semibold text-gray-900">
-          Danh sách cá định danh
-        </Text>
-        <TouchableOpacity
-          className="rounded-lg bg-primary px-3 py-2"
-          onPress={() => {
-            router.push(
-              `/koi/add?breedingId=${breedingId}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
-            );
-          }}
-        >
-          <View className="flex-row items-center">
-            <Plus size={18} color="white" />
-            <Text className="ml-1 font-medium text-white">Thêm cá</Text>
+      <View className="rounded-t-2xl bg-primary pb-6">
+        <View className="flex-row items-center px-4 pt-4">
+          <TouchableOpacity
+            onPress={handleBack}
+            className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-white/20"
+          >
+            <ArrowLeft size={20} color="white" />
+          </TouchableOpacity>
+          <View className="flex-1">
+            <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
+              Định danh
+            </Text>
+            <Text className="text-xl font-bold text-white">Danh sách cá</Text>
           </View>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="items-center justify-center rounded-2xl bg-white px-4 py-2"
+            onPress={() => {
+              router.push(
+                `/koi/add?breedingId=${breedingId}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+              );
+            }}
+          >
+            <View className="flex-row items-center">
+              <Plus size={18} color="#0A3D62" />
+              <Text className="ml-1 text-sm font-semibold text-primary">
+                Thêm cá
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -184,104 +186,223 @@ export default function FishListScreen() {
           />
         }
       >
-        <View className="px-4">
+        <View className="mt-2 px-4">
+          {/* Progress Card */}
+          <View className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+            <View
+              className={`border-b px-4 py-3 ${
+                isComplete
+                  ? 'border-green-100 bg-green-50'
+                  : 'border-blue-100 bg-blue-50'
+              }`}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  {isComplete ? (
+                    <CheckCircle2 size={20} color="#10b981" />
+                  ) : (
+                    <FishSvg size={20} color="#3b82f6" />
+                  )}
+                  <Text
+                    className={`ml-2 text-base font-semibold ${
+                      isComplete ? 'text-green-700' : 'text-blue-700'
+                    }`}
+                  >
+                    {isComplete ? 'Hoàn thành' : 'Đang định danh'}
+                  </Text>
+                </View>
+                <View
+                  className={`rounded-full px-3 py-1 ${
+                    isComplete ? 'bg-green-100' : 'bg-blue-100'
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-bold ${
+                      isComplete ? 'text-green-700' : 'text-blue-700'
+                    }`}
+                  >
+                    {currentFishCount}/{expectedCount}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Progress Bar */}
+            <View className="p-4">
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="text-sm text-gray-600">Tiến độ</Text>
+                <Text className="text-sm font-semibold text-gray-900">
+                  {progress.toFixed(0)}%
+                </Text>
+              </View>
+              <View className="h-2 overflow-hidden rounded-full bg-gray-200">
+                <View
+                  className={`h-full rounded-full ${
+                    isComplete ? 'bg-green-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${Math.min(progress, 100)}%` }}
+                />
+              </View>
+            </View>
+
+            {/* Warning if incomplete */}
+            {!isComplete && currentFishCount > 0 && (
+              <View className="border-t border-amber-100 bg-amber-50 px-4 py-3">
+                <View className="flex-row items-start">
+                  <AlertTriangle size={16} color="#f59e0b" />
+                  <Text className="ml-2 flex-1 text-sm text-amber-700">
+                    Còn thiếu {expectedCount - currentFishCount} cá Show cần
+                    định danh
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Fish List */}
           {isLoading ? (
             renderSkeleton()
           ) : !koiFishList || koiFishList.length === 0 ? (
-            <View className="mt-20 items-center">
-              <Text className="mb-2 text-lg font-semibold text-gray-600">
+            <View className="mt-12 items-center rounded-2xl border-2 border-dashed border-gray-300 bg-white py-12">
+              <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+                <FishSvg size={40} color="#9ca3af" />
+              </View>
+              <Text className="mb-2 text-xl font-semibold text-gray-900">
                 Chưa có cá nào
               </Text>
-              <Text className="text-sm text-gray-500">
-                Nhấn &quot;Thêm cá&quot; để thêm cá vào danh sách
+              <Text className="mb-4 text-center text-base text-gray-500">
+                Bắt đầu thêm cá vào danh sách{'\n'}để hoàn thành định danh
               </Text>
+              <TouchableOpacity
+                className="rounded-2xl bg-primary px-6 py-3"
+                onPress={() => {
+                  router.push(
+                    `/koi/add?breedingId=${breedingId}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+                  );
+                }}
+              >
+                <View className="flex-row items-center">
+                  <Plus size={18} color="white" />
+                  <Text className="ml-2 font-semibold text-white">
+                    Thêm cá đầu tiên
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
           ) : (
-            koiFishList.map((fish) => (
-              <View
-                key={fish.id}
-                className="my-4 rounded-2xl bg-white p-2 shadow-sm"
-              >
-                <View className="flex-row">
-                  {/* Fish Image */}
-                  {fish.images && fish.images.length > 0 ? (
-                    <Image
-                      source={{ uri: fish.images[0] }}
-                      style={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: 12,
-                        marginRight: 14,
-                      }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View className="mr-4 h-20 w-20 rounded-lg bg-gray-200" />
-                  )}
-
-                  {/* Fish Info */}
-                  <View className="flex-1">
-                    <Text className="mb-1 text-lg font-bold text-gray-900">
-                      {fish.rfid}
-                    </Text>
-                    <Text className="mb-2 text-sm text-gray-600">
-                      {fish.variety.varietyName} • {genderToLabel(fish.gender)}
-                    </Text>
-
-                    <View className="mb-2 flex-row items-center">
-                      <PondSvg />
-                      <Text className="ml-1 text-sm text-gray-600">
-                        {fish.pond.pondName}
-                      </Text>
-                    </View>
-
+            <>
+              <Text className="mb-3 px-1 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                {koiFishList.length} cá đã định danh
+              </Text>
+              {koiFishList.map((fish, index) => (
+                <View
+                  key={fish.id}
+                  className="mb-3 overflow-hidden rounded-2xl border border-gray-200 bg-white"
+                >
+                  {/* Fish Content */}
+                  <View className="p-4">
                     <View className="flex-row">
-                      <View className="mr-4 flex-row items-center">
-                        <Ruler size={14} color="#6b7280" />
-                        <Text className="text-sm text-gray-600">
-                          {' '}
-                          {getSizeLabel(fish.size)}
+                      {/* Fish Image */}
+                      {fish.images && fish.images.length > 0 ? (
+                        <View className="relative mr-4">
+                          <Image
+                            source={{ uri: fish.images[0] }}
+                            style={{
+                              width: 96,
+                              height: 96,
+                              borderRadius: 12,
+                            }}
+                            resizeMode="cover"
+                          />
+                          {/* Index Badge */}
+                          <View className="absolute -right-2 -top-2 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primary">
+                            <Text className="text-xs font-bold text-white">
+                              #{index + 1}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <View className="relative mr-4 h-24 w-24 items-center justify-center rounded-2xl bg-gray-100">
+                          <Fish size={32} color="#9ca3af" />
+                          {/* Index Badge */}
+                          <View className="absolute -right-2 -top-2 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primary">
+                            <Text className="text-xs font-bold text-white">
+                              #{index + 1}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Fish Info */}
+                      <View className="flex-1 justify-center">
+                        <Text className="mb-1 text-lg font-bold text-gray-900">
+                          {fish.rfid}
                         </Text>
-                      </View>
-                      <View className="flex-row items-center">
-                        <Calendar size={14} color="#6b7280" />
-                        <Text className="text-sm text-gray-600">
-                          {' '}
-                          {formatKoiAge(fish.birthDate)}
+                        <Text className="mb-2 text-base font-medium text-gray-600">
+                          {fish.variety.varietyName} •{' '}
+                          {genderToLabel(fish.gender)}
                         </Text>
+
+                        <View className="mb-2 flex-row items-center">
+                          <View className="mr-1 h-6 w-6 items-center justify-center rounded-full bg-blue-100">
+                            <PondSvg size={12} />
+                          </View>
+                          <Text className="text-base text-gray-600">
+                            {fish.pond.pondName}
+                          </Text>
+                        </View>
+
+                        <View className="flex-row flex-wrap gap-2">
+                          <View className="flex-row items-center rounded-full bg-purple-50 px-2 py-1">
+                            <Ruler size={12} color="#a855f7" />
+                            <Text className="ml-1 text-xs font-medium text-purple-700">
+                              {fish.size}
+                            </Text>
+                          </View>
+                          <View className="flex-row items-center rounded-full bg-orange-50 px-2 py-1">
+                            <Calendar size={12} color="#f97316" />
+                            <Text className="ml-1 text-xs font-medium text-orange-700">
+                              {formatKoiAge(fish.birthDate)}
+                            </Text>
+                          </View>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
 
-                {/* Action Buttons */}
-                <View className="mt-4 flex-row border-t border-gray-100 pt-1">
-                  <TouchableOpacity
-                    className="mr-2 flex-1 flex-row items-center justify-center py-2"
-                    onPress={() => {
-                      router.push(
-                        `/koi/${fish.id}?redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
-                      );
-                    }}
-                  >
-                    <Eye size={16} color="#6b7280" />
-                    <Text className="ml-2 text-sm text-gray-600">Xem</Text>
-                  </TouchableOpacity>
-                  <Text className="self-stretch border-l border-gray-200" />
-                  <TouchableOpacity
-                    className="ml-2 flex-1 flex-row items-center justify-center py-2"
-                    onPress={() => {
-                      router.push(
-                        `/koi/edit?id=${fish.id}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
-                      );
-                    }}
-                  >
-                    <Edit size={16} color="#6b7280" />
-                    <Text className="ml-2 text-sm text-gray-600">Sửa</Text>
-                  </TouchableOpacity>
+                  {/* Action Buttons */}
+                  <View className="flex-row border-t border-gray-100">
+                    <TouchableOpacity
+                      className="flex-1 flex-row items-center justify-center py-3"
+                      onPress={() => {
+                        router.push(
+                          `/koi/${fish.id}?redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+                        );
+                      }}
+                    >
+                      <Eye size={18} color="#3b82f6" />
+                      <Text className="ml-2 text-sm font-semibold text-blue-600">
+                        Xem chi tiết
+                      </Text>
+                    </TouchableOpacity>
+                    <View className="w-px self-stretch bg-gray-200" />
+                    <TouchableOpacity
+                      className="flex-1 flex-row items-center justify-center py-3"
+                      onPress={() => {
+                        router.push(
+                          `/koi/edit?id=${fish.id}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+                        );
+                      }}
+                    >
+                      <Edit size={18} color="#10b981" />
+                      <Text className="ml-2 text-sm font-semibold text-green-600">
+                        Chỉnh sửa
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))
+              ))}
+            </>
           )}
         </View>
       </ScrollView>
@@ -290,9 +411,9 @@ export default function FishListScreen() {
       <CustomAlert
         visible={showExitAlert}
         title="Xác nhận thoát"
-        message={`Số lượng cá hiện tại (${koiFishList?.length ?? 0}) không khớp với số cá Show đã tuyển chọn (${breedingDetail?.classificationStage?.showQualifiedCount ?? 0}). Bạn có chắc chắn muốn thoát không?`}
+        message={`Số lượng cá hiện tại (${currentFishCount}) không khớp với số cá Show đã tuyển chọn (${expectedCount}). Bạn có chắc chắn muốn thoát không?`}
         type="warning"
-        cancelText="Hủy"
+        cancelText="Tiếp tục định danh"
         confirmText="Thoát"
         onCancel={() => setShowExitAlert(false)}
         onConfirm={confirmExit}
