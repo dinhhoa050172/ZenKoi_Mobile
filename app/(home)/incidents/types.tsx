@@ -1,17 +1,22 @@
+import CreateIncidentTypeModal from '@/components/incidents/type incident/CreateIncidentTypeModal';
+import EditIncidentTypeModal from '@/components/incidents/type incident/EditIncidentTypeModal';
 import Loading from '@/components/Loading';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import {
   IncidentSeverity,
   IncidentType,
 } from '@/lib/api/services/fetchIncidentType';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   AlertCircle,
   AlertTriangle,
   ChevronLeft,
   Clock,
+  Edit3,
   Heart,
+  Plus,
   Search,
   Shield,
   TrendingUp,
@@ -29,10 +34,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function IncidentTypesScreen() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | IncidentSeverity
   >('all');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedIncidentTypeId, setSelectedIncidentTypeId] = useState<
+    number | null
+  >(null);
+
+  // 2. THÊM STATE CHO MODAL TẠO MỚI
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Debounced search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const {
     data: incidentTypes,
@@ -40,7 +56,7 @@ export default function IncidentTypesScreen() {
     isRefetching,
     isLoading,
   } = useGetIncidentTypes(true, {
-    search: searchQuery,
+    search: debouncedSearchQuery,
     pageSize: 50,
   });
 
@@ -52,9 +68,26 @@ export default function IncidentTypesScreen() {
     router.back();
   };
 
+  const handleCreateNew = () => {
+    setShowCreateModal(true);
+  };
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+  };
+
+  const handleEdit = (id: number) => {
+    setSelectedIncidentTypeId(id);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedIncidentTypeId(null);
+  };
+
   const getSeverityInfo = (severity: IncidentSeverity) => {
     switch (severity) {
-      case 'Critical':
+      case 'Urgent':
         return {
           color: '#dc2626',
           bgColor: '#fef2f2',
@@ -167,6 +200,15 @@ export default function IncidentTypesScreen() {
 
               <Text className="text-xs text-gray-400">#{item.id}</Text>
             </View>
+
+            {/* Edit Button */}
+            <TouchableOpacity
+              onPress={() => handleEdit(item.id)}
+              className="ml-3 rounded-full bg-gray-100 p-2"
+              activeOpacity={0.7}
+            >
+              <Edit3 size={16} color="#6b7280" />
+            </TouchableOpacity>
           </View>
 
           {/* Tags cho Quarantine và Breeding */}
@@ -247,23 +289,31 @@ export default function IncidentTypesScreen() {
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row items-center">
+            <View className="flex-row items-center space-x-3">
               <View className="rounded-full bg-white/20 px-3 py-1">
                 <Text className="text-sm font-semibold text-white">
                   {filteredTypes.length} loại
                 </Text>
               </View>
+
+              <TouchableOpacity
+                onPress={handleCreateNew}
+                className="rounded-full bg-white/20 p-2.5"
+                activeOpacity={0.8}
+              >
+                <Plus size={20} color="white" />
+              </TouchableOpacity>
             </View>
           </View>
 
           {/* Search Bar */}
-          <View className="mt-4 flex-row items-center rounded-2xl bg-white/90 px-4 py-3">
+          <View className="mt-4 flex-row items-center rounded-2xl bg-white/90 px-4 py-1">
             <Search size={20} color="#6b7280" />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Tìm kiếm loại sự cố..."
-              className="ml-3 flex-1 text-gray-900"
+              className="ml-3 flex-1 p-1 text-gray-900"
               placeholderTextColor="#9ca3af"
             />
           </View>
@@ -394,6 +444,20 @@ export default function IncidentTypesScreen() {
           ListEmptyComponent={renderEmpty}
         />
       )}
+
+      {/* Edit Modal */}
+      {showEditModal && selectedIncidentTypeId && (
+        <EditIncidentTypeModal
+          incidentTypeId={selectedIncidentTypeId}
+          visible={showEditModal}
+          onClose={handleCloseEditModal}
+        />
+      )}
+      {/* 5. THÊM MODAL MỚI VÀO ĐÂY */}
+      <CreateIncidentTypeModal
+        visible={showCreateModal}
+        onClose={handleCloseCreateModal}
+      />
     </SafeAreaView>
   );
 }

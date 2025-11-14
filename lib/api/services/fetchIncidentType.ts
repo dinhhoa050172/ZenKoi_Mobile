@@ -4,7 +4,7 @@ export enum IncidentSeverity {
   LOW = 'Low',
   MEDIUM = 'Medium',
   HIGH = 'High',
-  CRITICAL = 'Critical',
+  CRITICAL = 'Urgent',
 }
 
 export interface IncidentType {

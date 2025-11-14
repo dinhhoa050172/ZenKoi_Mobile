@@ -1,19 +1,19 @@
-import CreateIncidentModal from '@/components/incidents/CreateIncidentModal';
 import IncidentCard from '@/components/incidents/IncidentCard';
-import IncidentDetailModal from '@/components/incidents/IncidentDetailModal';
 import Loading from '@/components/Loading';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useGetIncidents } from '@/hooks/useIncident';
 import { Incident, IncidentSeverity } from '@/lib/api/services/fetchIncident';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   BarChart3,
   ChevronRight,
-  Filter,
+  Layers,
   Plus,
   Search,
   Shield,
   TrendingUp,
+  X,
   Zap,
 } from 'lucide-react-native';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -29,15 +29,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function IncidentsScreen() {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedIncidentId, setSelectedIncidentId] = useState<number | null>(
-    null
-  );
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Debounced search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   const { data, refetch, isRefetching, isLoading } = useGetIncidents(true, {
-    Search: searchQuery,
+    Search: debouncedSearchQuery,
     pageSize: 20,
   });
 
@@ -75,11 +74,6 @@ export default function IncidentsScreen() {
     });
   };
 
-  const handleCloseDetailModal = () => {
-    setShowDetailModal(false);
-    setSelectedIncidentId(null);
-  };
-
   const renderIncident = ({ item }: { item: Incident }) => (
     <IncidentCard incident={item} onPress={() => handleIncidentPress(item)} />
   );
@@ -88,7 +82,7 @@ export default function IncidentsScreen() {
     if (isLoading) return null;
 
     return (
-      <View className="flex-1 items-center justify-center px-6 py-12">
+      <View className="flex-1 items-center justify-center overflow-hidden rounded-2xl px-6 py-12">
         <LinearGradient
           colors={['#f0f9ff', '#e0f2fe']}
           className="mb-6 h-24 w-24 items-center justify-center rounded-full"
@@ -105,8 +99,9 @@ export default function IncidentsScreen() {
         </Text>
         {!searchQuery && (
           <TouchableOpacity
-            onPress={() => setShowCreateModal(true)}
+            onPress={() => router.push('/(home)/incidents/create')}
             activeOpacity={0.8}
+            className="overflow-hidden rounded-2xl"
           >
             <LinearGradient
               colors={['#3b82f6', '#1d4ed8']}
@@ -131,7 +126,7 @@ export default function IncidentsScreen() {
     icon: React.ReactElement,
     colors: readonly [string, string]
   ) => (
-    <View className="mx-1 flex-1">
+    <View className="mx-1 flex-1 overflow-hidden rounded-2xl">
       <LinearGradient
         colors={colors}
         className="rounded-2xl p-4"
@@ -176,10 +171,7 @@ export default function IncidentsScreen() {
               activeOpacity={0.8}
             >
               <View className="flex-row items-center">
-                <Filter size={20} color="white" />
-                <Text className="ml-2 font-semibold text-white">
-                  Loại sự cố
-                </Text>
+                <Layers size={20} color="white" />
                 <ChevronRight size={16} color="white" />
               </View>
             </TouchableOpacity>
@@ -209,13 +201,13 @@ export default function IncidentsScreen() {
 
           {/* Search Bar */}
           <View className="relative">
-            <View className="flex-row items-center rounded-2xl bg-white/90 px-4 py-4">
+            <View className="flex-row items-center rounded-2xl bg-white/90 px-4 py-2">
               <Search size={20} color="#6b7280" />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Tìm kiếm sự cố..."
-                className="ml-3 flex-1 text-base text-gray-900"
+                className="ml-3 flex-1 p-2 text-base text-gray-900"
                 placeholderTextColor="#9ca3af"
               />
               {searchQuery.length > 0 && (
@@ -223,7 +215,7 @@ export default function IncidentsScreen() {
                   onPress={() => setSearchQuery('')}
                   className="ml-2 rounded-full bg-gray-200 p-1"
                 >
-                  <Text className="text-xs text-gray-600">✕</Text>
+                  <X size={16} color="#6b7280" />
                 </TouchableOpacity>
               )}
             </View>
@@ -233,12 +225,7 @@ export default function IncidentsScreen() {
         {/* Incidents List */}
         {isLoading ? (
           <View className="flex-1 items-center justify-center">
-            <View className="rounded-2xl bg-white p-8 shadow-lg">
-              <Loading />
-              <Text className="mt-4 text-center text-base font-medium text-gray-600">
-                Đang tải dữ liệu sự cố...
-              </Text>
-            </View>
+            <Loading />
           </View>
         ) : (
           <FlatList
@@ -267,9 +254,9 @@ export default function IncidentsScreen() {
         )}
 
         {/* Enhanced Floating Action Button */}
-        <View className="absolute bottom-6 right-6">
+        <View className="absolute bottom-6 right-6 overflow-hidden rounded-full">
           <TouchableOpacity
-            onPress={() => setShowCreateModal(true)}
+            onPress={() => router.push('/(home)/incidents/create')}
             activeOpacity={0.8}
             style={{
               shadowColor: '#3b82f6',
@@ -281,7 +268,7 @@ export default function IncidentsScreen() {
           >
             <LinearGradient
               colors={['#3b82f6', '#1d4ed8']}
-              className="h-16 w-16 items-center justify-center rounded-full"
+              className="h-16 w-16 items-center justify-center overflow-hidden rounded-full"
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
@@ -289,19 +276,6 @@ export default function IncidentsScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-
-        {/* Create Incident Modal */}
-        <CreateIncidentModal
-          visible={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-        />
-
-        {/* Incident Detail Modal */}
-        <IncidentDetailModal
-          visible={showDetailModal}
-          onClose={handleCloseDetailModal}
-          incidentId={selectedIncidentId}
-        />
       </SafeAreaView>
     </>
   );

@@ -16,29 +16,32 @@ export enum IncidentStatus {
 }
 
 export enum KoiAffectedStatus {
-  Exposed = 'Exposed',
-  Infected = 'Infected',
-  Recovered = 'Recovered',
-  Deceased = 'Deceased',
+  HEALTHY = 'Healthy',
+  WARNING = 'Warning',
+  WEAK = 'Weak',
+  SICK = 'Sick',
+  DEAD = 'Dead',
 }
 
 export interface KoiIncident {
-  id: number;
   koiFishId: number;
   koiFishRFID: string;
   affectedStatus: KoiAffectedStatus;
   specificSymptoms: string;
   requiresTreatment: boolean;
   isIsolated: boolean;
+  treatmentNotes: string;
+  affectedFrom: string;
 }
 
 export interface PondIncident {
-  id: number;
   pondId: number;
   pondName: string;
   environmentalChanges: string;
   requiresWaterChange: boolean;
   fishDiedCount: number;
+  correctiveActions: string;
+  notes: string;
 }
 
 export interface Incident {
@@ -53,9 +56,9 @@ export interface Incident {
   createdAt: string;
   updatedAt: string | null;
   resolvedAt: string | null;
-  reportedByUserId: number;
+  // reportedByUserId: number;
   reportedByUserName: string;
-  resolvedByUserId: number | null;
+  // resolvedByUserId: number | null;
   resolvedByUserName: string | null;
   resolutionNotes: string | null;
   koiIncidents: KoiIncident[];
@@ -108,6 +111,8 @@ export interface RequestIncident {
   occurredAt: string;
   status?: string;
   resolutionNotes?: string;
+  affectedKoiFish?: KoiIncident[];
+  affectedPonds?: PondIncident[];
 }
 
 export interface IncidentResolutionRequest {
@@ -180,7 +185,7 @@ export const incidentServices = {
     const response = await apiService.post<
       IncidentResponse,
       Omit<KoiIncident, 'id'>
-    >(`/api/Incident/koi/${id}`, koiIncident);
+    >(`/api/Incident/${id}/koi`, koiIncident);
     return response.data;
   },
 
@@ -192,7 +197,7 @@ export const incidentServices = {
     const response = await apiService.post<
       IncidentResponse,
       Omit<PondIncident, 'id'>
-    >(`/api/Incident/pond/${id}`, pondIncident);
+    >(`/api/Incident/${id}/pond`, pondIncident);
     return response.data;
   },
 

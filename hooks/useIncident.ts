@@ -220,14 +220,14 @@ export function useCreateIncidentWithKoi() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      koiId,
+      Id,
       koiIncident,
     }: {
-      koiId: number;
+      Id: number;
       koiIncident: Omit<KoiIncident, 'id'>;
     }) => {
       const resp = await incidentServices.createIncidentWithKoi(
-        koiId,
+        Id,
         koiIncident
       );
       if (!resp.isSuccess)
@@ -261,14 +261,14 @@ export function useCreateIncidentWithPond() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      pondId,
+      Id,
       pondIncident,
     }: {
-      pondId: number;
+      Id: number;
       pondIncident: Omit<PondIncident, 'id'>;
     }) => {
       const resp = await incidentServices.createIncidentWithPond(
-        pondId,
+        Id,
         pondIncident
       );
       if (!resp.isSuccess)
