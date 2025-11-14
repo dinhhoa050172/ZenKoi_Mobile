@@ -25,17 +25,17 @@ export enum FishSize {
   OVER50CM = 'Over50cm', // Trên 50 cm
 }
 
-export enum KoiPatternType {
-  NONE = 'None', // Không xác định
-  TANCHO = 'Tancho', // Đốm đỏ giữa đầu
-  MARUTEN = 'Maruten', // Đốm đầu + thân
-  NIDAN = 'Nidan', // 2 đốm đỏ
-  SANDAN = 'Sandan', // 3 đốm đỏ
-  INAZUMA = 'Inazuma', // Dải đỏ hình tia sét
-  STRAIGHT_HI = 'StraightHi', // Dải đỏ liền thân
-  MENKABURI = 'Menkaburi', // Đầu đỏ toàn phần
-  BOZU = 'Bozu', // Đầu trắng
-}
+// export enum KoiPatternType {
+//   NONE = 'None', // Không xác định
+//   TANCHO = 'Tancho', // Đốm đỏ giữa đầu
+//   MARUTEN = 'Maruten', // Đốm đầu + thân
+//   NIDAN = 'Nidan', // 2 đốm đỏ
+//   SANDAN = 'Sandan', // 3 đốm đỏ
+//   INAZUMA = 'Inazuma', // Dải đỏ hình tia sét
+//   STRAIGHT_HI = 'StraightHi', // Dải đỏ liền thân
+//   MENKABURI = 'Menkaburi', // Đầu đỏ toàn phần
+//   BOZU = 'Bozu', // Đầu trắng
+// }
 
 export enum KoiType {
   HIGH = 'High',
@@ -49,13 +49,13 @@ export enum SaleStatus {
   SOLD = 'Sold', // Đã bán
 }
 
-export enum MutationType {
-  NONE = 'None',
-  DOITSU = 'Doitsu', // Koi không vảy
-  GINRIN = 'GinRin', // Vảy ánh kim
-  HIRENAGA = 'Hirenaga', // Đuôi dài (Butterfly Koi)
-  METALLIC = 'Metallic', // Ánh kim toàn thân
-}
+// export enum MutationType {
+//   NONE = 'None',
+//   DOITSU = 'Doitsu', // Koi không vảy
+//   GINRIN = 'GinRin', // Vảy ánh kim
+//   HIRENAGA = 'Hirenaga', // Đuôi dài (Butterfly Koi)
+//   METALLIC = 'Metallic', // Ánh kim toàn thân
+// }
 
 export interface KoiFishSearchParams {
   search?: string;
@@ -86,7 +86,7 @@ export interface KoiFish {
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
-  patternType: KoiPatternType;
+  patternType: string | null;
   saleStatus: SaleStatus;
   images: string[];
   videos: string[];
@@ -94,7 +94,7 @@ export interface KoiFish {
   description: string;
   origin: string | null;
   isMutated: boolean;
-  mutationType: MutationType;
+  mutationType: string | null;
   mutationRate: number;
   createdAt: string;
   updatedAt: string | null;
@@ -111,6 +111,20 @@ export interface KoiFish {
   breedingProcess: BreedingProcess | null;
 }
 
+export interface KoiFishHealth {
+  id: number;
+  incidentId: number;
+  koiFishId: number;
+  koiFishRFID: string;
+  affectedStatus: HealthStatus;
+  specificSymptoms: string;
+  requiresTreatment: boolean;
+  isIsolated: boolean;
+  affectedFrom: string;
+  recoveredAt: string | null;
+  treatmentNotes: string;
+}
+
 export interface KoiFishRequest {
   pondId: number;
   varietyId: number;
@@ -118,7 +132,7 @@ export interface KoiFishRequest {
   rfid: string;
   size: number;
   type: KoiType;
-  patternType: KoiPatternType;
+  patternType: string | null;
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
@@ -129,7 +143,7 @@ export interface KoiFishRequest {
   sellingPrice: number;
   description: string;
   isMutated: boolean;
-  mutationType: MutationType;
+  mutationType: string | null;
 }
 
 export interface KoiFishPagination {
@@ -169,6 +183,13 @@ export interface KoiFishFamilyResponse {
   isSuccess: boolean;
   message: string;
   result: KoiFishFamily;
+}
+
+export interface KoiFishHealthResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiFishHealth[];
 }
 
 // Convert KoiFishSearchParams to RequestParams
@@ -219,10 +240,28 @@ export const koiFishServices = {
     return response.data;
   },
 
+  // Get Koi Fish by RFID
+  getKoiFishByRFID: async (rfid: string): Promise<KoiFishResponse> => {
+    const response = await apiService.get<KoiFishResponse>(
+      `/api/koifish/scan-rfid/${rfid}`
+    );
+    return response.data;
+  },
+
   // Get koi fish family by ID
   getKoiFishFamilyById: async (id: number): Promise<KoiFishFamilyResponse> => {
     const response = await apiService.get<KoiFishFamilyResponse>(
       `/api/koifish/family/${id}`
+    );
+    return response.data;
+  },
+
+  // Get koi fish health records by koi fish ID
+  getKoiFishHealthByKoiId: async (
+    koiFishId: number
+  ): Promise<KoiFishHealthResponse> => {
+    const response = await apiService.get<KoiFishHealthResponse>(
+      `/api/koiincident/koi/${koiFishId}/history`
     );
     return response.data;
   },

@@ -5,6 +5,7 @@ import {
   useUpdateWaterParameterRecord,
 } from '@/hooks/useWaterParameterRecord';
 import { formatISOWithLocalOffset } from '@/lib/utils/timezone';
+import { useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   AlertTriangle,
@@ -18,7 +19,7 @@ import {
   TestTube,
   Thermometer,
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Text,
@@ -46,6 +47,17 @@ export default function EditWaterParameterRecordScreen() {
 
   const updateMutation = useUpdateWaterParameterRecord();
   const insets = useSafeAreaInsets();
+
+  const scrollRef = useRef<any>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      try {
+        scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+      } catch {}
+      return undefined;
+    }, [])
+  );
 
   // form states
   const [phLevel, setPhLevel] = useState('7');
@@ -187,7 +199,7 @@ export default function EditWaterParameterRecordScreen() {
             <ArrowLeft size={20} color="white" />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-xs font-medium uppercase tracking-wide text-white/80">
+            <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
               Chỉnh sửa
             </Text>
             <Text className="text-xl font-bold text-white">
@@ -198,6 +210,7 @@ export default function EditWaterParameterRecordScreen() {
       </View>
 
       <KeyboardAwareScrollView
+        ref={scrollRef}
         className="flex-1 px-4"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -209,7 +222,7 @@ export default function EditWaterParameterRecordScreen() {
       >
         {/* Critical Parameters Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Thông số quan trọng
           </Text>
 
@@ -240,7 +253,7 @@ export default function EditWaterParameterRecordScreen() {
 
         {/* Water Quality Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Chất lượng nước
           </Text>
 
@@ -295,7 +308,7 @@ export default function EditWaterParameterRecordScreen() {
 
         {/* Other Parameters Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Thông số khác
           </Text>
 
@@ -326,7 +339,7 @@ export default function EditWaterParameterRecordScreen() {
 
         {/* Notes Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Ghi chú
           </Text>
 
@@ -336,7 +349,7 @@ export default function EditWaterParameterRecordScreen() {
                 <FileText size={18} color="#f59e0b" />
               </View>
               <View className="flex-1">
-                <Text className="mb-2 text-xs font-medium text-gray-600">
+                <Text className="mb-2 text-base font-medium text-gray-600">
                   Thêm ghi chú (tùy chọn)
                 </Text>
                 <TextInput
@@ -346,7 +359,7 @@ export default function EditWaterParameterRecordScreen() {
                   numberOfLines={4}
                   placeholder="Nhập ghi chú về tình trạng nước, cá, hoặc các quan sát khác..."
                   placeholderTextColor="#9ca3af"
-                  className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-900"
+                  className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-base text-gray-900"
                   style={{ textAlignVertical: 'top' }}
                 />
               </View>

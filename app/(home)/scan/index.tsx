@@ -1,9 +1,11 @@
+import { CustomAlert } from '@/components/CustomAlert';
+import { useGetKoiFishByRFID } from '@/hooks/useKoiFish';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { CheckCircle, Search, X, Zap } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Keyboard,
   Text,
   TextInput,
@@ -18,52 +20,87 @@ import {
 
 export default function ScanScreen() {
   const [code, setCode] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
+  const [rfidToSearch, setRfidToSearch] = useState('');
+  const koiQuery = useGetKoiFishByRFID(rfidToSearch, !!rfidToSearch);
 
-  // Simulate RFID scanning
-  const startRFIDScan = () => {
-    setIsScanning(true);
+  // Reset search input each time screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      setCode('');
+      setRfidToSearch('');
+      setIsLoading(false);
+      return () => {};
+    }, [])
+  );
 
-    // Simulate RFID scan delay
-    setTimeout(() => {
-      // Simulate scanned RFID code
-      const scannedCode = `RF${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
-      setCode(scannedCode);
-      setIsScanning(false);
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertTitle, setCustomAlertTitle] = useState('');
+  const [customAlertMessage, setCustomAlertMessage] = useState('');
+  const [customAlertType, setCustomAlertType] = useState<
+    'danger' | 'warning' | 'info'
+  >('danger');
+  const [customAlertOnConfirm, setCustomAlertOnConfirm] = useState<
+    (() => void) | undefined
+  >(() => undefined);
 
-      // Auto search after scan
-      handleSearch(scannedCode);
-    }, 2000);
+  const showCustomAlert = (opts: {
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }) => {
+    setCustomAlertTitle(opts.title);
+    setCustomAlertMessage(opts.message);
+    setCustomAlertType(opts.type ?? 'danger');
+    setCustomAlertOnConfirm(
+      () => opts.onConfirm ?? (() => setCustomAlertVisible(false))
+    );
+    setCustomAlertVisible(true);
   };
 
   const handleSearch = async (searchCode = code) => {
     if (!searchCode.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mã hoặc quét RFID');
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Vui lòng nhập mã hoặc quét RFID',
+        type: 'warning',
+      });
+      return;
+    }
+    setIsLoading(true);
+    Keyboard.dismiss();
+    setRfidToSearch(searchCode.trim());
+  };
+
+  useEffect(() => {
+    if (koiQuery.isFetching) {
+      setIsLoading(true);
       return;
     }
 
-    setIsLoading(true);
-    Keyboard.dismiss();
-
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Navigate to detail page with the code
-      router.push({
-        pathname: '/',
-        params: { code: searchCode },
-      });
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Lỗi', 'Không thể tìm kiếm. Vui lòng thử lại.');
-    } finally {
+    if (koiQuery.data) {
       setIsLoading(false);
+      const koi = koiQuery.data as any;
+      const id = koi?.id;
+      if (id) {
+        router.push({
+          pathname: '/koi/[id]',
+          params: { id: String(id), redirect: '/scan' },
+        });
+        setRfidToSearch('');
+      }
+    } else if (koiQuery.isError) {
+      setIsLoading(false);
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không tìm thấy cá Koi hoặc có lỗi khi tìm kiếm.',
+        type: 'danger',
+      });
     }
-  };
+  }, [koiQuery.data, koiQuery.isFetching, koiQuery.isError]);
 
   const clearInput = () => {
     setCode('');
@@ -76,18 +113,18 @@ export default function ScanScreen() {
         {/* Header */}
         <View className="border-b border-gray-200 bg-white shadow-sm">
           <View className="flex-row items-center justify-between p-4 pt-2">
+            <View className="w-10" />
+
+            <Text className="text-lg font-semibold text-gray-900">
+              Quét RFID
+            </Text>
+
             <TouchableOpacity
               onPress={() => router.back()}
               className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
             >
               <X size={20} color="red" />
             </TouchableOpacity>
-
-            <Text className="text-lg font-semibold text-gray-900">
-              Quét RFID
-            </Text>
-
-            <View className="w-10" />
           </View>
         </View>
 
@@ -184,7 +221,7 @@ export default function ScanScreen() {
                     Hướng dẫn sử dụng:
                   </Text>
                   <Text className="text-sm leading-5 text-primary/80">
-                    • Nhập mã thủ công vào ô input{'\n'}• Nhấn &quot;Tìm
+                    • Nhập mã thủ công vào ô tìm kiếm{'\n'}• Nhấn &quot;Tìm
                     kiếm&quot; để xem thông tin chi tiết của cá Koi
                   </Text>
                 </View>
@@ -193,6 +230,18 @@ export default function ScanScreen() {
           </View>
         </KeyboardAwareScrollView>
       </View>
+
+      <CustomAlert
+        visible={customAlertVisible}
+        title={customAlertTitle}
+        message={customAlertMessage}
+        type={customAlertType}
+        onCancel={() => setCustomAlertVisible(false)}
+        onConfirm={() => {
+          setCustomAlertVisible(false);
+          if (customAlertOnConfirm) customAlertOnConfirm();
+        }}
+      />
     </SafeAreaView>
   );
 }

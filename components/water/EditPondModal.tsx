@@ -4,7 +4,9 @@ import InputField from '@/components/InputField';
 import { useGetAreas } from '@/hooks/useArea';
 import { useGetPondById, useUpdatePond } from '@/hooks/usePond';
 import { useGetPondTypes } from '@/hooks/usePondType';
+import { useGetWaterParameterThresholds } from '@/hooks/useWaterParameterThreshold';
 import { PondRequest, PondStatus } from '@/lib/api/services/fetchPond';
+import { WaterParameterType } from '@/lib/api/services/fetchWaterParameterThreshold';
 import {
   AlertTriangle,
   Droplet,
@@ -21,7 +23,14 @@ import {
   X,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Loading from '../Loading';
@@ -105,6 +114,24 @@ export default function EditPondModal({
     pageIndex: 1,
     pageSize: 100,
   });
+
+  const thresholdsQuery = useGetWaterParameterThresholds(
+    {
+      pondTypeId: formData.pondTypeId ?? undefined,
+      pageIndex: 1,
+      pageSize: 100,
+    },
+    !!formData.pondTypeId
+  );
+
+  const thresholdMap = React.useMemo(() => {
+    const map: Record<string, { min: number; max: number }> = {};
+    const items = thresholdsQuery.data?.data ?? [];
+    items.forEach((it) => {
+      map[it.parameterName] = { min: it.minValue ?? 0, max: it.maxValue ?? 0 };
+    });
+    return map;
+  }, [thresholdsQuery.data]);
 
   const { data: areasData } = useGetAreas(true, {
     pageIndex: 1,
@@ -641,6 +668,15 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-blue-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v = thresholdMap[WaterParameterType.PH_LEVEL];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
                 <View className="ml-2 flex-1">
@@ -664,6 +700,18 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-sky-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[
+                                WaterParameterType.WATER_LEVEL_METERS
+                              ];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
               </View>
@@ -690,6 +738,18 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-rose-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[
+                                WaterParameterType.TEMPERATURE_CELSIUS
+                              ];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
                 <View className="ml-2 flex-1">
@@ -713,6 +773,16 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-emerald-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[WaterParameterType.OXYGEN_LEVEL];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
               </View>
@@ -739,6 +809,16 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-yellow-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[WaterParameterType.AMMONIA_LEVEL];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
                 <View className="ml-2 flex-1">
@@ -762,6 +842,16 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-violet-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[WaterParameterType.NITRITE_LEVEL];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
               </View>
@@ -788,6 +878,16 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-cyan-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[WaterParameterType.NITRATE_LEVEL];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
                 <View className="ml-2 flex-1">
@@ -811,6 +911,16 @@ export default function EditPondModal({
                       }));
                     }}
                     iconBg="bg-amber-100"
+                    editable={!!formData.pondTypeId}
+                    helper={
+                      formData.pondTypeId
+                        ? (() => {
+                            const v =
+                              thresholdMap[WaterParameterType.CARBON_HARDNESS];
+                            return v ? `Ngưỡng: ${v.min} - ${v.max}` : '';
+                          })()
+                        : 'Vui lòng chọn loại hồ trước'
+                    }
                   />
                 </View>
               </View>
@@ -851,12 +961,21 @@ export default function EditPondModal({
             onPress={handleSubmit}
             disabled={updatePondMutation.isPending}
           >
-            <Save size={20} color="white" />
-            <Text className="ml-2 text-lg font-semibold text-white">
-              {updatePondMutation.isPending
-                ? 'Đang cập nhật...'
-                : 'Cập nhật hồ'}
-            </Text>
+            {updatePondMutation.isPending ? (
+              <>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text className="ml-2 text-lg font-semibold text-white">
+                  Đang cập nhật...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Save size={20} color="white" />
+                <Text className="ml-2 text-lg font-semibold text-white">
+                  Cập nhật hồ
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
         <CustomAlert

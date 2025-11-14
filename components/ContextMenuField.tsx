@@ -19,6 +19,7 @@ export default function ContextMenuField({
   onSelect,
   placeholder,
   onPress,
+  disabled,
 }: {
   label: string;
   value?: string | undefined;
@@ -26,7 +27,9 @@ export default function ContextMenuField({
   onSelect: (v: string) => void;
   placeholder?: string;
   onPress?: () => void;
+  disabled?: boolean;
 }) {
+  const isDisabled = !!disabled;
   const [showDialog, setShowDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -45,6 +48,7 @@ export default function ContextMenuField({
   }, [options, searchQuery]);
 
   const handleOpen = () => {
+    if (isDisabled) return;
     onPress?.();
     setShowDialog(true);
     setSearchQuery('');
@@ -73,9 +77,10 @@ export default function ContextMenuField({
             value
               ? 'border-primary/30 bg-primary/5'
               : 'border-gray-200 bg-gray-50'
-          }`}
+          } ${isDisabled ? 'opacity-60' : ''}`}
           onPress={handleOpen}
           activeOpacity={0.7}
+          disabled={isDisabled}
         >
           <Text
             className={`flex-1 ${value ? 'font-medium text-gray-900' : 'text-gray-500'}`}
@@ -205,7 +210,7 @@ export default function ContextMenuField({
                           {option.meta && (
                             <Text
                               className="mt-1 text-sm text-gray-500"
-                              numberOfLines={1}
+                              // numberOfLines={2}
                             >
                               {option.meta}
                             </Text>

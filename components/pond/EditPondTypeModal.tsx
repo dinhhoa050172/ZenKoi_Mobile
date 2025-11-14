@@ -11,6 +11,7 @@ import { PondTypeRequest, TypeOfPond } from '@/lib/api/services/fetchPondType';
 import {
   WaterParameterThreshold,
   WaterParameterThresholdRequest,
+  WaterParameterType,
 } from '@/lib/api/services/fetchWaterParameterThreshold';
 import {
   AlertTriangle,
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   ScrollView,
   Text,
@@ -103,71 +105,79 @@ export default function EditPondTypeModal({
 
   // Water parameter thresholds state
   const parameterKeys = [
-    'phLevel',
-    'temperatureCelsius',
-    'oxygenLevel',
-    'ammoniaLevel',
-    'nitriteLevel',
-    'nitrateLevel',
-    'carbonHardness',
-    'waterLevelMeters',
+    WaterParameterType.PH_LEVEL,
+    WaterParameterType.TEMPERATURE_CELSIUS,
+    WaterParameterType.OXYGEN_LEVEL,
+    WaterParameterType.AMMONIA_LEVEL,
+    WaterParameterType.NITRITE_LEVEL,
+    WaterParameterType.NITRATE_LEVEL,
+    WaterParameterType.CARBON_HARDNESS,
+    WaterParameterType.WATER_LEVEL_METERS,
   ] as const;
   type ParamKey = (typeof parameterKeys)[number];
 
   const getDefaultThresholds = () => {
-    const obj: Record<string, { min: number; max: number }> = {};
+    const obj: Record<string, { min: string; max: string }> = {};
     parameterKeys.forEach((k) => {
-      obj[k] = { min: 0, max: 0 };
+      obj[k] = { min: '', max: '' };
     });
-    return obj as Record<ParamKey, { min: number; max: number }>;
+    return obj as Record<ParamKey, { min: string; max: string }>;
   };
 
   const [thresholds, setThresholds] = useState<
-    Record<ParamKey, { min: number; max: number }>
+    Record<ParamKey, { min: string; max: string }>
   >(getDefaultThresholds());
 
   const paramLabels: Record<ParamKey, string> = {
-    phLevel: 'pH',
-    temperatureCelsius: 'Nhiệt độ (°C)',
-    oxygenLevel: 'Độ oxy (mg/L)',
-    ammoniaLevel: 'Amoni (NH3, mg/L)',
-    nitriteLevel: 'Nitrit (NO2-, mg/L)',
-    nitrateLevel: 'Nitrat (NO3-, mg/L)',
-    carbonHardness: 'Độ cứng cacbonat (°dH)',
-    waterLevelMeters: 'Mực nước (m)',
+    [WaterParameterType.PH_LEVEL]: 'pH',
+    [WaterParameterType.TEMPERATURE_CELSIUS]: 'Nhiệt độ (°C)',
+    [WaterParameterType.OXYGEN_LEVEL]: 'Độ oxy (mg/L)',
+    [WaterParameterType.AMMONIA_LEVEL]: 'Amoni (NH3, mg/L)',
+    [WaterParameterType.NITRITE_LEVEL]: 'Nitrit (NO2-, mg/L)',
+    [WaterParameterType.NITRATE_LEVEL]: 'Nitrat (NO3-, mg/L)',
+    [WaterParameterType.CARBON_HARDNESS]: 'Độ cứng cacbonat (°dH)',
+    [WaterParameterType.WATER_LEVEL_METERS]: 'Mực nước (m)',
   };
 
   const paramUnits: Record<ParamKey, string> = {
-    phLevel: '',
-    temperatureCelsius: '°C',
-    oxygenLevel: 'mg/L',
-    ammoniaLevel: 'mg/L',
-    nitriteLevel: 'mg/L',
-    nitrateLevel: 'mg/L',
-    carbonHardness: '°dH',
-    waterLevelMeters: 'm',
+    [WaterParameterType.PH_LEVEL]: '',
+    [WaterParameterType.TEMPERATURE_CELSIUS]: '°C',
+    [WaterParameterType.OXYGEN_LEVEL]: 'mg/L',
+    [WaterParameterType.AMMONIA_LEVEL]: 'mg/L',
+    [WaterParameterType.NITRITE_LEVEL]: 'mg/L',
+    [WaterParameterType.NITRATE_LEVEL]: 'mg/L',
+    [WaterParameterType.CARBON_HARDNESS]: '°dH',
+    [WaterParameterType.WATER_LEVEL_METERS]: 'm',
   };
 
   const paramIcons: Record<ParamKey, React.ReactElement> = {
-    phLevel: <FlaskConical size={16} color="#3b82f6" />,
-    temperatureCelsius: <Thermometer size={16} color="#ef4444" />,
-    oxygenLevel: <Droplet size={16} color="#06b6d4" />,
-    ammoniaLevel: <AlertTriangle size={16} color="#eab308" />,
-    nitriteLevel: <Microscope size={16} color="#a855f7" />,
-    nitrateLevel: <TestTube size={16} color="#6366f1" />,
-    carbonHardness: <Ruler size={16} color="#6b7280" />,
-    waterLevelMeters: <Ruler size={16} color="#3b82f6" />,
+    [WaterParameterType.PH_LEVEL]: <FlaskConical size={16} color="#3b82f6" />,
+    [WaterParameterType.TEMPERATURE_CELSIUS]: (
+      <Thermometer size={16} color="#ef4444" />
+    ),
+    [WaterParameterType.OXYGEN_LEVEL]: <Droplet size={16} color="#06b6d4" />,
+    [WaterParameterType.AMMONIA_LEVEL]: (
+      <AlertTriangle size={16} color="#eab308" />
+    ),
+    [WaterParameterType.NITRITE_LEVEL]: (
+      <Microscope size={16} color="#a855f7" />
+    ),
+    [WaterParameterType.NITRATE_LEVEL]: <TestTube size={16} color="#6366f1" />,
+    [WaterParameterType.CARBON_HARDNESS]: <Ruler size={16} color="#6b7280" />,
+    [WaterParameterType.WATER_LEVEL_METERS]: (
+      <Ruler size={16} color="#3b82f6" />
+    ),
   };
 
   const paramIconBgs: Record<ParamKey, string> = {
-    phLevel: 'bg-blue-100',
-    temperatureCelsius: 'bg-red-100',
-    oxygenLevel: 'bg-cyan-100',
-    ammoniaLevel: 'bg-yellow-100',
-    nitriteLevel: 'bg-purple-100',
-    nitrateLevel: 'bg-indigo-100',
-    carbonHardness: 'bg-gray-100',
-    waterLevelMeters: 'bg-blue-100',
+    [WaterParameterType.PH_LEVEL]: 'bg-blue-100',
+    [WaterParameterType.TEMPERATURE_CELSIUS]: 'bg-red-100',
+    [WaterParameterType.OXYGEN_LEVEL]: 'bg-cyan-100',
+    [WaterParameterType.AMMONIA_LEVEL]: 'bg-yellow-100',
+    [WaterParameterType.NITRITE_LEVEL]: 'bg-purple-100',
+    [WaterParameterType.NITRATE_LEVEL]: 'bg-indigo-100',
+    [WaterParameterType.CARBON_HARDNESS]: 'bg-gray-100',
+    [WaterParameterType.WATER_LEVEL_METERS]: 'bg-blue-100',
   };
 
   const thresholdsQuery = useGetWaterParameterThresholds(
@@ -186,17 +196,19 @@ export default function EditPondTypeModal({
   const updateWaterParameterThreshold = useUpdateWaterParameterThreshold();
   const deleteWaterParameterThreshold = useDeleteWaterParameterThreshold();
 
-  // Prefill thresholds when loaded
+  // Prefill thresholds when loaded (store as strings so user can edit decimals)
   useEffect(() => {
     if (thresholdsQuery.data && visible) {
       const items = thresholdsQuery.data.data ?? [];
-      const map: any = getDefaultThresholds();
+      const map: Record<ParamKey, { min: string; max: string }> =
+        getDefaultThresholds();
       items.forEach((it) => {
-        const key = (Object.keys(paramLabels) as ParamKey[]).find(
-          (k) => it.parameterName === paramLabels[k] || it.parameterName === k
-        );
+        const key = parameterKeys.find((k) => it.parameterName === k);
         if (key) {
-          map[key] = { min: it.minValue, max: it.maxValue };
+          map[key] = {
+            min: String(it.minValue ?? ''),
+            max: String(it.maxValue ?? ''),
+          };
         }
       });
       setThresholds(map);
@@ -228,6 +240,24 @@ export default function EditPondTypeModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Sanitize decimal input string and parse value helpers
+  const sanitizeDecimalString = (text: string) => {
+    if (!text) return '';
+    let s = text.replace(',', '.');
+    s = s.replace(/[^0-9.]/g, '');
+    const firstDot = s.indexOf('.');
+    if (firstDot !== -1) {
+      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+    }
+    return s;
+  };
+
+  const parseDecimalValue = (text: string) => {
+    const s = sanitizeDecimalString(text);
+    if (!s || s === '.') return 0;
+    return parseFloat(s) || 0;
+  };
+
   const handleClose = () => {
     resetForm();
     onClose();
@@ -243,27 +273,35 @@ export default function EditPondTypeModal({
       return false;
     }
     if (!formData.recommendedQuantity || formData.recommendedQuantity <= 0) {
-      showAlert('Lỗi', 'Vui lòng nhập số lượng khuyến nghị tối đa hợp lệ');
+      showAlert('Lỗi', 'Vui lòng nhập số lượng khuyến nghị tối đa lớn hơn 0');
       return false;
     }
+    // Require every parameter threshold pair to be filled and valid
+    for (const key of Object.keys(thresholds) as ParamKey[]) {
+      const minStr = (thresholds[key].min ?? '').toString().trim();
+      const maxStr = (thresholds[key].max ?? '').toString().trim();
+
+      if (!minStr || !maxStr) {
+        showAlert('Lỗi', `Vui lòng nhập Min và Max cho ${paramLabels[key]}`);
+        return false;
+      }
+
+      const minVal = parseDecimalValue(minStr);
+      const maxVal = parseDecimalValue(maxStr);
+      if (!(minVal < maxVal)) {
+        showAlert(
+          'Lỗi',
+          `Ngưỡng không hợp lệ: giá trị nhỏ nhất của ${paramLabels[key]} phải nhỏ hơn giá trị lớn nhất`
+        );
+        return false;
+      }
+    }
+
     return true;
   };
 
   const handleSubmit = async () => {
     if (!validateForm() || !pondTypeId) return;
-
-    for (const key of Object.keys(thresholds) as ParamKey[]) {
-      const { min, max } = thresholds[key];
-      if (min !== 0 || max !== 0) {
-        if (!(min < max)) {
-          showAlert(
-            'Lỗi',
-            `Ngưỡng không hợp lệ: giá trị nhỏ nhất của ${paramLabels[key]} phải nhỏ hơn giá trị lớn nhất`
-          );
-          return;
-        }
-      }
-    }
 
     setIsSubmitting(true);
 
@@ -292,23 +330,25 @@ export default function EditPondTypeModal({
       try {
         for (const key of Object.keys(thresholds) as ParamKey[]) {
           const t = thresholds[key];
-          const paramKey = key as string;
-          const found = existing.find(
-            (e) =>
-              e.parameterName === paramKey ||
-              e.parameterName === paramLabels[key]
-          );
+          const paramKey = key as ParamKey;
+          const found = existing.find((e) => e.parameterName === paramKey);
+
+          const minStr = (t.min ?? '').toString().trim();
+          const maxStr = (t.max ?? '').toString().trim();
+
+          if (!minStr && !maxStr) continue;
 
           let needsChange = false;
           if (found) {
             const unitChanged = (found.unit ?? '') !== (paramUnits[key] ?? '');
             const minChanged =
-              Number(found.minValue ?? 0) !== Number(t.min ?? 0);
+              Number(found.minValue ?? 0) !== parseDecimalValue(t.min);
             const maxChanged =
-              Number(found.maxValue ?? 0) !== Number(t.max ?? 0);
+              Number(found.maxValue ?? 0) !== parseDecimalValue(t.max);
             needsChange = unitChanged || minChanged || maxChanged;
           } else {
-            needsChange = Number(t.min ?? 0) !== 0 || Number(t.max ?? 0) !== 0;
+            needsChange =
+              parseDecimalValue(t.min) !== 0 || parseDecimalValue(t.max) !== 0;
           }
 
           if (!needsChange) {
@@ -318,8 +358,8 @@ export default function EditPondTypeModal({
           const payload: WaterParameterThresholdRequest = {
             parameterName: paramKey,
             unit: paramUnits[key],
-            minValue: t.min,
-            maxValue: t.max,
+            minValue: parseDecimalValue(t.min),
+            maxValue: parseDecimalValue(t.max),
             pondTypeId: pondTypeIdResp,
           };
 
@@ -620,20 +660,20 @@ export default function EditPondTypeModal({
                                   (
                                     prev: Record<
                                       ParamKey,
-                                      { min: number; max: number }
+                                      { min: string; max: string }
                                     >
                                   ) => ({
                                     ...prev,
                                     [key]: {
                                       ...prev[key],
-                                      min: parseFloat(text) || 0,
+                                      min: sanitizeDecimalString(text),
                                     },
                                   })
                                 )
                               }
                               placeholderTextColor="#9ca3af"
                               className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-base font-medium text-gray-900"
-                              keyboardType="numeric"
+                              keyboardType="decimal-pad"
                             />
                           </View>
                           <View className="ml-2 flex-1">
@@ -646,20 +686,20 @@ export default function EditPondTypeModal({
                                   (
                                     prev: Record<
                                       ParamKey,
-                                      { min: number; max: number }
+                                      { min: string; max: string }
                                     >
                                   ) => ({
                                     ...prev,
                                     [key]: {
                                       ...prev[key],
-                                      max: parseFloat(text) || 0,
+                                      max: sanitizeDecimalString(text),
                                     },
                                   })
                                 )
                               }
                               placeholderTextColor="#9ca3af"
                               className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-base font-medium text-gray-900"
-                              keyboardType="numeric"
+                              keyboardType="decimal-pad"
                             />
                           </View>
                         </View>
@@ -682,10 +722,21 @@ export default function EditPondTypeModal({
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
-            <Save size={20} color="white" />
-            <Text className="ml-2 text-lg font-semibold text-white">
-              {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật loại hồ'}
-            </Text>
+            {isSubmitting ? (
+              <>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text className="ml-2 text-lg font-semibold text-white">
+                  Đang cập nhật...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Save size={20} color="white" />
+                <Text className="ml-2 text-lg font-semibold text-white">
+                  Cập nhật loại hồ
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
         <CustomAlert

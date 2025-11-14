@@ -253,7 +253,7 @@ export default function KoiManagementScreen() {
     <>
       <SafeAreaView className="flex-1 bg-gray-50">
         {/* Header */}
-        <View className="bg-primary pb-6">
+        <View className="rounded-t-2xl bg-primary pb-6">
           <View className="px-4 pt-2">
             <View className="mb-4 mt-2 flex-row items-center justify-between">
               <View>
@@ -309,15 +309,15 @@ export default function KoiManagementScreen() {
 
         {/* Filter Bar */}
         <View className="flex-row items-center justify-between bg-white px-4 py-3 shadow-sm">
-          <Text className="text-sm font-medium text-gray-700">
+          <Text className="text-base font-medium text-gray-700">
             {koiList.length} cá Koi
           </Text>
           <TouchableOpacity
             className="flex-row items-center rounded-full bg-gray-100 px-4 py-2"
             onPress={() => setShowFilterSheet(true)}
           >
-            <Filter size={16} color="#6b7280" />
-            <Text className="ml-2 text-sm font-medium text-gray-700">
+            <Filter size={18} color="#6b7280" />
+            <Text className="ml-2 text-base font-medium text-gray-700">
               Bộ lọc
             </Text>
             {activeFiltersCount > 0 && (
@@ -431,111 +431,206 @@ export default function KoiManagementScreen() {
           }}
           renderItem={({ item: koi }) => {
             const healthColors = getHealthColor(koi.healthStatus);
+
             return (
-              <View className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
-                <View className="p-4">
-                  <View className="flex-row">
-                    {/* Image */}
-                    {koi.images && koi.images.length > 0 ? (
-                      <Image
-                        source={{ uri: koi.images[0] }}
-                        style={{
-                          width: 120,
-                          height: 120,
-                          borderRadius: 16,
-                        }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View className="h-[120px] w-[120px] items-center justify-center rounded-2xl bg-gray-100">
-                        <Fish size={40} color="#9ca3af" />
-                      </View>
-                    )}
-
-                    {/* Fish Info */}
-                    <View className="ml-4 flex-1">
-                      <Text className="mb-1 text-lg font-bold text-gray-900">
-                        {koi.rfid}
-                      </Text>
-
-                      {/* Variety */}
-                      <View className="mb-2 flex-row items-center">
-                        <View className="rounded-full bg-purple-100 px-2 py-1">
-                          <Text className="text-sm font-medium text-purple-700">
-                            {koi.variety?.varietyName}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Pond */}
-                      <View className="mb-2 flex-row items-center">
-                        <View className="mr-1 h-5 w-5 items-center justify-center rounded-full bg-blue-100">
-                          <PondSvg size={12} color="#3b82f6" />
-                        </View>
-                        <Text className="text-sm text-gray-600">
-                          {koi.pond?.pondName ?? 'Chưa có hồ'}
-                        </Text>
-                      </View>
-
-                      {/* Size & Age */}
-                      <View className="flex-row">
-                        <View className="mr-3 flex-row items-center">
-                          <Ruler size={14} color="#6b7280" />
-                          <Text className="ml-1 text-sm text-gray-600">
-                            {getSizeLabel(koi.size)}
-                          </Text>
-                        </View>
-                        <View className="flex-row items-center">
-                          <Calendar size={14} color="#6b7280" />
-                          <Text className="ml-1 text-sm text-gray-600">
-                            {formatKoiAge(koi.birthDate)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Health Status Badge */}
-                      <View className="mt-2">
-                        <View
-                          className={`self-start rounded-full border ${healthColors.border} ${healthColors.bg} px-3 py-1`}
-                        >
-                          <Text
-                            className={`text-sm font-medium ${healthColors.text}`}
-                          >
-                            {healthToLabel(koi.healthStatus)}
-                          </Text>
-                        </View>
-                      </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => router.push(`/koi/${koi.id}`)}
+                className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+              >
+                {/* Header with RFID */}
+                <View className="flex-row items-center justify-between border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-3">
+                  <View className="flex-1 flex-row items-center">
+                    <View className="mr-2 rounded-full bg-blue-100 p-1.5">
+                      <FishSvg size={18} color="#3b82f6" />
                     </View>
+                    <Text
+                      className="flex-1 text-lg font-bold text-gray-900"
+                      numberOfLines={1}
+                    >
+                      {koi.rfid}
+                    </Text>
+                  </View>
+
+                  {/* Health Status Badge */}
+                  <View
+                    className={`rounded-full border px-3 py-1 ${healthColors.border} ${healthColors.bg}`}
+                  >
+                    <Text
+                      className={`text-sm font-semibold ${healthColors.text}`}
+                    >
+                      {healthToLabel(koi.healthStatus)}
+                    </Text>
                   </View>
                 </View>
 
-                {/* Action Buttons */}
-                <View className="flex-row border-t border-gray-100">
+                {/* Main Content */}
+                <View className="p-4">
+                  <View className="flex-row">
+                    {/* Image Section */}
+                    <View className="mr-4">
+                      {koi.images && koi.images.length > 0 ? (
+                        <Image
+                          source={{ uri: koi.images[0] }}
+                          style={{
+                            width: 150,
+                            height: 150,
+                            borderRadius: 16,
+                          }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View className="h-[150px] w-[150px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50">
+                          <Fish size={36} color="#d1d5db" strokeWidth={1.5} />
+                          <Text className="mt-1 text-xs text-gray-400">
+                            Không có ảnh
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Info Section */}
+                    <View className="flex-1">
+                      {/* Variety Badge */}
+                      <View className="mb-3 flex-row items-center">
+                        <View className="mr-2 rounded-full bg-purple-100 p-1">
+                          <FishSvg size={18} color="#a855f7" />
+                        </View>
+                        <View className="flex-1 rounded-2xl border border-purple-200 bg-purple-50 px-3 py-1.5">
+                          <Text
+                            className="text-base font-bold text-purple-700"
+                            numberOfLines={1}
+                          >
+                            {koi.variety?.varietyName || 'Chưa xác định'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Pond Location */}
+                      <View className="mb-3 flex-row items-center">
+                        <View className="mr-2 rounded-full bg-blue-50 p-1.5">
+                          <PondSvg size={18} color="#3b82f6" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-sm font-medium text-gray-500">
+                            Ao nuôi
+                          </Text>
+                          <Text
+                            className="text-base font-semibold text-gray-900"
+                            numberOfLines={1}
+                          >
+                            {koi.pond?.pondName || 'Chưa có ao'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Size & Age */}
+                      <View className="flex-col items-start">
+                        {/* Size */}
+                        <View className="mr-4 flex-1 flex-row items-center">
+                          <View className="mr-1.5 rounded-full bg-cyan-50 p-1">
+                            <Ruler
+                              size={16}
+                              color="#06b6d4"
+                              strokeWidth={2.5}
+                            />
+                          </View>
+                          <View>
+                            <Text className="text-sm text-gray-500">
+                              Kích thước
+                            </Text>
+                            <Text className="text-base font-bold text-gray-900">
+                              {getSizeLabel(koi.size)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Age */}
+                        <View className="mt-1 flex-1 flex-row items-center">
+                          <View className="mr-1.5 rounded-full bg-amber-50 p-1">
+                            <Calendar
+                              size={16}
+                              color="#f59e0b"
+                              strokeWidth={2.5}
+                            />
+                          </View>
+                          <View>
+                            <Text className="text-sm text-gray-500">Tuổi</Text>
+                            <Text className="text-base font-bold text-gray-900">
+                              {formatKoiAge(koi.birthDate)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Gender & Sale Status Row */}
+                      <View className="mt-3 flex-row items-center">
+                        {/* Gender Badge */}
+                        <View className="mr-2 rounded-2xl bg-gray-100 px-2 py-1">
+                          <Text className="text-sm font-medium text-gray-700">
+                            {genderToLabel(koi.gender)}
+                          </Text>
+                        </View>
+
+                        {/* Sale Status Badge */}
+                        {koi.saleStatus && (
+                          <View className="rounded-2xl bg-emerald-100 px-2 py-1">
+                            <Text className="text-sm font-medium text-emerald-700">
+                              {saleStatusToLabel(koi.saleStatus)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Additional Info Row (Optional) */}
+                  {koi.origin && (
+                    <View className="mt-3 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2">
+                      <MapPin size={18} color="#9ca3af" strokeWidth={2} />
+                      <Text className="ml-2 text-base text-gray-500">
+                        Xuất xứ:{' '}
+                      </Text>
+                      <Text
+                        className="flex-1 text-base font-medium text-gray-700"
+                        numberOfLines={1}
+                      >
+                        {koi.origin}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Action Footer */}
+                <View className="flex-row border-t border-gray-100 bg-gray-50/50">
                   <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center py-3"
+                    className="flex-1 flex-row items-center justify-center py-3.5 active:bg-blue-50"
                     onPress={() => router.push(`/koi/${koi.id}`)}
                   >
-                    <Eye size={18} color="#0A3D62" />
-                    <Text className="ml-2 text-sm font-medium text-primary">
-                      Xem
+                    <Eye size={18} color="#3b82f6" strokeWidth={2.5} />
+                    <Text className="ml-2 text-base font-semibold text-blue-600">
+                      Xem chi tiết
                     </Text>
                   </TouchableOpacity>
-                  <View className="w-px bg-gray-100" />
+
+                  <View className="w-px bg-gray-200" />
+
                   <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center py-3"
-                    onPress={() =>
+                    className="flex-1 flex-row items-center justify-center py-3.5 active:bg-gray-100"
+                    onPress={(e) => {
+                      e.stopPropagation();
                       router.push(
                         `/koi/edit?id=${koi.id}&redirect=${encodeURIComponent('/koi')}`
-                      )
-                    }
+                      );
+                    }}
                   >
-                    <Edit size={18} color="#6b7280" />
-                    <Text className="ml-2 text-sm font-medium text-gray-700">
-                      Sửa
+                    <Edit size={18} color="#6b7280" strokeWidth={2.5} />
+                    <Text className="ml-2 text-base font-semibold text-gray-700">
+                      Chỉnh sửa
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
           onEndReachedThreshold={0.5}

@@ -1,5 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import InputField from '@/components/InputField';
+import { useGetPondById } from '@/hooks/usePond';
 import { useCreateWaterParameterRecord } from '@/hooks/useWaterParameterRecord';
 import { formatISOWithLocalOffset } from '@/lib/utils/timezone';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,7 +17,7 @@ import {
   TestTube,
   Thermometer,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Text,
@@ -47,6 +48,9 @@ export default function CreateWaterParameterRecordScreen() {
   const [carbonHardness, setCarbonHardness] = useState<string | null>(null);
   const [waterLevelMeters, setWaterLevelMeters] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+
+  const pondQuery = useGetPondById(parsedPondId, !!parsedPondId);
+  const latestRecord = pondQuery.data?.record ?? null;
 
   const createMutation = useCreateWaterParameterRecord();
   const [alertVisible, setAlertVisible] = useState(false);
@@ -110,6 +114,8 @@ export default function CreateWaterParameterRecordScreen() {
     }
   };
 
+  const scrollRef = useRef<any>(null);
+
   // Reset form every time screen gains focus
   useFocusEffect(
     React.useCallback(() => {
@@ -122,6 +128,10 @@ export default function CreateWaterParameterRecordScreen() {
       setCarbonHardness(null);
       setWaterLevelMeters(null);
       setNotes('');
+      // scroll to top when screen focused
+      try {
+        scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+      } catch {}
       return undefined;
     }, [])
   );
@@ -146,7 +156,7 @@ export default function CreateWaterParameterRecordScreen() {
             <ArrowLeft size={20} color="white" />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-xs font-medium uppercase tracking-wide text-white/80">
+            <Text className="text-sm font-medium uppercase tracking-wide text-white/80">
               Thêm mới bản ghi
             </Text>
             <Text className="text-xl font-bold text-white">
@@ -157,6 +167,7 @@ export default function CreateWaterParameterRecordScreen() {
       </View>
 
       <KeyboardAwareScrollView
+        ref={scrollRef}
         className="flex-1 px-4"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -166,9 +177,112 @@ export default function CreateWaterParameterRecordScreen() {
           paddingTop: 16,
         }}
       >
+        {/* Current/latest parameters for this pond */}
+        <View className="mb-4">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+            Thông số hiện tại của hồ
+          </Text>
+
+          <View className="rounded-2xl border border-gray-200 bg-white p-4">
+            {pondQuery.isLoading ? (
+              <Text className="text-center text-sm text-gray-500">
+                Đang tải...
+              </Text>
+            ) : latestRecord ? (
+              <View className="-mx-2 flex-row flex-wrap">
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Độ pH</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.phLevel}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Nhiệt độ</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.temperatureCelsius} °C
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Oxy hòa tan</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.oxygenLevel} mg/L
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Amoniac - NH₃</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.ammoniaLevel} mg/L
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Nitrit - NO₂</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.nitriteLevel} mg/L
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Nitrate - NO₃</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.nitrateLevel} mg/L
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Độ cứng - KH</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.carbonHardness} °dH
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-3 w-1/2 px-2">
+                  <View className="relative rounded-2xl bg-gray-50 p-3">
+                    <Text className="text-sm text-gray-600">Mực nước (m)</Text>
+                    <Text className="text-lg font-bold">
+                      {latestRecord.waterLevelMeters} m
+                    </Text>
+                  </View>
+                </View>
+
+                {latestRecord.notes ? (
+                  <View className="w-full px-2">
+                    <View className="rounded-2xl bg-gray-50 p-3">
+                      <Text className="text-sm text-gray-600">Ghi chú</Text>
+                      <Text className="mt-1 text-base text-gray-700">
+                        {latestRecord.notes}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            ) : (
+              <Text className="text-center text-sm text-gray-500">
+                Chưa có bản ghi trước đó
+              </Text>
+            )}
+          </View>
+        </View>
         {/* Critical Parameters Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Thông số quan trọng
           </Text>
 
@@ -199,7 +313,7 @@ export default function CreateWaterParameterRecordScreen() {
 
         {/* Water Quality Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Chất lượng nước
           </Text>
 
@@ -254,7 +368,7 @@ export default function CreateWaterParameterRecordScreen() {
 
         {/* Other Parameters Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Thông số khác
           </Text>
 
@@ -285,7 +399,7 @@ export default function CreateWaterParameterRecordScreen() {
 
         {/* Notes Section */}
         <View className="mb-4">
-          <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
             Ghi chú
           </Text>
 
@@ -295,7 +409,7 @@ export default function CreateWaterParameterRecordScreen() {
                 <FileText size={18} color="#f59e0b" />
               </View>
               <View className="flex-1">
-                <Text className="mb-2 text-xs font-medium text-gray-600">
+                <Text className="mb-2 text-base font-medium text-gray-600">
                   Thêm ghi chú (tùy chọn)
                 </Text>
                 <TextInput
@@ -305,7 +419,7 @@ export default function CreateWaterParameterRecordScreen() {
                   numberOfLines={4}
                   placeholder="Nhập ghi chú về tình trạng nước, cá, hoặc các quan sát khác..."
                   placeholderTextColor="#9ca3af"
-                  className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-900"
+                  className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 text-base text-gray-900"
                   style={{ textAlignVertical: 'top' }}
                 />
               </View>

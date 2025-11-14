@@ -9,6 +9,7 @@ import { PondTypeRequest, TypeOfPond } from '@/lib/api/services/fetchPondType';
 import {
   WaterParameterThreshold,
   WaterParameterThresholdRequest,
+  WaterParameterType,
 } from '@/lib/api/services/fetchWaterParameterThreshold';
 import {
   AlertTriangle,
@@ -84,78 +85,104 @@ export default function CreatePondTypeModal({
   }
 
   const parameterKeys = [
-    'phLevel',
-    'temperatureCelsius',
-    'oxygenLevel',
-    'ammoniaLevel',
-    'nitriteLevel',
-    'nitrateLevel',
-    'carbonHardness',
-    'waterLevelMeters',
+    WaterParameterType.PH_LEVEL,
+    WaterParameterType.TEMPERATURE_CELSIUS,
+    WaterParameterType.OXYGEN_LEVEL,
+    WaterParameterType.AMMONIA_LEVEL,
+    WaterParameterType.NITRITE_LEVEL,
+    WaterParameterType.NITRATE_LEVEL,
+    WaterParameterType.CARBON_HARDNESS,
+    WaterParameterType.WATER_LEVEL_METERS,
   ] as const;
 
   type ParamKey = (typeof parameterKeys)[number];
 
   const getDefaultThresholds = () => {
-    const obj: Record<string, { min: number; max: number }> = {};
+    const obj: Record<string, { min: string; max: string }> = {};
     parameterKeys.forEach((k) => {
-      obj[k] = { min: 0, max: 0 };
+      obj[k] = { min: '', max: '' };
     });
-    return obj as Record<ParamKey, { min: number; max: number }>;
+    return obj as Record<ParamKey, { min: string; max: string }>;
   };
 
   const [thresholds, setThresholds] = useState<
-    Record<ParamKey, { min: number; max: number }>
+    Record<ParamKey, { min: string; max: string }>
   >(getDefaultThresholds());
 
   const paramLabels: Record<ParamKey, string> = {
-    phLevel: 'pH',
-    temperatureCelsius: 'Nhiệt độ',
-    oxygenLevel: 'Oxy hòa tan',
-    ammoniaLevel: 'Amoniac (NH₃)',
-    nitriteLevel: 'Nitrit (NO₂)',
-    nitrateLevel: 'Nitrate (NO₃)',
-    carbonHardness: 'Độ cứng (KH)',
-    waterLevelMeters: 'Mực nước',
+    [WaterParameterType.PH_LEVEL]: 'pH',
+    [WaterParameterType.TEMPERATURE_CELSIUS]: 'Nhiệt độ',
+    [WaterParameterType.OXYGEN_LEVEL]: 'Oxy hòa tan',
+    [WaterParameterType.AMMONIA_LEVEL]: 'Amoniac (NH₃)',
+    [WaterParameterType.NITRITE_LEVEL]: 'Nitrit (NO₂)',
+    [WaterParameterType.NITRATE_LEVEL]: 'Nitrate (NO₃)',
+    [WaterParameterType.CARBON_HARDNESS]: 'Độ cứng (KH)',
+    [WaterParameterType.WATER_LEVEL_METERS]: 'Mực nước',
   };
 
   const paramUnits: Record<ParamKey, string> = {
-    phLevel: '',
-    temperatureCelsius: '°C',
-    oxygenLevel: 'mg/L',
-    ammoniaLevel: 'mg/L',
-    nitriteLevel: 'mg/L',
-    nitrateLevel: 'mg/L',
-    carbonHardness: '°dH',
-    waterLevelMeters: 'm',
+    [WaterParameterType.PH_LEVEL]: '',
+    [WaterParameterType.TEMPERATURE_CELSIUS]: '°C',
+    [WaterParameterType.OXYGEN_LEVEL]: 'mg/L',
+    [WaterParameterType.AMMONIA_LEVEL]: 'mg/L',
+    [WaterParameterType.NITRITE_LEVEL]: 'mg/L',
+    [WaterParameterType.NITRATE_LEVEL]: 'mg/L',
+    [WaterParameterType.CARBON_HARDNESS]: '°dH',
+    [WaterParameterType.WATER_LEVEL_METERS]: 'm',
   };
 
   const paramIcons: Record<ParamKey, React.ReactElement> = {
-    phLevel: <FlaskConical size={16} color="#3b82f6" />,
-    temperatureCelsius: <Thermometer size={16} color="#ef4444" />,
-    oxygenLevel: <Gauge size={16} color="#06b6d4" />,
-    ammoniaLevel: <AlertTriangle size={16} color="#eab308" />,
-    nitriteLevel: <Microscope size={16} color="#a855f7" />,
-    nitrateLevel: <TestTube size={16} color="#6366f1" />,
-    carbonHardness: <Ruler size={16} color="#6b7280" />,
-    waterLevelMeters: <Ruler size={16} color="#3b82f6" />,
+    [WaterParameterType.PH_LEVEL]: <FlaskConical size={16} color="#3b82f6" />,
+    [WaterParameterType.TEMPERATURE_CELSIUS]: (
+      <Thermometer size={16} color="#ef4444" />
+    ),
+    [WaterParameterType.OXYGEN_LEVEL]: <Gauge size={16} color="#06b6d4" />,
+    [WaterParameterType.AMMONIA_LEVEL]: (
+      <AlertTriangle size={16} color="#eab308" />
+    ),
+    [WaterParameterType.NITRITE_LEVEL]: (
+      <Microscope size={16} color="#a855f7" />
+    ),
+    [WaterParameterType.NITRATE_LEVEL]: <TestTube size={16} color="#6366f1" />,
+    [WaterParameterType.CARBON_HARDNESS]: <Ruler size={16} color="#6b7280" />,
+    [WaterParameterType.WATER_LEVEL_METERS]: (
+      <Ruler size={16} color="#3b82f6" />
+    ),
   };
 
   const paramIconBgs: Record<ParamKey, string> = {
-    phLevel: 'bg-blue-100',
-    temperatureCelsius: 'bg-red-100',
-    oxygenLevel: 'bg-cyan-100',
-    ammoniaLevel: 'bg-yellow-100',
-    nitriteLevel: 'bg-purple-100',
-    nitrateLevel: 'bg-indigo-100',
-    carbonHardness: 'bg-gray-100',
-    waterLevelMeters: 'bg-blue-100',
+    [WaterParameterType.PH_LEVEL]: 'bg-blue-100',
+    [WaterParameterType.TEMPERATURE_CELSIUS]: 'bg-red-100',
+    [WaterParameterType.OXYGEN_LEVEL]: 'bg-cyan-100',
+    [WaterParameterType.AMMONIA_LEVEL]: 'bg-yellow-100',
+    [WaterParameterType.NITRITE_LEVEL]: 'bg-purple-100',
+    [WaterParameterType.NITRATE_LEVEL]: 'bg-indigo-100',
+    [WaterParameterType.CARBON_HARDNESS]: 'bg-gray-100',
+    [WaterParameterType.WATER_LEVEL_METERS]: 'bg-blue-100',
   };
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sanitize decimal input string: allow digits and at most one decimal separator (dot or comma).
+  const sanitizeDecimalString = (text: string) => {
+    if (!text) return '';
+    let s = text.replace(',', '.');
+    s = s.replace(/[^0-9.]/g, '');
+    const firstDot = s.indexOf('.');
+    if (firstDot !== -1) {
+      s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
+    }
+    return s;
+  };
+
+  const parseDecimalValue = (text: string) => {
+    const s = sanitizeDecimalString(text);
+    if (!s || s === '.') return 0;
+    return parseFloat(s) || 0;
+  };
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
@@ -190,27 +217,35 @@ export default function CreatePondTypeModal({
       return false;
     }
     if (!formData.recommendedQuantity || formData.recommendedQuantity <= 0) {
-      showAlert('Lỗi', 'Vui lòng nhập số lượng khuyến nghị tối đa hợp lệ');
+      showAlert('Lỗi', 'Vui lòng nhập số lượng khuyến nghị tối đa lớn hơn 0');
       return false;
     }
+    // Require all parameter threshold pairs to be filled and valid
+    for (const key of Object.keys(thresholds) as ParamKey[]) {
+      const minStr = (thresholds[key].min ?? '').toString().trim();
+      const maxStr = (thresholds[key].max ?? '').toString().trim();
+
+      if (!minStr || !maxStr) {
+        showAlert('Lỗi', `Vui lòng nhập Min và Max cho ${paramLabels[key]}`);
+        return false;
+      }
+
+      const minVal = parseDecimalValue(minStr);
+      const maxVal = parseDecimalValue(maxStr);
+      if (!(minVal < maxVal)) {
+        showAlert(
+          'Lỗi',
+          `Ngưỡng không hợp lệ: giá trị nhỏ nhất của ${paramLabels[key]} phải nhỏ hơn giá trị lớn nhất`
+        );
+        return false;
+      }
+    }
+
     return true;
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-
-    for (const key of Object.keys(thresholds) as ParamKey[]) {
-      const { min, max } = thresholds[key];
-      if (min !== 0 || max !== 0) {
-        if (!(min < max)) {
-          showAlert(
-            'Lỗi',
-            `Ngưỡng không hợp lệ: giá trị nhỏ nhất của ${paramLabels[key]} phải nhỏ hơn giá trị lớn nhất`
-          );
-          return;
-        }
-      }
-    }
 
     setIsSubmitting(true);
     let handledError = false;
@@ -223,11 +258,16 @@ export default function CreatePondTypeModal({
         try {
           for (const key of Object.keys(thresholds) as ParamKey[]) {
             const t = thresholds[key];
+            const minStr = (t.min ?? '').toString().trim();
+            const maxStr = (t.max ?? '').toString().trim();
+
+            if (!minStr && !maxStr) continue;
+
             const req: WaterParameterThresholdRequest = {
               parameterName: key,
               unit: paramUnits[key],
-              minValue: t.min,
-              maxValue: t.max,
+              minValue: parseDecimalValue(t.min),
+              maxValue: parseDecimalValue(t.max),
               pondTypeId,
             };
             const res = await createWaterParameterThreshold.mutateAsync(req);
@@ -443,53 +483,53 @@ export default function CreatePondTypeModal({
                           <View className="mr-2 flex-1">
                             <Text className="mb-1 text-sm">Min</Text>
                             <TextInput
-                              placeholder="0"
+                              placeholder="VD: 0"
                               value={String(thresholds[key].min ?? '')}
                               onChangeText={(text) =>
                                 setThresholds(
                                   (
                                     prev: Record<
                                       ParamKey,
-                                      { min: number; max: number }
+                                      { min: string; max: string }
                                     >
                                   ) => ({
                                     ...prev,
                                     [key]: {
                                       ...prev[key],
-                                      min: parseFloat(text) || 0,
+                                      min: sanitizeDecimalString(text),
                                     },
                                   })
                                 )
                               }
                               placeholderTextColor="#9ca3af"
                               className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-base font-medium text-gray-900"
-                              keyboardType="numeric"
+                              keyboardType="decimal-pad"
                             />
                           </View>
                           <View className="ml-2 flex-1">
                             <Text className="mb-1 text-sm">Max</Text>
                             <TextInput
-                              placeholder="0"
+                              placeholder="VD: 0"
                               value={String(thresholds[key].max ?? '')}
                               onChangeText={(text) =>
                                 setThresholds(
                                   (
                                     prev: Record<
                                       ParamKey,
-                                      { min: number; max: number }
+                                      { min: string; max: string }
                                     >
                                   ) => ({
                                     ...prev,
                                     [key]: {
                                       ...prev[key],
-                                      max: parseFloat(text) || 0,
+                                      max: sanitizeDecimalString(text),
                                     },
                                   })
                                 )
                               }
                               placeholderTextColor="#9ca3af"
                               className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-base font-medium text-gray-900"
-                              keyboardType="numeric"
+                              keyboardType="decimal-pad"
                             />
                           </View>
                         </View>

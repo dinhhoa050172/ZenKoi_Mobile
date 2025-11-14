@@ -457,7 +457,7 @@ export default function BreedingScreen() {
                       className="rounded-full px-3 py-1"
                       style={{ backgroundColor: badgeBg }}
                     >
-                      <Text className="text-xs font-semibold" style={{ color }}>
+                      <Text className="text-sm font-semibold" style={{ color }}>
                         {statusLabel}
                       </Text>
                     </View>
@@ -690,13 +690,15 @@ export default function BreedingScreen() {
                     <View>
                       <View className="mb-3 rounded-2xl bg-green-50 p-3">
                         <View className="mb-2 flex-row items-center justify-between">
-                          <Text className="text-xs text-gray-600">Kết quả</Text>
+                          <Text className="text-lg font-semibold text-gray-600">
+                            Kết quả
+                          </Text>
                           <Text className="font-semibold text-green-700">
                             {mapResult(b.result)}
                           </Text>
                         </View>
                         <View className="mb-2 flex-row items-center justify-between">
-                          <Text className="text-xs text-gray-600">
+                          <Text className="text-lg font-semibold text-gray-600">
                             Cá đạt chuẩn
                           </Text>
                           <Text className="font-semibold text-gray-900">
@@ -704,14 +706,16 @@ export default function BreedingScreen() {
                           </Text>
                         </View>
                         <View className="mb-2 flex-row items-center justify-between">
-                          <Text className="text-xs text-gray-600">Số gói</Text>
+                          <Text className="text-lg font-semibold text-gray-600">
+                            Số gói
+                          </Text>
                           <Text className="font-semibold text-gray-900">
                             {b.totalPackage || 0}
                           </Text>
                         </View>
                         {b.endDate && (
                           <View className="flex-row items-center justify-between">
-                            <Text className="text-xs text-gray-600">
+                            <Text className="text-lg font-semibold text-gray-600">
                               Hoàn thành
                             </Text>
                             <Text className="font-semibold text-gray-900">
@@ -725,7 +729,7 @@ export default function BreedingScreen() {
                         className="flex-row items-center justify-center rounded-2xl border border-gray-200 py-3"
                         onPress={() => router.push(`/breeding/${b.id}`)}
                       >
-                        <Eye size={16} color="#6b7280" />
+                        <Eye size={18} color="#6b7280" />
                         <Text className="ml-2 font-medium text-gray-700">
                           Chi tiết
                         </Text>
@@ -737,13 +741,17 @@ export default function BreedingScreen() {
                     <View>
                       <View className="mb-3 rounded-2xl bg-red-50 p-3">
                         <View className="mb-2 flex-row items-center justify-between">
-                          <Text className="text-xs text-gray-600">Kết quả</Text>
+                          <Text className="text-lg font-semibold text-gray-600">
+                            Kết quả
+                          </Text>
                           <Text className="font-semibold text-red-700">
                             {mapResult(b.result)}
                           </Text>
                         </View>
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-xs text-gray-600">Số cá</Text>
+                          <Text className="text-lg font-semibold text-gray-600">
+                            Số cá
+                          </Text>
                           <Text className="font-semibold text-gray-900">
                             {eggCount} con
                           </Text>

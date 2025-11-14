@@ -60,6 +60,15 @@ export interface UpdateUserDetails {
   address: string;
 }
 
+export interface UpdateProfileRequest {
+  fullName: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  avatarURL: string;
+  address: string;
+}
+
 export interface UserResponse {
   statusCode: number;
   isSuccess: boolean;
@@ -83,12 +92,32 @@ export const userServices = {
     return response.data;
   },
 
-  // Update user profile (if needed in the future)
-  updateProfile: async (
-    profileData: UpdateUserDetails
+  // Update user details (if needed in the future)
+  updateUserDetail: async (
+    userDetail: UpdateUserDetails
   ): Promise<UserMeResponse> => {
     const response = await apiService.post<UserMeResponse, UpdateUserDetails>(
       '/api/UserDetails/create-update-user-detail',
+      userDetail
+    );
+    return response.data;
+  },
+
+  // Update user avatar
+  updateAvatar: async (avatarURL: string): Promise<UserMeResponse> => {
+    const response = await apiService.put<
+      UserMeResponse,
+      { avatarURL: string }
+    >('/api/UserDetails/update-avatar', { avatarURL });
+    return response.data;
+  },
+
+  // Update user profile
+  updateProfile: async (
+    profileData: UpdateProfileRequest
+  ): Promise<UserMeResponse> => {
+    const response = await apiService.put<UserMeResponse, UpdateProfileRequest>(
+      '/api/Users/profile',
       profileData
     );
     return response.data;
