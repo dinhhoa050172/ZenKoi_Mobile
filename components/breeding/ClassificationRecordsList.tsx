@@ -41,17 +41,17 @@ export default function ClassificationRecordsList({
   if (records.length === 0) {
     return (
       <View className="mt-4">
-        <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <Text className="mb-3 px-1 text-sm font-semibold uppercase tracking-wide text-gray-500">
           Lịch sử tuyển chọn
         </Text>
-        <View className="items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-12">
+        <View className="items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-6">
           <View className="mb-3 h-16 w-16 items-center justify-center rounded-full bg-gray-200">
             <FishSvg size={32} color="#9ca3af" />
           </View>
-          <Text className="text-sm font-medium text-gray-500">
+          <Text className="text-base font-medium text-gray-500">
             Chưa có bản ghi tuyển chọn
           </Text>
-          <Text className="mt-1 text-xs text-gray-400">
+          <Text className="mt-1 text-sm text-gray-400">
             Bản ghi sẽ xuất hiện khi bạn thực hiện tuyển chọn
           </Text>
         </View>

@@ -1,4 +1,5 @@
 import {
+  UpdateProfileRequest,
   UpdateUserDetails,
   UserMeProfile,
   userServices,
@@ -55,7 +56,7 @@ export function useUpdateUserProfile() {
   const { syncUserFromProfile } = useAuthStore();
 
   return useMutation({
-    mutationFn: async (profileData: UpdateUserDetails) => {
+    mutationFn: async (profileData: UpdateProfileRequest) => {
       const resp = await userServices.updateProfile(profileData);
       if (!resp.isSuccess) {
         throw new Error(
@@ -95,6 +96,96 @@ export function useUpdateUserProfile() {
       });
     },
   });
+}
+
+/*
+ * Hook to update user detail (create/update user detail endpoint)
+ */
+export function useUpdateUserDetail() {
+  const qc = useQueryClient();
+  const { syncUserFromProfile } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (userDetail: UpdateUserDetails) => {
+      const resp = await userServices.updateUserDetail(userDetail);
+      if (!resp.isSuccess)
+        throw new Error(
+          resp.message || 'Không thể cập nhật thông tin chi tiết người dùng'
+        );
+      return resp.result;
+    },
+    onSuccess: async (updatedProfile) => {
+      Toast.show({
+        type: 'success',
+        text1: 'Cập nhật chi tiết thành công',
+        position: 'top',
+      });
+      qc.setQueryData(userKeys.me(), updatedProfile);
+      await syncUserFromProfile({
+        id: updatedProfile.id,
+        userName: updatedProfile.fullName,
+        fullName: updatedProfile.fullName,
+        email: updatedProfile.email,
+      });
+      qc.invalidateQueries({ queryKey: userKeys.all });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Cập nhật thất bại',
+        text2: err?.message || 'Đã xảy ra lỗi khi cập nhật thông tin chi tiết',
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to update user avatar
+ */
+export function useUpdateAvatar() {
+  const qc = useQueryClient();
+  const { syncUserFromProfile } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async (avatarURL: string) => {
+      const resp = await userServices.updateAvatar(avatarURL);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể cập nhật avatar');
+      return resp.result as UserMeProfile;
+    },
+    onSuccess: async (updatedProfile) => {
+      Toast.show({
+        type: 'success',
+        text1: 'Cập nhật avatar thành công',
+        position: 'top',
+      });
+      qc.setQueryData(userKeys.me(), updatedProfile);
+      await syncUserFromProfile({
+        id: updatedProfile.id,
+        userName: updatedProfile.fullName,
+        fullName: updatedProfile.fullName,
+        email: updatedProfile.email,
+      });
+      qc.invalidateQueries({ queryKey: userKeys.all });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Cập nhật avatar thất bại',
+        text2: err?.message || String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to update user profile (full profile endpoint)
+ */
+export function useUpdateProfile() {
+  // reuse logic from useUpdateUserProfile but keep a dedicated hook name
+  return useUpdateUserProfile();
 }
 
 /*

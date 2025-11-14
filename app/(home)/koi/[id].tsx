@@ -1,17 +1,19 @@
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
-import { useGetKoiFishById } from '@/hooks/useKoiFish';
+import {
+  useGetKoiFishById,
+  useGetKoiFishHealthByKoiId,
+} from '@/hooks/useKoiFish';
 import {
   Gender,
   HealthStatus,
   KoiFish,
-  KoiPatternType,
-  MutationType,
   SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import { formatDate } from '@/lib/utils/formatDate';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  AlertCircle,
   ArrowLeft,
   Biohazard,
   Blend,
@@ -20,14 +22,16 @@ import {
   Dna,
   DollarSign,
   Edit,
+  FileText,
   Fish,
+  HeartPulse,
   Layers,
   MapPin,
   Percent,
   Ruler,
   VenusAndMars,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -40,6 +44,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function KoiDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -47,8 +52,19 @@ export default function KoiDetailScreen() {
   const { id, redirect } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<'info' | 'health'>('info');
 
+  useFocusEffect(
+    useCallback(() => {
+      setActiveTab('info');
+    }, [])
+  );
+
   const koiId = Number(id);
   const { data: koi, isLoading } = useGetKoiFishById(koiId, !!koiId);
+  const healthQuery = useGetKoiFishHealthByKoiId(
+    koiId,
+    activeTab === 'health' && !!koiId
+  );
+  const healthItems = healthQuery.data ?? [];
 
   const getHealthColor = (health?: HealthStatus | string) => {
     switch (health) {
@@ -108,29 +124,8 @@ export default function KoiDetailScreen() {
     }
   };
 
-  const patternToLabel = (p?: KoiPatternType | string) => {
-    switch (p) {
-      case KoiPatternType.TANCHO:
-        return 'Tancho (Đốm đỏ giữa đầu)';
-      case KoiPatternType.MARUTEN:
-        return 'Mảuten (Đốm đầu và thân)';
-      case KoiPatternType.NIDAN:
-        return 'Nidan (2 đốm đỏ)';
-      case KoiPatternType.SANDAN:
-        return 'Sandan (3 đốm đỏ)';
-      case KoiPatternType.INAZUMA:
-        return 'Inazuma (Dải đỏ hình tia sét)';
-      case KoiPatternType.STRAIGHT_HI:
-        return 'Straight hi (Dải đỏ liền thân)';
-      case KoiPatternType.MENKABURI:
-        return 'Menkaburi (Đầu đỏ toàn phần)';
-      case KoiPatternType.BOZU:
-        return 'Bozu (Đầu trắng)';
-      case KoiPatternType.NONE:
-        return 'Không xác định';
-      default:
-        return String(p ?? '-');
-    }
+  const patternToLabel = (p?: string | null) => {
+    return String(p ?? '-');
   };
 
   const saleStatusToLabel = (s?: SaleStatus | string) => {
@@ -148,22 +143,7 @@ export default function KoiDetailScreen() {
     }
   };
 
-  const mutationTypeToLabel = (m?: MutationType | string) => {
-    switch (m) {
-      case MutationType.DOITSU:
-        return 'Doitsu (không vảy)';
-      case MutationType.GINRIN:
-        return 'Ginrin (vảy ánh kim)';
-      case MutationType.HIRENAGA:
-        return 'Hirenaga (đuôi dài)';
-      case MutationType.METALLIC:
-        return 'Metallic (ánh kim)';
-      case MutationType.NONE:
-        return 'Không';
-      default:
-        return String(m ?? '-');
-    }
-  };
+  const mutationTypeToLabel = (m?: string | null) => String(m ?? '-');
 
   const getSizeLabel = (size?: KoiFish['size']) => {
     switch (size) {
@@ -469,18 +449,253 @@ export default function KoiDetailScreen() {
 
             {activeTab === 'health' && (
               <View>
-                <Text className="mb-4 text-lg font-bold text-gray-900">
-                  Lịch sử sức khỏe
-                </Text>
-
-                <View className="items-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 py-12">
-                  <View className="mb-3 h-16 w-16 items-center justify-center rounded-full bg-gray-200">
-                    <FishSvg size={32} color="#9ca3af" />
+                <View className="mb-4 flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <View className="mr-2 rounded-2xl bg-red-100 p-2">
+                      <HeartPulse size={20} color="#ef4444" strokeWidth={2} />
+                    </View>
+                    <Text className="text-lg font-bold text-gray-900">
+                      Lịch sử sức khỏe
+                    </Text>
                   </View>
-                  <Text className="text-sm font-medium text-gray-500">
-                    Chưa có lịch sử sức khỏe
-                  </Text>
+                  {healthItems.length > 0 && (
+                    <View className="rounded-full bg-blue-100 px-3 py-1">
+                      <Text className="text-sm font-bold text-blue-700">
+                        {healthItems.length} bản ghi
+                      </Text>
+                    </View>
+                  )}
                 </View>
+
+                {healthQuery.isLoading ? (
+                  <View className="items-center rounded-2xl border border-gray-200 bg-white py-12">
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <Text className="mt-3 text-base font-medium text-gray-600">
+                      Đang tải lịch sử sức khỏe...
+                    </Text>
+                  </View>
+                ) : healthItems.length === 0 ? (
+                  <View className="items-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-8">
+                    <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-gray-200">
+                      <FishSvg size={36} color="#9ca3af" />
+                    </View>
+                    <Text className="mb-1 text-lg font-bold text-gray-700">
+                      Chưa có lịch sử sức khỏe
+                    </Text>
+                    <Text className="text-base text-gray-500">
+                      Cá Koi chưa có ghi nhận về sức khỏe
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="space-y-3">
+                    {healthItems.map((h, index) => {
+                      const statusColors = getHealthColor(h.affectedStatus);
+                      const isRecovered = !!h.recoveredAt;
+
+                      return (
+                        <View
+                          key={h.id}
+                          className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                        >
+                          {/* Header with Status */}
+                          <View
+                            className="flex-row items-center justify-between border-b px-4 py-3"
+                            style={{
+                              backgroundColor: statusColors.bg,
+                              borderBottomColor: statusColors.border,
+                            }}
+                          >
+                            <View className="flex-1 flex-row items-center">
+                              <View
+                                className="mr-2 h-2 w-2 rounded-full"
+                                style={{ backgroundColor: statusColors.text }}
+                              />
+                              <Text
+                                className="text-base font-bold"
+                                style={{ color: statusColors.text }}
+                              >
+                                {healthToLabel(
+                                  h.affectedStatus as HealthStatus
+                                )}
+                              </Text>
+                            </View>
+
+                            <View
+                              className={`rounded-full px-3 py-1 ${
+                                isRecovered ? 'bg-green-100' : 'bg-orange-100'
+                              }`}
+                            >
+                              <Text
+                                className={`text-sm font-bold ${
+                                  isRecovered
+                                    ? 'text-green-700'
+                                    : 'text-orange-700'
+                                }`}
+                              >
+                                {isRecovered ? 'Đã hồi phục' : 'Đang theo dõi'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Content */}
+                          <View className="p-4">
+                            {/* Timeline */}
+                            <View className="mb-4">
+                              <View className="flex-row items-center">
+                                <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-red-100">
+                                  <Calendar
+                                    size={18}
+                                    color="#ef4444"
+                                    strokeWidth={2}
+                                  />
+                                </View>
+                                <View className="flex-1">
+                                  <Text className="text-sm font-medium text-gray-500">
+                                    Thời gian phát hiện
+                                  </Text>
+                                  <Text className="text-base font-bold text-gray-900">
+                                    {formatDate(
+                                      h.affectedFrom,
+                                      'dd/MM/yyyy HH:mm'
+                                    )}
+                                  </Text>
+                                </View>
+                              </View>
+
+                              {isRecovered && (
+                                <View className="flex-row items-center">
+                                  <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                                    <Calendar
+                                      size={18}
+                                      color="#22c55e"
+                                      strokeWidth={2}
+                                    />
+                                  </View>
+                                  <View className="flex-1">
+                                    <Text className="text-sm font-medium text-gray-500">
+                                      Thời gian hồi phục
+                                    </Text>
+                                    <Text className="text-base font-bold text-gray-900">
+                                      {formatDate(
+                                        h.recoveredAt ?? undefined,
+                                        'dd/MM/yyyy HH:mm'
+                                      )}
+                                    </Text>
+                                  </View>
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Symptoms */}
+                            {h.specificSymptoms && (
+                              <View className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                                <View className="mb-2 flex-row items-center">
+                                  <AlertCircle
+                                    size={16}
+                                    color="#f59e0b"
+                                    strokeWidth={2}
+                                  />
+                                  <Text className="ml-2 text-sm font-bold text-amber-900">
+                                    Triệu chứng cụ thể
+                                  </Text>
+                                </View>
+                                <Text className="text-base leading-6 text-amber-800">
+                                  {h.specificSymptoms}
+                                </Text>
+                              </View>
+                            )}
+
+                            {/* Treatment Notes */}
+                            {h.treatmentNotes && (
+                              <View className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-3">
+                                <View className="mb-2 flex-row items-center">
+                                  <FileText
+                                    size={16}
+                                    color="#3b82f6"
+                                    strokeWidth={2}
+                                  />
+                                  <Text className="ml-2 text-sm font-bold text-blue-900">
+                                    Ghi chú điều trị
+                                  </Text>
+                                </View>
+                                <Text className="text-base leading-6 text-blue-800">
+                                  {h.treatmentNotes}
+                                </Text>
+                              </View>
+                            )}
+
+                            {/* Status Badges */}
+                            <View className="flex-row flex-wrap gap-2">
+                              <View
+                                className={`flex-row items-center rounded-2xl border px-3 py-2 ${
+                                  h.requiresTreatment
+                                    ? 'border-red-200 bg-red-100'
+                                    : 'border-green-200 bg-green-100'
+                                }`}
+                              >
+                                <View
+                                  className={`mr-2 h-2 w-2 rounded-full ${
+                                    h.requiresTreatment
+                                      ? 'bg-red-500'
+                                      : 'bg-green-500'
+                                  }`}
+                                />
+                                <Text
+                                  className={`text-sm font-bold ${
+                                    h.requiresTreatment
+                                      ? 'text-red-700'
+                                      : 'text-green-700'
+                                  }`}
+                                >
+                                  {h.requiresTreatment
+                                    ? 'Cần điều trị'
+                                    : 'Không cần điều trị'}
+                                </Text>
+                              </View>
+
+                              <View
+                                className={`flex-row items-center rounded-2xl border px-3 py-2 ${
+                                  h.isIsolated
+                                    ? 'border-purple-200 bg-purple-100'
+                                    : 'border-gray-200 bg-gray-100'
+                                }`}
+                              >
+                                <View
+                                  className={`mr-2 h-2 w-2 rounded-full ${
+                                    h.isIsolated
+                                      ? 'bg-purple-500'
+                                      : 'bg-gray-400'
+                                  }`}
+                                />
+                                <Text
+                                  className={`text-sm font-bold ${
+                                    h.isIsolated
+                                      ? 'text-purple-700'
+                                      : 'text-gray-700'
+                                  }`}
+                                >
+                                  {h.isIsolated
+                                    ? 'Đang cách ly'
+                                    : 'Không cách ly'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* Incident ID Badge */}
+                            <View className="mt-3 flex-row items-center px-3 py-2">
+                              <Text className="text-sm text-gray-500">
+                                Mã sự cố:
+                              </Text>
+                              <Text className="ml-1 text-xs font-bold text-gray-700">
+                                #{h.incidentId}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
           </View>
