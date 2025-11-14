@@ -5,9 +5,11 @@ import { useGetPondById } from '@/hooks/usePond';
 import {
   IncidentSeverity,
   IncidentStatus,
+  KoiIncident,
+  PondIncident,
 } from '@/lib/api/services/fetchIncident';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Activity,
   AlertCircle,
@@ -42,9 +44,9 @@ export default function IncidentDetailScreen() {
   const incidentId = parseInt(id as string, 10);
   const [isResolving, setIsResolving] = useState(false);
 
+  const router = useRouter();
   const { data: incident, isLoading, refetch } = useGetIncidentById(incidentId);
   const resolveMutation = useResolveIncident();
-
   const incidentData = incident;
 
   const handleBack = () => {
@@ -356,7 +358,7 @@ export default function IncidentDetailScreen() {
                 <Text className="text-lg font-semibold text-gray-900">
                   {incidentData.reportedByUserName}
                 </Text>
-                <Text className="text-sm text-gray-500">
+                <Text className="text-base text-gray-500">
                   Báo cáo lúc {dateTime.time} • {dateTime.date}
                 </Text>
               </View>
@@ -370,7 +372,7 @@ export default function IncidentDetailScreen() {
               <View className="mb-4 flex-row items-center">
                 <Settings size={20} color="#6b7280" />
                 <Text className="ml-2 text-lg font-bold text-gray-900">
-                  Tài sản bị ảnh hưởng
+                  Cá và hồ bị ảnh hưởng
                 </Text>
               </View>
 
@@ -465,9 +467,8 @@ export default function IncidentDetailScreen() {
 }
 
 // Component for Koi Incident Card
-function KoiIncidentCard({ koiIncident }: { koiIncident: any }) {
-  const { data: koiData } = useGetKoiFishById(koiIncident.koiId, true);
-  const koi = koiData;
+function KoiIncidentCard({ koiIncident }: { koiIncident: KoiIncident }) {
+  const { data: koi } = useGetKoiFishById(koiIncident.koiFishId, true);
 
   const getAffectedStatusInfo = (status: string) => {
     switch (status) {
@@ -505,7 +506,7 @@ function KoiIncidentCard({ koiIncident }: { koiIncident: any }) {
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
           <Text className="text-base font-semibold text-gray-900">
-            {koi?.rfid || `Cá #${koiIncident.koiId}`}
+            {koi?.rfid || `Cá #${koi?.rfid}`}
           </Text>
           {koi?.variety && (
             <Text className="text-sm text-gray-600">
@@ -530,9 +531,8 @@ function KoiIncidentCard({ koiIncident }: { koiIncident: any }) {
 }
 
 // Component for Pond Incident Card
-function PondIncidentCard({ pondIncident }: { pondIncident: any }) {
-  const { data: pondData } = useGetPondById(pondIncident.pondId, true);
-  const pond = pondData;
+function PondIncidentCard({ pondIncident }: { pondIncident: PondIncident }) {
+  const { data: pond } = useGetPondById(pondIncident.pondId, true);
 
   return (
     <View className="mb-3 rounded-2xl bg-emerald-50 p-4">

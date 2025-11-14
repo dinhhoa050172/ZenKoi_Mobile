@@ -1,7 +1,8 @@
 import Loading from '@/components/Loading';
 import { initializeAuth, useAuthStore } from '@/lib/store/authStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useRouter } from 'expo-router';
+// 1. Import thêm useRootNavigationState
+import { Stack, useRouter, useRootNavigationState } from 'expo-router'; // <--- THAY ĐỔI
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -14,8 +15,15 @@ const queryClient = new QueryClient();
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  // 2. Lấy trạng thái của navigation gốc
+  const rootNavigationState = useRootNavigationState(); // <--- THAY ĐỔI
 
   useEffect(() => {
+    // 3. Chỉ chạy logic khi navigation đã sẵn sàng (có key)
+    if (!rootNavigationState?.key) {
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         console.log('🔧 [ROOT LAYOUT] Initializing authentication...');
@@ -36,7 +44,7 @@ export default function RootLayout() {
           hasUser: !!state.user,
         });
 
-        // Navigate based on auth state
+        // 4. Bây giờ điều hướng đã an toàn
         if (state.isAuthenticated && state.token) {
           router.replace('/(home)');
         } else {
@@ -52,8 +60,12 @@ export default function RootLayout() {
 
     checkAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [rootNavigationState?.key]); // 5. Thêm dependency vào đây <--- THAY ĐỔI
 
+  // Logic render của bạn đã tốt
+  // Nó sẽ hiển thị <Stack> VÀ một lớp loading overlay
+  // useEffect sẽ chờ <Stack> mount (có key), sau đó mới chạy
+  // auth, điều hướng, và cuối cùng là tắt overlay.
   return (
     <KeyboardProvider>
       <QueryClientProvider client={queryClient}>

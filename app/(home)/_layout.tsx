@@ -1,7 +1,7 @@
 import { HapticTab } from '@/components/HapticTab';
 import FishSvg from '@/components/icons/FishSvg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { History, Home, QrCode, User } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, Platform, TouchableOpacity, View } from 'react-native';
@@ -86,7 +86,23 @@ const CenterTabButton = ({ children, onPress }: any) => {
   );
 };
 
-export default function TabLayout() {
+export default function TabHomeLayout() {
+  // --- LOGIC ẨN/HIỆN TAB BAR ---
+  const pathname = usePathname();
+
+  // Danh sách các màn hình (route) mà tab bar SẼ hiển thị
+  // Dựa trên 'name' của các Tabs.Screen không có 'href: null'
+  const visibleTabRoutes = [
+    '/', // (home)/index
+    '/koi', // (home)/koi/index
+    '/scan', // (home)/scan/index
+    '/breeding', // (home)/breeding/index
+    '/profile', // (home)/profile
+  ];
+
+  // Kiểm tra xem pathname hiện tại có nằm trong danh sách_layout
+  // (ví dụ: '/incidents/3' sẽ KHÔNG có trong danh sách -> isTabBarVisible = false)
+  const isTabBarVisible = visibleTabRoutes.includes(pathname);
   return (
     <Tabs
       screenOptions={{
@@ -110,6 +126,7 @@ export default function TabLayout() {
           shadowOpacity: 0.05,
           shadowRadius: 8,
           paddingBottom: Platform.OS === 'ios' ? 25 : 15,
+          display: isTabBarVisible ? 'flex' : 'none',
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -275,17 +292,10 @@ export default function TabLayout() {
         name="pond/index"
         options={{ href: null, title: 'Danh sách loại hồ' }}
       />
+      {/* Incidents screen */}
       <Tabs.Screen
-        name="incidents/index"
+        name="incidents"
         options={{ href: null, title: 'Danh sách loại sự cố' }}
-      />
-      <Tabs.Screen
-        name="incidents/types"
-        options={{ href: null, title: 'Loại sự cố' }}
-      />
-      <Tabs.Screen
-        name="incidents/[id]"
-        options={{ href: null, title: 'Chi tiết sự cố' }}
       />
     </Tabs>
   );
