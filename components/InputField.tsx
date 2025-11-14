@@ -10,6 +10,8 @@ type Props = {
   keyboardType?: 'default' | 'numeric';
   iconBg: string;
   multiline?: boolean;
+  editable?: boolean;
+  helper?: string;
 };
 
 export default function InputField({
@@ -21,6 +23,8 @@ export default function InputField({
   keyboardType = 'default',
   iconBg,
   multiline = false,
+  editable = true,
+  helper,
 }: Props) {
   const handleChange = (text: string) => {
     if (keyboardType === 'numeric') {
@@ -73,8 +77,14 @@ export default function InputField({
           placeholderTextColor="#9ca3af"
           keyboardType={keyboardType}
           multiline={multiline}
-          className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-sm font-medium text-gray-900"
+          editable={editable}
+          className={`rounded-2xl border border-gray-200 ${
+            editable ? 'bg-gray-50' : 'bg-gray-100'
+          } p-3 text-base font-medium text-gray-900`}
         />
+        {helper ? (
+          <Text className="mt-1 text-base text-gray-500">{helper}</Text>
+        ) : null}
       </View>
     </View>
   );

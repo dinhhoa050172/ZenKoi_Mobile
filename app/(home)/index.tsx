@@ -1,56 +1,74 @@
 import AnimatedBackground from '@/components/AnimatedBackground';
-import BottomSheetModal from '@/components/BottomSheetModal';
+import WaterAlertBottomSheet from '@/components/WaterAlertBottomSheet';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
+import { useGetWaterAlerts } from '@/hooks/useWaterAlert';
+import { Severity, WaterAlert } from '@/lib/api/services/fetchWaterAlert';
+import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { AlertTriangle, Bell, Calendar, History } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-
-// Type definitions
-interface Alert {
-  id: number;
-  type: string;
-  message: string;
-  severity: 'warning' | 'error';
-}
 
 interface QuickAction {
   title: string;
   subtitle: string;
   icon: React.ComponentType<{ size?: number; color?: string }>;
   route: string;
+  gradient: string[];
 }
 
 interface SummaryData {
   value: string;
   label: string;
-  color: string;
+  gradient: [string, string];
+  icon: string;
 }
 
 // Alert Item Component
 interface AlertItemProps {
-  alert: Alert;
+  alert: WaterAlert;
 }
 
-const AlertItem: React.FC<AlertItemProps> = ({ alert }) => (
-  <View className="mb-2 flex-row items-center justify-between rounded-lg bg-white p-3">
-    <Text className="flex-1 text-sm text-gray-800">{alert.message}</Text>
-    <View
-      className={`rounded px-2 py-1 ${
-        alert.severity === 'error' ? 'bg-red-500' : 'bg-orange-500'
-      }`}
-    >
-      <Text className="text-xs font-medium uppercase text-white">
-        {alert.severity === 'error' ? 'Nguy hiểm' : 'Cảnh báo'}
-      </Text>
+const AlertItem: React.FC<AlertItemProps> = ({ alert }) => {
+  const severity = alert.severity;
+  let bgClass = 'bg-orange-500';
+  let label = 'Cảnh báo';
+
+  if (severity === Severity.HIGH || severity === Severity.URGENT) {
+    bgClass = 'bg-red-500';
+    label = 'Nguy hiểm';
+  } else if (severity === Severity.MEDIUM) {
+    bgClass = 'bg-orange-500';
+    label = 'Cảnh báo';
+  } else if (severity === Severity.LOW) {
+    bgClass = 'bg-yellow-500';
+    label = 'Thấp';
+  }
+
+  return (
+    <View className="mb-2 flex-row items-center justify-between rounded-lg bg-white p-3">
+      <Text className="flex-1 text-sm text-gray-800">{alert.message}</Text>
+      <View className={`rounded px-2 py-1 ${bgClass}`}>
+        <Text className="text-xs font-medium uppercase text-white">
+          {label}
+        </Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // Quick Action Card Component
 interface QuickActionCardProps {
@@ -67,18 +85,30 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
     <View className="w-1/2 p-2">
       <TouchableOpacity
         onPress={onPress}
-        className="items-center rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
-        activeOpacity={0.7}
+        className="overflow-hidden rounded-2xl bg-white shadow-md"
+        activeOpacity={0.8}
+        style={{
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        }}
       >
-        <View className="mb-3">
-          <Icon size={40} color="#0A3D62" />
-        </View>
-        <Text className="text-center font-semibold text-gray-900">
-          {action.title}
-        </Text>
-        <Text className="mt-1 text-center text-sm text-gray-600">
-          {action.subtitle}
-        </Text>
+        <LinearGradient
+          colors={['#ffffff', '#f8fafc']}
+          className="items-center justify-center p-5"
+        >
+          <View className="h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100">
+            <Icon size={40} color="#0A3D62" />
+          </View>
+          <Text className="mt-2 text-center text-base font-bold text-gray-900">
+            {action.title}
+          </Text>
+          <Text className="mt-1 text-center text-sm leading-4 text-gray-500">
+            {action.subtitle}
+          </Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -91,10 +121,27 @@ interface SummaryItemProps {
 
 const SummaryItem: React.FC<SummaryItemProps> = ({ item }) => (
   <View className="w-1/2 p-2">
-    <View className="items-center rounded-lg bg-gray-100 p-4">
-      <Text className={`text-2xl font-bold ${item.color}`}>{item.value}</Text>
-      <Text className="mt-1 text-sm text-gray-600">{item.label}</Text>
-    </View>
+    <LinearGradient
+      colors={item.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      className="overflow-hidden rounded-2xl p-4"
+      style={{
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+      }}
+    >
+      <View className="mb-2 flex-row items-center justify-between">
+        <Text className="text-3xl font-black text-white">{item.value}</Text>
+        <Text className="text-2xl">{item.icon}</Text>
+      </View>
+      <Text className="text-xs font-medium uppercase tracking-wide text-white/90">
+        {item.label}
+      </Text>
+    </LinearGradient>
   </View>
 );
 
@@ -102,51 +149,20 @@ const SummaryItem: React.FC<SummaryItemProps> = ({ item }) => (
 const FarmStaffDashboard: React.FC = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const insets = useSafeAreaInsets();
-
-  const [alerts] = useState<Alert[]>([
-    {
-      id: 1,
-      type: 'water',
-      message: 'Ao A3 - pH quá cao (8.2)',
-      severity: 'warning',
-    },
-    {
-      id: 2,
-      type: 'feeding',
-      message: 'Bể B2 chưa được cho ăn',
-      severity: 'error',
-    },
-  ]);
-
-  const alertHistory: Alert[] = [
-    {
-      id: 1,
-      type: 'water',
-      message: 'Ao A3 - pH quá cao (8.2)',
-      severity: 'warning',
-    },
-    {
-      id: 2,
-      type: 'feeding',
-      message: 'Bể B2 chưa được cho ăn',
-      severity: 'error',
-    },
-    {
-      id: 3,
-      type: 'temperature',
-      message: 'Nhiệt độ ao C1 vượt ngưỡng (32°C)',
-      severity: 'warning',
-    },
-    {
-      id: 4,
-      type: 'oxygen',
-      message: 'Oxy hòa tan thấp tại ao D4',
-      severity: 'error',
-    },
-  ];
-
+  // fetch water alerts and show the 2 most recent entries client-side
+  const alertsQuery = useGetWaterAlerts({ pageIndex: 1, pageSize: 100 }, true);
+  const alerts = (alertsQuery.data?.data || []).slice(0, 2);
   const notificationCount =
-    alertHistory.length > 99 ? '99+' : alertHistory.length.toString();
+    (alertsQuery.data?.data.length || 0) > 99
+      ? '99+'
+      : alertsQuery.data?.data.length.toString();
+
+  useFocusEffect(
+    useCallback(() => {
+      alertsQuery.refetch?.();
+      return undefined;
+    }, [alertsQuery])
+  );
 
   const quickActions: QuickAction[] = [
     {
@@ -154,38 +170,63 @@ const FarmStaffDashboard: React.FC = () => {
       subtitle: 'Xem & quản lý cá Koi',
       icon: FishSvg,
       route: '/(home)/koi',
+      gradient: ['#0ea5e9', '#0284c7'],
     },
     {
       title: 'Quản lý Hồ',
       subtitle: 'Theo dõi các chỉ số hồ',
       icon: PondSvg,
       route: '/(home)/water',
+      gradient: ['#06b6d4', '#0891b2'],
     },
     {
       title: 'Sinh sản',
       subtitle: 'Quản lý quá trình sinh sản',
       icon: History,
       route: '/(home)/breeding',
+      gradient: ['#8b5cf6', '#7c3aed'],
     },
     {
       title: 'Lịch làm việc',
-      subtitle: 'Danh sách công việc hôm nay',
+      subtitle: 'Danh sách công việc',
       icon: Calendar,
       route: '/(home)/tasks',
+      gradient: ['#ec4899', '#db2777'],
     },
     {
       title: 'Sự cố & Cảnh báo',
       subtitle: 'Xem và quản lý sự cố',
       icon: AlertTriangle,
       route: '/(home)/incidents',
+      gradient: ['#f59e0b', '#d97706'],
     },
   ];
 
   const summaryData: SummaryData[] = [
-    { value: '127', label: 'Tổng số cá Koi', color: 'text-orange-600' },
-    { value: '8', label: 'Ao đang hoạt động', color: 'text-orange-600' },
-    { value: '3', label: 'Cặp cá sinh sản', color: 'text-green-600' },
-    { value: '12', label: 'Công việc hoàn thành', color: 'text-green-600' },
+    {
+      value: '127',
+      label: 'Tổng số cá Koi',
+      gradient: ['#f97316', '#ea580c'] as [string, string],
+      icon: '🐟',
+    },
+    {
+      value: '8',
+      label: 'Ao đang hoạt động',
+      gradient: ['#0ea5e9', '#0284c7'] as [string, string],
+      icon: '💧',
+    },
+    {
+      value: '3',
+      label: 'Cặp cá sinh sản',
+      gradient: ['#10b981', '#059669'] as [string, string],
+      icon: '💚',
+    },
+    {
+      value: '12',
+      label: 'Công việc hoàn thành',
+      gradient: ['#8b5cf6', '#7c3aed'] as [string, string],
+      icon: '✅',
+    },
   ];
 
   const handleActionPress = (route: string): void => {
@@ -213,10 +254,10 @@ const FarmStaffDashboard: React.FC = () => {
             <View className="flex-row items-center space-x-3">
               <Image
                 source={require('@/assets/images/Logo_ZenKoi.png')}
-                className="h-12 w-12"
+                className="h-14 w-14"
               />
               <View>
-                <Text className="text-2xl font-bold text-gray-900">
+                <Text className="text-3xl font-bold text-gray-900">
                   ZenKoi Farm
                 </Text>
               </View>
@@ -238,7 +279,14 @@ const FarmStaffDashboard: React.FC = () => {
           </View>
 
           {/* Alerts */}
-          {alerts.length > 0 && (
+          {alertsQuery.isLoading ? (
+            <View className="items-center rounded-2xl border border-orange-200 bg-orange-50 p-4">
+              <ActivityIndicator />
+              <Text className="mt-2 text-sm text-gray-600">
+                Đang tải cảnh báo...
+              </Text>
+            </View>
+          ) : alerts.length > 0 ? (
             <View className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
               <View className="mb-3 flex-row items-center">
                 <AlertTriangle size={20} color="red" />
@@ -250,7 +298,7 @@ const FarmStaffDashboard: React.FC = () => {
                 <AlertItem key={alert.id} alert={alert} />
               ))}
             </View>
-          )}
+          ) : null}
 
           {/* Quick Actions */}
           <View className="-mx-2 flex-row flex-wrap">
@@ -264,13 +312,21 @@ const FarmStaffDashboard: React.FC = () => {
           </View>
 
           {/* Today's Summary */}
-          <View className="rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
-            <Text className="mb-2 px-2 text-xl font-bold">
-              Tổng quan hôm nay
-            </Text>
-            <Text className="mb-4 px-2 text-gray-600">
-              Tóm tắt các hoạt động trong ngày
-            </Text>
+          <View
+            className="overflow-hidden rounded-2xl bg-white p-5 shadow-md"
+            style={{ elevation: 3 }}
+          >
+            <View className="mb-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-2xl font-black text-gray-900">
+                  Tổng quan hôm nay
+                </Text>
+                <Text className="mt-1 text-sm text-gray-500">
+                  Tóm tắt các hoạt động trong ngày
+                </Text>
+              </View>
+              <Text className="text-3xl">📊</Text>
+            </View>
 
             <View className="-mx-2 flex-row flex-wrap">
               {summaryData.map((item, index) => (
@@ -281,32 +337,11 @@ const FarmStaffDashboard: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Alert History Modal */}
-      <BottomSheetModal
+      {/* Water alerts bottom sheet */}
+      <WaterAlertBottomSheet
         visible={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
-        title="Lịch sử cảnh báo"
-      >
-        {alertHistory.map((alert) => (
-          <View
-            key={alert.id}
-            className="mb-2 flex-row justify-between rounded-lg border border-gray-200 bg-white p-3"
-          >
-            <Text className="flex-1 text-sm text-gray-800">
-              {alert.message}
-            </Text>
-            <Text
-              className={`rounded px-2 py-1 text-xs font-medium ${
-                alert.severity === 'error'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-orange-500 text-white'
-              }`}
-            >
-              {alert.severity === 'error' ? 'Nguy hiểm' : 'Cảnh báo'}
-            </Text>
-          </View>
-        ))}
-      </BottomSheetModal>
+      />
     </SafeAreaView>
   );
 };

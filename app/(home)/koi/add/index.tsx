@@ -4,6 +4,7 @@ import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
 import { useCreateKoiFish } from '@/hooks/useKoiFish';
+import { useGetPatternByVarietyId } from '@/hooks/usePattern';
 import { useGetPonds } from '@/hooks/usePond';
 import { useUploadImage } from '@/hooks/useUpload';
 import { useGetVarieties } from '@/hooks/useVariety';
@@ -11,9 +12,7 @@ import type { KoiFishRequest } from '@/lib/api/services/fetchKoiFish';
 import {
   Gender,
   HealthStatus,
-  KoiPatternType,
   KoiType,
-  MutationType,
   SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -37,7 +36,7 @@ import {
   VenusAndMars,
   X,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -64,7 +63,7 @@ const initialForm: KoiFishRequest = {
   origin: '',
   size: 0,
   type: KoiType.HIGH,
-  patternType: KoiPatternType.NONE,
+  patternType: null,
   birthDate: '',
   gender: Gender.MALE,
   healthStatus: HealthStatus.HEALTHY,
@@ -74,7 +73,7 @@ const initialForm: KoiFishRequest = {
   sellingPrice: 0,
   description: '',
   isMutated: false,
-  mutationType: MutationType.NONE,
+  mutationType: null,
 };
 
 export default function AddKoiPage() {
@@ -83,6 +82,7 @@ export default function AddKoiPage() {
   const redirect = (params?.redirect as string) || undefined;
   const breedingId = params?.breedingId ? Number(params.breedingId) : null;
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<any>(null);
 
   const [formData, setFormData] = useState<KoiFishRequest>(initialForm);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -125,6 +125,13 @@ export default function AddKoiPage() {
       });
       setSizeText('');
       setErrors({});
+      setTimeout(() => {
+        try {
+          scrollRef.current?.scrollTo?.({ x: 0, y: 0, animated: false });
+        } catch (error) {
+          console.log('Error scroll', error);
+        }
+      }, 0);
       return undefined;
     }, [breedingId])
   );
@@ -205,47 +212,7 @@ export default function AddKoiPage() {
     }
   };
 
-  const koiPatternTypeToLabel = (p: KoiPatternType) => {
-    switch (p) {
-      case KoiPatternType.TANCHO:
-        return 'Đốm đỏ giữa đầu';
-      case KoiPatternType.MARUTEN:
-        return 'Đốm đầu và thân';
-      case KoiPatternType.NIDAN:
-        return '2 đốm đỏ';
-      case KoiPatternType.SANDAN:
-        return '3 đốm đỏ';
-      case KoiPatternType.INAZUMA:
-        return 'Dải đỏ hình tia sét';
-      case KoiPatternType.STRAIGHT_HI:
-        return 'Dải đỏ liền thân';
-      case KoiPatternType.MENKABURI:
-        return 'Đầu đỏ toàn phần';
-      case KoiPatternType.BOZU:
-        return 'Đầu trắng';
-      case KoiPatternType.NONE:
-        return 'Không xác định';
-      default:
-        return p;
-    }
-  };
-
-  const mutationTypeToLabel = (m: MutationType) => {
-    switch (m) {
-      case MutationType.DOITSU:
-        return 'Doitsu (không vảy)';
-      case MutationType.GINRIN:
-        return 'Ginrin (vảy ánh kim)';
-      case MutationType.HIRENAGA:
-        return 'Hirenaga (đuôi dài)';
-      case MutationType.METALLIC:
-        return 'Metallic (ánh kim toàn thân)';
-      case MutationType.NONE:
-        return 'Không';
-      default:
-        return m;
-    }
-  };
+  // Patterns are provided by API; labels come from the pattern name.
 
   const typeOptionsVN = Object.values(KoiType).map((t) => ({
     label: t,
@@ -265,15 +232,30 @@ export default function AddKoiPage() {
     value: s,
   }));
 
-  const patternOptionsVN = Object.values(KoiPatternType).map((p) => ({
-    label: koiPatternTypeToLabel(p),
-    value: p,
-  }));
+  const mutationTypeOptionsVN: { label: string; value: string }[] = [];
 
-  const mutationTypeOptionsVN = Object.values(MutationType).map((m) => ({
-    label: mutationTypeToLabel(m),
-    value: m,
-  }));
+  // Patterns come from API per selected variety
+  const patternQuery = useGetPatternByVarietyId(
+    formData.varietyId ?? 0,
+    !!formData.varietyId
+  );
+  const patternOptionsVN = ((): {
+    label: string;
+    value: string;
+    meta?: string;
+  }[] => {
+    if (!formData.varietyId)
+      return [{ label: 'Vui lòng chọn giống trước', value: '' }];
+    if (patternQuery.isLoading)
+      return [{ label: 'Đang tải hoa văn...', value: '' }];
+    const data = patternQuery.data?.data ?? [];
+    // if (!data || data.length === 0) return [{ label: 'Không có hoa văn', value: '__none' }];
+    return data.map((p) => ({
+      label: p.patternName,
+      value: p.patternName,
+      meta: p.description,
+    }));
+  })();
 
   const createKoi = useCreateKoiFish();
   const isSaving =
@@ -465,10 +447,7 @@ export default function AddKoiPage() {
     if (!formData.description.trim())
       nextErrors.description = 'Vui lòng nhập giới thiệu';
 
-    if (
-      formData.isMutated &&
-      (!formData.mutationType || formData.mutationType === MutationType.NONE)
-    )
+    if (formData.isMutated && !formData.mutationType)
       nextErrors.mutationType = 'Vui lòng chọn loại đột biến';
 
     setErrors(nextErrors);
@@ -485,7 +464,7 @@ export default function AddKoiPage() {
       rfid: String(formData.rfid),
       origin: String(formData.origin ?? ''),
       size: formData.size,
-      patternType: formData.patternType as KoiPatternType,
+      patternType: formData.patternType as string | null,
       birthDate: formData.birthDate || new Date().toISOString(),
       gender: formData.gender as Gender,
       healthStatus: formData.healthStatus as HealthStatus,
@@ -495,7 +474,7 @@ export default function AddKoiPage() {
       sellingPrice: Number(formData.sellingPrice ?? 0),
       description: String(formData.description ?? ''),
       isMutated: formData.isMutated ?? false,
-      mutationType: formData.mutationType as MutationType,
+      mutationType: formData.mutationType as string | null,
     };
 
     createKoi.mutate(payload, {
@@ -530,6 +509,7 @@ export default function AddKoiPage() {
       </View>
 
       <KeyboardAwareScrollView
+        ref={scrollRef}
         bottomOffset={insets.bottom + 80}
         className="flex-1"
         contentContainerStyle={{
@@ -1011,20 +991,26 @@ export default function AddKoiPage() {
                 <View className="flex-1">
                   <ContextMenuField
                     label="Kiểu hoa văn"
-                    value={formData.patternType}
+                    value={formData.patternType ?? undefined}
                     options={patternOptionsVN}
                     onSelect={(v: string) => {
-                      setFormData({
-                        ...formData,
-                        patternType: v as KoiPatternType,
-                      });
+                      if (!v || v === '__none') {
+                        setFormData({ ...formData, patternType: null });
+                        return;
+                      }
+                      setFormData({ ...formData, patternType: v });
                       setErrors((prev) => {
                         const copy = { ...prev };
                         delete copy.patternType;
                         return copy;
                       });
                     }}
-                    placeholder="Chọn kiểu hoa văn"
+                    placeholder={
+                      formData.varietyId
+                        ? 'Chọn kiểu hoa văn'
+                        : 'Chọn giống trước'
+                    }
+                    disabled={!formData.varietyId}
                   />
                 </View>
               </View>
@@ -1047,9 +1033,7 @@ export default function AddKoiPage() {
                         setFormData({
                           ...formData,
                           isMutated: val,
-                          mutationType: val
-                            ? formData.mutationType
-                            : MutationType.NONE,
+                          mutationType: val ? formData.mutationType : null,
                         })
                       }
                       trackColor={{ false: '#e5e7eb', true: '#bbf7d0' }}
@@ -1076,12 +1060,12 @@ export default function AddKoiPage() {
                   <View className="flex-1">
                     <ContextMenuField
                       label="Loại đột biến *"
-                      value={formData.mutationType}
+                      value={formData.mutationType ?? undefined}
                       options={mutationTypeOptionsVN}
                       onSelect={(v: string) => {
                         setFormData({
                           ...formData,
-                          mutationType: v as MutationType,
+                          mutationType: v ? v : null,
                         });
                         setErrors((prev) => {
                           const copy = { ...prev };

@@ -1,6 +1,7 @@
 import {
   KoiFish,
   KoiFishFamily,
+  KoiFishHealth,
   KoiFishPagination,
   KoiFishRequest,
   KoiFishSearchParams,
@@ -95,6 +96,25 @@ export function useGetKoiFishById(id: number, enabled = true) {
 }
 
 /*
+ * Hook to get Koi Fish by RFID
+ */
+export function useGetKoiFishByRFID(rfid: string, enabled = true) {
+  return useQuery({
+    queryKey: koiFishKeys.detail(`rfid-${rfid}`),
+    queryFn: async (): Promise<KoiFish> => {
+      const resp = await koiFishServices.getKoiFishByRFID(rfid);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải thông tin cá');
+      return resp.result;
+    },
+    enabled: enabled && !!rfid,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
  * Get Koi Fish Family by ID
  */
 export function useGetKoiFishFamilyById(id: number, enabled = true) {
@@ -104,6 +124,25 @@ export function useGetKoiFishFamilyById(id: number, enabled = true) {
       const resp = await koiFishServices.getKoiFishFamilyById(id);
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải thông tin gia phả cá');
+      return resp.result;
+    },
+    enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Hook to get Koi Fish health history by koi fish ID
+ */
+export function useGetKoiFishHealthByKoiId(id: number, enabled = true) {
+  return useQuery({
+    queryKey: koiFishKeys.detail(`health-${id}`),
+    queryFn: async (): Promise<KoiFishHealth[]> => {
+      const resp = await koiFishServices.getKoiFishHealthByKoiId(id);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải lịch sử sức khỏe cá');
       return resp.result;
     },
     enabled: enabled && !!id,

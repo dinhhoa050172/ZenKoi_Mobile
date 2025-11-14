@@ -1,8 +1,19 @@
 import apiService, { RequestParams } from '../apiClient';
 
+export enum WaterParameterType {
+  PH_LEVEL = 'PHLevel', // Độ pH
+  TEMPERATURE_CELSIUS = 'TemperatureCelsius', // Nhiệt độ (°C)
+  OXYGEN_LEVEL = 'OxygenLevel', // Hàm lượng Oxy hòa tan (mg/L)
+  AMMONIA_LEVEL = 'AmmoniaLevel', // Nồng độ Amoniac (mg/L)
+  NITRITE_LEVEL = 'NitriteLevel', // Nồng độ Nitrit (mg/L)
+  NITRATE_LEVEL = 'NitrateLevel', // Nồng độ Nitrat (mg/L)
+  CARBON_HARDNESS = 'CarbonHardness', // Độ cứng cacbonat (°dH)
+  WATER_LEVEL_METERS = 'WaterLevelMeters', // Mực nước (m)
+}
+
 export interface WaterParameterThreshold {
   id: number;
-  parameterName: string;
+  parameterName: WaterParameterType;
   unit: string;
   minValue: number;
   maxValue: number;
@@ -11,14 +22,14 @@ export interface WaterParameterThreshold {
 }
 
 export interface WaterParameterThresholdSearchParams {
-  parameterName?: string;
+  parameterName?: WaterParameterType;
   pondTypeId?: number;
   pageIndex?: number;
   pageSize?: number;
 }
 
 export interface WaterParameterThresholdRequest {
-  parameterName: string;
+  parameterName: WaterParameterType;
   unit: string;
   minValue: number;
   maxValue: number;

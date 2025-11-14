@@ -65,7 +65,7 @@ export default function FishManagement({
             Quản lý cá
           </Text>
           <View className="rounded-full bg-blue-100 px-2 py-1">
-            <Text className="text-xs font-medium text-blue-800">
+            <Text className="text-sm font-medium text-blue-800">
               {fishData?.length ?? 0} con
             </Text>
           </View>
