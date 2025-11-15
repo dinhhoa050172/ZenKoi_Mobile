@@ -1,19 +1,23 @@
 import IncidentCard from '@/components/incidents/IncidentCard';
+import IncidentFilterModal from '@/components/incidents/IncidentFilterModal';
 import Loading from '@/components/Loading';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGetIncidents } from '@/hooks/useIncident';
-import { Incident, IncidentSeverity } from '@/lib/api/services/fetchIncident';
+import {
+  Incident,
+  IncidentSearchParams,
+  IncidentSeverity,
+} from '@/lib/api/services/fetchIncident';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   BarChart3,
   ChevronRight,
+  Filter,
   Layers,
   Plus,
-  Search,
   Shield,
   TrendingUp,
-  X,
   Zap,
 } from 'lucide-react-native';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -22,7 +26,6 @@ import {
   RefreshControl,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -31,14 +34,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function IncidentsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<IncidentSearchParams>({});
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Debounced search query
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const { data, refetch, isRefetching, isLoading } = useGetIncidents(true, {
-    Search: debouncedSearchQuery,
-    pageSize: 20,
-  });
+  // Combine search query with other filters
+  const combinedFilters = useMemo(
+    () => ({
+      ...filters,
+      Search: debouncedSearchQuery || filters.Search,
+      pageSize: 20,
+    }),
+    [filters, debouncedSearchQuery]
+  );
+
+  const { data, refetch, isRefetching, isLoading } = useGetIncidents(
+    true,
+    combinedFilters
+  );
 
   const incidents = useMemo(() => data?.data || [], [data?.data]);
 
@@ -72,6 +87,21 @@ export default function IncidentsScreen() {
       pathname: '/(home)/incidents/[id]',
       params: { id: incident.id.toString() },
     });
+  };
+
+  const handleApplyFilter = (newFilters: IncidentSearchParams) => {
+    setFilters(newFilters);
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.Status) count++;
+    if (filters.Severity) count++;
+    if (filters.IncidentTypeId) count++;
+    if (filters.OccurredFrom) count++;
+    if (filters.OccurredTo) count++;
+    if (filters.Search) count++;
+    return count;
   };
 
   const renderIncident = ({ item }: { item: Incident }) => (
@@ -146,14 +176,14 @@ export default function IncidentsScreen() {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#1d4ed8" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A3D62" />
       <SafeAreaView className="flex-1" style={{ backgroundColor: '#f8fafc' }}>
         {/* Modern Header with Gradient */}
         <LinearGradient
-          colors={['#3b82f6', '#1d4ed8', '#1e40af']}
+          colors={['#0A3D62', '#054A91', '#0E5CAD']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          className="px-6 pb-8 pt-4"
+          className="px-6 pb-6 pt-4"
         >
           <View className="mb-6 flex-row items-center justify-between">
             <View className="flex-1">
@@ -165,16 +195,37 @@ export default function IncidentsScreen() {
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => router.push('/(home)/incidents/types')}
-              className="rounded-2xl bg-white/20 px-4 py-3"
-              activeOpacity={0.8}
-            >
-              <View className="flex-row items-center">
-                <Layers size={20} color="white" />
-                <ChevronRight size={16} color="white" />
-              </View>
-            </TouchableOpacity>
+            <View className="flex-row gap-2">
+              {/* Filter Button */}
+              <TouchableOpacity
+                onPress={() => setShowFilterModal(true)}
+                className="relative rounded-2xl bg-white/20 px-4 py-3"
+                activeOpacity={0.8}
+              >
+                <View className="flex-row items-center">
+                  <Filter size={20} color="white" />
+                  {getActiveFilterCount() > 0 && (
+                    <View className="absolute -right-2 -top-2 h-5 w-5 items-center justify-center rounded-full bg-red-500">
+                      <Text className="text-xs font-bold text-white">
+                        {getActiveFilterCount()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Types Button */}
+              <TouchableOpacity
+                onPress={() => router.push('/(home)/incidents/types')}
+                className="rounded-2xl bg-white/20 px-4 py-3"
+                activeOpacity={0.8}
+              >
+                <View className="flex-row items-center">
+                  <Layers size={20} color="white" />
+                  <ChevronRight size={16} color="white" />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Statistics Cards */}
@@ -200,7 +251,7 @@ export default function IncidentsScreen() {
           </View>
 
           {/* Search Bar */}
-          <View className="relative">
+          {/* <View className="relative">
             <View className="flex-row items-center rounded-2xl bg-white/90 px-4 py-2">
               <Search size={20} color="#6b7280" />
               <TextInput
@@ -219,7 +270,7 @@ export default function IncidentsScreen() {
                 </TouchableOpacity>
               )}
             </View>
-          </View>
+          </View> */}
         </LinearGradient>
 
         {/* Incidents List */}
@@ -276,6 +327,14 @@ export default function IncidentsScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        {/* Filter Modal */}
+        <IncidentFilterModal
+          visible={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          onApplyFilter={handleApplyFilter}
+          initialFilters={filters}
+        />
       </SafeAreaView>
     </>
   );

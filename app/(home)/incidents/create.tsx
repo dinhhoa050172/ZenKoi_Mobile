@@ -17,6 +17,7 @@ import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import FishSvg from '@/components/icons/FishSvg';
 import { useRouter } from 'expo-router';
 import {
   AlertCircle,
@@ -27,7 +28,6 @@ import {
   Clock,
   Droplets,
   Edit3,
-  Fish,
   MapPin,
   Plus,
   Search,
@@ -52,6 +52,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getAffectedStatusInfo } from './[id]';
 
 // Extended types
 type SelectedPond = Pond & {
@@ -307,7 +308,7 @@ export default function CreateIncidentScreen() {
         >
           <View className="items-center">
             <View className="mb-6 rounded-full bg-white/10 p-6">
-              <Fish className="h-12 w-12 text-white" />
+              <FishSvg size={20} />
             </View>
             <Text className="mb-2 text-2xl font-bold text-white">
               Đang tạo sự cố
@@ -411,7 +412,8 @@ export default function CreateIncidentScreen() {
                           className={`text-lg ${formData.incidentTypeId ? 'text-slate-900' : 'text-slate-400'}`}
                         >
                           {incidentTypes?.data?.find(
-                            (t: any) => t.id === formData.incidentTypeId
+                            (t: IncidentType) =>
+                              t.id === formData.incidentTypeId
                           )?.name || 'Chọn loại sự cố'}
                         </Text>
                       </View>
@@ -623,7 +625,7 @@ export default function CreateIncidentScreen() {
 
                   <View className="flex-1 rounded-2xl p-4 ">
                     <View className="flex-row items-center justify-center gap-2 ">
-                      <Fish className="mr-2 h-5 w-5 text-orange-600" />
+                      <FishSvg size={20} />
                       <Text className="font-semibold text-orange-800">
                         Cá Koi
                       </Text>
@@ -783,7 +785,7 @@ export default function CreateIncidentScreen() {
                           <View className="mb-4 flex-row items-center justify-between gap-2">
                             <View className="flex-1">
                               <View className="flex-row items-center">
-                                <Fish className="mr-2 h-5 w-5 text-orange-500" />
+                                <FishSvg size={20} />
                                 <Text className="text-xl font-semibold text-orange-800">
                                   {(koi as KoiFish).rfid || `Cá Koi #${koi.id}`}
                                 </Text>
@@ -823,7 +825,7 @@ export default function CreateIncidentScreen() {
                                       <Text
                                         className={`text-xs font-medium ${koi.affectedStatus === status ? 'text-white' : 'text-slate-600'}`}
                                       >
-                                        {status}
+                                        {getAffectedStatusInfo(status).label}
                                       </Text>
                                     </TouchableOpacity>
                                   )
@@ -895,7 +897,7 @@ export default function CreateIncidentScreen() {
                     </View>
                   ) : (
                     <View className="rounded-2xl border-2 border-dashed border-slate-300 p-8">
-                      <Fish className="mx-auto mb-3 h-12 w-12 text-slate-400" />
+                      <FishSvg size={48} />
                       <Text className="text-center text-slate-500">
                         Chưa chọn cá nào
                       </Text>
@@ -946,11 +948,10 @@ export default function CreateIncidentScreen() {
     </SafeAreaView>
   );
 
-  // Modal components would follow similar modern design patterns...
   // Modal render functions - Đặt trong component chính
   function renderIncidentTypeModal() {
     const filteredIncidentTypes = incidentTypes?.data?.filter(
-      (type: any) =>
+      (type: IncidentType) =>
         type.name?.toLowerCase().includes(debouncedKoiSearch.toLowerCase()) ||
         type.description
           ?.toLowerCase()
@@ -1236,7 +1237,7 @@ export default function CreateIncidentScreen() {
   }
 
   function renderPondSelectionModal() {
-    const filteredPonds = ponds?.data?.filter((pond: any) =>
+    const filteredPonds = ponds?.data?.filter((pond: Pond) =>
       pond.pondName.toLowerCase().includes(debouncedPondSearch.toLowerCase())
     );
 
@@ -1317,7 +1318,7 @@ export default function CreateIncidentScreen() {
               </View>
             ) : (
               <View className="mb-4">
-                {filteredPonds?.map((pond: any) => {
+                {filteredPonds?.map((pond: Pond) => {
                   const isSelected = selectedPonds.some(
                     (sp) => sp.id === pond.id
                   );
@@ -1437,10 +1438,8 @@ export default function CreateIncidentScreen() {
   }
 
   function renderKoiSelectionModal() {
-    const filteredKois = koiFishes?.data?.filter(
-      (koi: any) =>
-        koi.koiName?.toLowerCase().includes(debouncedKoiSearch.toLowerCase()) ||
-        koi.rfid?.toLowerCase().includes(debouncedKoiSearch.toLowerCase())
+    const filteredKois = koiFishes?.data?.filter((koi: KoiFish) =>
+      koi.rfid?.toLowerCase().includes(debouncedKoiSearch.toLowerCase())
     );
 
     return (
@@ -1537,11 +1536,7 @@ export default function CreateIncidentScreen() {
                       <View className="flex-row items-start justify-between">
                         <View className="flex-1">
                           <View className="flex-row items-start">
-                            <Fish
-                              className={`mr-3 mt-1 h-5 w-5 ${
-                                isSelected ? 'text-white' : 'text-orange-500'
-                              }`}
-                            />
+                            <FishSvg size={20} />
                             <View className="flex-1">
                               <Text
                                 className={`text-lg font-semibold ${
@@ -1573,7 +1568,7 @@ export default function CreateIncidentScreen() {
                                     }`}
                                   >
                                     🐟{' '}
-                                    {(koi as any).varietyName ||
+                                    {(koi as KoiFish).variety.varietyName ||
                                       'Chưa xác định'}
                                   </Text>
                                 </View>
@@ -1615,7 +1610,7 @@ export default function CreateIncidentScreen() {
 
                 {filteredKois?.length === 0 && (
                   <View className="items-center py-8">
-                    <Fish className="h-16 w-16 text-slate-300" />
+                    <FishSvg size={64} />
                     <Text className="mt-4 text-lg font-medium text-slate-500">
                       Không tìm thấy cá nào
                     </Text>

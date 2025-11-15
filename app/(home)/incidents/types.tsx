@@ -272,7 +272,7 @@ export default function IncidentTypesScreen() {
       {/* Modern Header with Gradient */}
       <View className="bg-white">
         <LinearGradient
-          colors={['#3b82f6', '#1d4ed8']}
+          colors={['#185fd0', '#0A3D62']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           className="px-6 pb-6 pt-4"
@@ -289,7 +289,7 @@ export default function IncidentTypesScreen() {
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row items-center space-x-3">
+            <View className="flex-row items-center gap-4">
               <View className="rounded-full bg-white/20 px-3 py-1">
                 <Text className="text-sm font-semibold text-white">
                   {filteredTypes.length} loại
