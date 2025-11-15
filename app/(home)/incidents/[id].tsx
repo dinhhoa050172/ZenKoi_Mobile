@@ -1,30 +1,34 @@
 import Loading from '@/components/Loading';
-import { useGetIncidentById, useResolveIncident } from '@/hooks/useIncident';
+import CancelIncidentModal from '@/components/incidents/CancelIncidentModal';
+import ResolveIncidentModal from '@/components/incidents/ResolveIncidentModal';
+import {
+  useGetIncidentById,
+  useUpdateIncidentStatus,
+} from '@/hooks/useIncident';
 import { useGetKoiFishById } from '@/hooks/useKoiFish';
 import { useGetPondById } from '@/hooks/usePond';
 import {
   IncidentSeverity,
   IncidentStatus,
+  KoiAffectedStatus,
   KoiIncident,
   PondIncident,
 } from '@/lib/api/services/fetchIncident';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  Activity,
   AlertCircle,
   AlertTriangle,
   Calendar,
   CheckCircle,
   ChevronLeft,
-  Clock,
   Droplets,
   Edit,
   FileText,
   Fish,
   Heart,
-  Settings,
-  Shield,
+  ShieldCheck, // Thay thế cho Shield
+  Thermometer, // Thay cho Activity
   TrendingUp,
   User,
   Waves,
@@ -34,7 +38,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
-  Platform,
+  ScrollView, // Import ScrollView
   StatusBar,
   Text,
   TouchableOpacity,
@@ -42,17 +46,143 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// --- BẮT ĐẦU: HELPER FUNCTIONS (Đã được tối ưu) ---
+
+// Helper cho TRẠNG THÁI (Status)
+export const getStatusInfo = (status: IncidentStatus) => {
+  switch (status) {
+    case IncidentStatus.Resolved:
+      return {
+        icon: <CheckCircle size={16} color="#059669" />,
+        color: '#059669',
+        bgColor: '#f0fdf4',
+        label: 'Đã giải quyết',
+      };
+    case IncidentStatus.Investigating:
+      return {
+        icon: <AlertCircle size={16} color="#2563eb" />,
+        color: '#2563eb',
+        bgColor: '#eff6ff',
+        label: 'Đang điều tra',
+      };
+    case IncidentStatus.Closed:
+      return {
+        icon: <XCircle size={16} color="#6b7280" />,
+        color: '#6b7280',
+        bgColor: '#f9fafb',
+        label: 'Đã đóng',
+      };
+    case IncidentStatus.Cancelled:
+      return {
+        icon: <XCircle size={16} color="#dc2626" />,
+        color: '#dc2626',
+        bgColor: '#fef2f2',
+        label: 'Đã hủy',
+      };
+    default:
+      return {
+        icon: <AlertTriangle size={16} color="#d97706" />,
+        color: '#d97706',
+        bgColor: '#fffbeb',
+        label: 'Đã báo cáo',
+      };
+  }
+};
+
+// Helper cho MỨC ĐỘ (Severity)
+export const getSeverityInfo = (severity: IncidentSeverity) => {
+  switch (severity) {
+    case IncidentSeverity.Urgent:
+      return {
+        icon: <AlertTriangle size={16} color="#dc2626" />,
+        color: '#dc2626',
+        bgColor: '#fef2f2',
+        label: 'Khẩn cấp',
+      };
+    case IncidentSeverity.High:
+      return {
+        icon: <AlertCircle size={16} color="#ea580c" />,
+        color: '#ea580c',
+        bgColor: '#fff7ed',
+        label: 'Cao',
+      };
+    case IncidentSeverity.Medium:
+      return {
+        icon: <Thermometer size={16} color="#d97706" />,
+        color: '#d97706',
+        bgColor: '#fffbeb',
+        label: 'Trung bình',
+      };
+    default:
+      return {
+        icon: <ShieldCheck size={16} color="#059669" />,
+        color: '#059669',
+        bgColor: '#f0fdf4',
+        label: 'Thấp',
+      };
+  }
+};
+
+// Helper cho TRẠNG THÁI CÁ (Koi Status)
+export const getAffectedStatusInfo = (status: KoiAffectedStatus) => {
+  switch (status) {
+    case 'Healthy':
+      return {
+        icon: <Heart size={14} color="#059669" />,
+        color: '#059669',
+        bgColor: '#f0fdf4',
+        label: 'Khỏe mạnh',
+      };
+    case 'Warning':
+      return {
+        icon: <AlertTriangle size={14} color="#d97706" />,
+        color: '#d97706',
+        bgColor: '#fffbeb',
+        label: 'Cảnh báo',
+      };
+    case 'Sick':
+      return {
+        icon: <AlertTriangle size={14} color="#dc2626" />,
+        color: '#dc2626',
+        bgColor: '#fef2f2',
+        label: 'Bệnh',
+      };
+    case 'Dead':
+      return {
+        icon: <XCircle size={14} color="#6b7280" />,
+        color: '#6b7280',
+        bgColor: '#f3f4f6',
+        label: 'Chết',
+      };
+    default:
+      return {
+        icon: <AlertCircle size={14} color="#6b7280" />,
+        color: '#6b7280',
+        bgColor: '#f3f4f6',
+        label: 'Không rõ',
+      };
+  }
+};
+
+// --- HẾT: HELPER FUNCTIONS ---
+
 export default function IncidentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const incidentId = parseInt(id as string, 10);
   const [isResolving, setIsResolving] = useState(false);
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   const router = useRouter();
-  const { data: incident, isLoading, refetch } = useGetIncidentById(incidentId);
-  const resolveMutation = useResolveIncident();
-  const incidentData = incident;
+  const {
+    data: incidentData,
+    isLoading,
+    refetch,
+  } = useGetIncidentById(incidentId);
+  const resolveMutation = useUpdateIncidentStatus();
 
   useEffect(() => {
     if (incidentData) {
@@ -76,113 +206,60 @@ export default function IncidentDetailScreen() {
   };
 
   const handleEdit = () => {
-    router.push(`/incidents/edit?id=${incidentData?.id}`);
+    // Sửa lại đường dẫn cho Expo Router
+    router.push(`/(home)/incidents/edit?id=${incidentData?.id}`);
   };
 
   const handleResolveIncident = () => {
     if (!incidentData) return;
-
-    Alert.alert(
-      'Xác nhận giải quyết',
-      'Bạn có chắc chắn muốn đánh dấu sự cố này là đã giải quyết?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xác nhận',
-          style: 'default',
-          onPress: async () => {
-            setIsResolving(true);
-            try {
-              await resolveMutation.mutateAsync({
-                id: incidentData.id,
-                resolution: { resolutionNotes: 'Đã giải quyết thành công' },
-              });
-              refetch();
-            } catch (error) {
-              console.error('Error resolving incident:', error);
-            } finally {
-              setIsResolving(false);
-            }
-          },
-        },
-      ]
-    );
+    setShowResolveModal(true);
   };
 
-  const getSeverityInfo = (severity: IncidentSeverity) => {
-    switch (severity) {
-      case IncidentSeverity.Urgent:
-        return {
-          icon: <AlertTriangle size={24} color="white" />,
-          colors: ['#dc2626', '#b91c1c'] as const,
-          bgColor: '#fef2f2',
-          textColor: '#991b1b',
-          label: 'Khẩn cấp',
-        };
-      case IncidentSeverity.High:
-        return {
-          icon: <AlertCircle size={24} color="white" />,
-          colors: ['#ea580c', '#c2410c'] as const,
-          bgColor: '#fff7ed',
-          textColor: '#c2410c',
-          label: 'Cao',
-        };
-      case IncidentSeverity.Medium:
-        return {
-          icon: <Activity size={24} color="white" />,
-          colors: ['#d97706', '#b45309'] as const,
-          bgColor: '#fffbeb',
-          textColor: '#b45309',
-          label: 'Trung bình',
-        };
-      default:
-        return {
-          icon: <Shield size={24} color="white" />,
-          colors: ['#059669', '#047857'] as const,
-          bgColor: '#f0fdf4',
-          textColor: '#047857',
-          label: 'Thấp',
-        };
+  const handleSubmitResolve = async (resolutionNotes: string) => {
+    if (!incidentData) return;
+    setIsResolving(true);
+    try {
+      await resolveMutation.mutateAsync({
+        id: incidentData.id,
+        IncidentResolutionRequest: {
+          status: 'Resolved',
+          resolutionNotes: resolutionNotes,
+        },
+      });
+      setShowResolveModal(false);
+      refetch();
+      // Không cần router.back(), chỉ cần refetch để cập nhật UI
+    } catch (error) {
+      console.error('Error resolving incident:', error);
+      Alert.alert('Lỗi', 'Không thể giải quyết sự cố. Vui lòng thử lại.');
+    } finally {
+      setIsResolving(false);
     }
   };
 
-  const getStatusInfo = (status: IncidentStatus) => {
-    switch (status) {
-      case IncidentStatus.Resolved:
-        return {
-          icon: <CheckCircle size={20} color="#059669" />,
-          color: '#059669',
-          bgColor: '#f0fdf4',
-          label: 'Đã giải quyết',
-        };
-      case IncidentStatus.Investigating:
-        return {
-          icon: <AlertCircle size={20} color="#2563eb" />,
-          color: '#2563eb',
-          bgColor: '#eff6ff',
-          label: 'Đang điều tra',
-        };
-      case IncidentStatus.Closed:
-        return {
-          icon: <XCircle size={20} color="#6b7280" />,
-          color: '#6b7280',
-          bgColor: '#f9fafb',
-          label: 'Đã đóng',
-        };
-      case IncidentStatus.Cancelled:
-        return {
-          icon: <XCircle size={20} color="#dc2626" />,
-          color: '#dc2626',
-          bgColor: '#fef2f2',
-          label: 'Đã hủy',
-        };
-      default:
-        return {
-          icon: <AlertTriangle size={20} color="#d97706" />,
-          color: '#d97706',
-          bgColor: '#fffbeb',
-          label: 'Đã báo cáo',
-        };
+  const handleCancelIncident = () => {
+    if (!incidentData) return;
+    setShowCancelModal(true);
+  };
+
+  const handleSubmitCancel = async (resolutionNotes: string) => {
+    if (!incidentData) return;
+    setIsCancelling(true);
+    try {
+      await resolveMutation.mutateAsync({
+        id: incidentData.id,
+        IncidentResolutionRequest: {
+          status: 'Cancelled',
+          resolutionNotes: resolutionNotes,
+        },
+      });
+      setShowCancelModal(false);
+      refetch();
+    } catch (error) {
+      console.error('Error cancelling incident:', error);
+      Alert.alert('Lỗi', 'Không thể hủy sự cố. Vui lòng thử lại.');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -190,7 +267,6 @@ export default function IncidentDetailScreen() {
     const date = new Date(dateString);
     return {
       date: date.toLocaleDateString('vi-VN', {
-        weekday: 'long',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -204,8 +280,9 @@ export default function IncidentDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-1 rounded-2xl bg-white p-8 shadow-lg">
+      <SafeAreaView className="flex-1 bg-[#0A3D62]">
+        <StatusBar barStyle="light-content" backgroundColor="#0A3D62" />
+        <View className="flex-1 items-center justify-center">
           <Loading />
         </View>
       </SafeAreaView>
@@ -214,10 +291,10 @@ export default function IncidentDetailScreen() {
 
   if (!incidentData) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
-        <View className="flex-1 items-center justify-center px-6">
-          <View className="items-center rounded-2xl bg-white p-8 shadow-lg">
+      <SafeAreaView className="flex-1 bg-[#0A3D62]">
+        <StatusBar barStyle="light-content" backgroundColor="#0A3D62" />
+        <View className="flex-1 items-center justify-center p-6">
+          <View className="items-center rounded-3xl bg-white p-8 shadow-lg">
             <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-red-100">
               <AlertTriangle size={32} color="#dc2626" />
             </View>
@@ -229,7 +306,7 @@ export default function IncidentDetailScreen() {
             </Text>
             <TouchableOpacity
               onPress={handleBack}
-              className="rounded-2xl bg-blue-500 px-6 py-3"
+              className="rounded-2xl bg-[#0A3D62] px-6 py-3"
             >
               <Text className="font-semibold text-white">Quay lại</Text>
             </TouchableOpacity>
@@ -245,254 +322,123 @@ export default function IncidentDetailScreen() {
 
   return (
     <>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={severityInfo.colors[0]}
-      />
-      <SafeAreaView className="flex-1" style={{ backgroundColor: '#0f172a' }}>
-        {/* Modern Header with Glassmorphism */}
+      {/* 1. Nền & Status Bar */}
+      <SafeAreaView className="flex-1 bg-[#0A3D62]">
+        <StatusBar barStyle="light-content" backgroundColor="#0A3D62" />
+
+        {/* 2. Header (Thông tin chính) */}
         <Animated.View
           style={{
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
           }}
+          className="px-6 pt-4"
         >
-          <LinearGradient
-            colors={severityInfo.colors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="relative overflow-hidden"
-            style={{
-              paddingTop: Platform.OS === 'ios' ? 60 : 20,
-              paddingBottom: 40,
-              paddingHorizontal: 24,
-              borderBottomLeftRadius: 32,
-              borderBottomRightRadius: 32,
-            }}
-          >
-            {/* Decorative Elements */}
-            <View className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-white/10" />
-            <View className="absolute -left-8 top-20 h-24 w-24 rounded-full bg-white/5" />
-
-            {/* Header Navigation */}
-            <View className="mb-8 flex-row items-center justify-between">
-              <TouchableOpacity
-                onPress={handleBack}
-                className="flex-row items-center rounded-2xl bg-white/20 px-4 py-3 backdrop-blur-sm"
-                activeOpacity={0.8}
-                style={{
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                }}
-              >
-                <ChevronLeft size={20} color="white" />
-                <Text className="ml-2 text-base font-semibold text-white">
-                  Quay lại
-                </Text>
-              </TouchableOpacity>
-
-              <View className="flex-row items-center gap-2">
-                <TouchableOpacity
-                  onPress={handleEdit}
-                  className="rounded-2xl bg-white/20 p-3 backdrop-blur-sm"
-                  activeOpacity={0.8}
-                >
-                  <Edit size={20} color="white" />
-                </TouchableOpacity>
-
-                <View className="rounded-2xl bg-white/30 px-4 py-3 backdrop-blur-sm">
-                  <Text className="text-sm font-bold text-white">
-                    #{incidentData.incidentTitle.split('-')[0]}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Incident Title & Type */}
-            <View className="mb-6">
-              <Text className="mb-2 text-3xl font-bold leading-tight text-white">
-                {incidentData.incidentTitle}
+          {/* Nút Back & Edit */}
+          <View className="flex-row items-center justify-between">
+            <TouchableOpacity
+              onPress={handleBack}
+              className="flex-row items-center rounded-full bg-white/10 p-2 pr-4"
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={24} color="white" />
+              <Text className="ml-1 text-base font-semibold text-white">
+                Quay lại
               </Text>
-              <View className="flex-row items-center">
-                <View className="mr-3 rounded-full bg-white/20 px-3 py-1">
-                  <Text className="text-sm font-medium text-white">
-                    {incidentData.incidentTypeName}
-                  </Text>
-                </View>
-                {severityInfo.icon}
-                <Text className="ml-2 text-lg font-semibold text-white">
-                  {severityInfo.label}
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
 
-            {/* Status & DateTime Card */}
-            <View className="flex-row space-x-4">
-              <View className="flex-1 rounded-2xl bg-white/15 p-4 backdrop-blur-sm">
-                <View className="flex-row items-center">
-                  {statusInfo.icon}
-                  <Text className="ml-2 text-sm font-medium text-white">
-                    Trạng thái
-                  </Text>
-                </View>
-                <Text className="mt-1 text-base font-bold text-white">
-                  {statusInfo.label}
-                </Text>
-              </View>
-
-              <View className="flex-1 rounded-2xl bg-white/15 p-4 backdrop-blur-sm">
-                <View className="flex-row items-center">
-                  <Calendar size={16} color="white" />
-                  <Text className="ml-2 text-sm font-medium text-white">
-                    Xảy ra lúc
-                  </Text>
-                </View>
-                <Text className="mt-1 text-base font-bold text-white">
-                  {dateTime.time}
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Main Content */}
-        <Animated.ScrollView
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-          style={{ opacity: fadeAnim }}
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: 24,
-            paddingBottom: 120,
-          }}
-        >
-          {/* Description Card */}
-          {incidentData.description && (
-            <View
-              className="mb-6 overflow-hidden rounded-3xl bg-slate-800/90 backdrop-blur-xl"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 24,
-                elevation: 8,
-              }}
+            <TouchableOpacity
+              onPress={handleEdit}
+              className="rounded-full bg-white/10 p-3"
+              activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={['rgba(100, 116, 139, 0.1)', 'transparent']}
-                className="p-6"
-              >
-                <View className="mb-4 flex-row items-center">
-                  <View className="rounded-2xl bg-blue-500/20 p-3">
-                    <FileText size={20} color="#60a5fa" />
-                  </View>
-                  <Text className="ml-4 text-lg font-bold text-white">
-                    Mô tả chi tiết
-                  </Text>
-                </View>
-                <Text className="text-base leading-7 text-slate-300">
-                  {incidentData.description}
-                </Text>
-              </LinearGradient>
-            </View>
-          )}
-
-          {/* Timeline & Reporter Card */}
-          <View
-            className="mb-6 overflow-hidden rounded-3xl bg-slate-800/90 backdrop-blur-xl"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 24,
-              elevation: 8,
-            }}
-          >
-            <LinearGradient
-              colors={['rgba(59, 130, 246, 0.1)', 'transparent']}
-              className="p-6"
-            >
-              <View className="mb-6 flex-row items-center">
-                <View className="rounded-2xl bg-purple-500/20 p-3">
-                  <Clock size={20} color="#a78bfa" />
-                </View>
-                <Text className="ml-4 text-lg font-bold text-white">
-                  Thông tin thời gian
-                </Text>
-              </View>
-
-              <View className="mb-6 flex-1 gap-4">
-                <View className="flex-row items-center justify-between gap-2 rounded-2xl bg-slate-700/50 p-4">
-                  <View>
-                    <Text className="text-sm font-medium text-slate-400">
-                      Ngày xảy ra
-                    </Text>
-                    <Text className="text-base font-bold text-white">
-                      {dateTime.date}
-                    </Text>
-                  </View>
-                  <View className="rounded-2xl bg-blue-500/20 px-3 py-2">
-                    <Text className="text-sm font-bold text-blue-400">
-                      {dateTime.time}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-center justify-between rounded-2xl bg-slate-700/50 p-4">
-                  <View>
-                    <Text className="text-sm font-medium text-slate-400">
-                      Được báo cáo bởi
-                    </Text>
-                    <Text className="text-base font-bold text-white">
-                      {incidentData.reportedByUserName}
-                    </Text>
-                  </View>
-                  <View className="h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                    <User size={20} color="white" />
-                  </View>
-                </View>
-              </View>
-            </LinearGradient>
+              <Edit size={20} color="white" />
+            </TouchableOpacity>
           </View>
 
-          {/* Affected Assets */}
-          {(incidentData.koiIncidents.length > 0 ||
-            incidentData.pondIncidents.length > 0) && (
-            <View
-              className="mb-6 overflow-hidden rounded-3xl bg-slate-800/90 backdrop-blur-xl"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 24,
-                elevation: 8,
-              }}
-            >
-              <LinearGradient
-                colors={['rgba(34, 197, 94, 0.1)', 'transparent']}
-                className="p-6"
-              >
-                <View className="mb-6 flex-row items-center">
-                  <View className="rounded-2xl bg-emerald-500/20 p-3">
-                    <Settings size={20} color="#34d399" />
-                  </View>
-                  <Text className="ml-4 text-lg font-bold text-white">
-                    Tài sản bị ảnh hưởng
-                  </Text>
-                </View>
+          {/* Tiêu đề & Loại */}
+          <View className="mt-6">
+            <Text className="text-sm font-medium text-blue-300">
+              {incidentData.incidentTypeName}
+            </Text>
+            <Text className="mt-1 text-2xl font-bold text-white">
+              {incidentData.incidentTitle}
+            </Text>
+          </View>
 
-                {/* Affected Koi */}
+          {/* Tags (Trạng thái & Mức độ) */}
+          <View className="mt-4 flex-row gap-2">
+            <View
+              className="flex-row items-center rounded-full px-3 py-2"
+              style={{ backgroundColor: statusInfo.bgColor }}
+            >
+              {statusInfo.icon}
+              <Text
+                className="ml-2 text-sm font-bold"
+                style={{ color: statusInfo.color }}
+              >
+                {statusInfo.label}
+              </Text>
+            </View>
+            <View
+              className="flex-row items-center rounded-full px-3 py-2"
+              style={{ backgroundColor: severityInfo.bgColor }}
+            >
+              {severityInfo.icon}
+              <Text
+                className="ml-2 text-sm font-bold"
+                style={{ color: severityInfo.color }}
+              >
+                {severityInfo.label}
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* 3. Nội dung ScrollView (Thẻ trắng) */}
+        <Animated.View
+          className="mt-6 flex-1 rounded-t-3xl bg-slate-50"
+          style={{
+            opacity: fadeAnim,
+          }}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              padding: 24,
+              paddingBottom: 120, // Nới rộng cho FAB
+            }}
+          >
+            {/* Thẻ Chi Tiết */}
+            <InfoCard title="Chi tiết sự cố" icon={<FileText />}>
+              <Text className="mb-6 text-base leading-7 text-slate-700">
+                {incidentData.description}
+              </Text>
+              <View className="space-y-4">
+                <InfoRow
+                  icon={<Calendar size={20} color="#0A3D62" />}
+                  label="Ngày xảy ra"
+                  value={`${dateTime.date} - ${dateTime.time}`}
+                />
+                <InfoRow
+                  icon={<User size={20} color="#0A3D62" />}
+                  label="Người báo cáo"
+                  value={incidentData.reportedByUserName}
+                />
+              </View>
+            </InfoCard>
+
+            {/* Thẻ Tài Sản Bị Ảnh Hưởng */}
+            {(incidentData.koiIncidents.length > 0 ||
+              incidentData.pondIncidents.length > 0) && (
+              <InfoCard title="Tài sản bị ảnh hưởng" icon={<Waves />}>
+                {/* Danh sách Cá */}
                 {incidentData.koiIncidents.length > 0 && (
-                  <View className="mb-6">
-                    <View className="mb-4 flex-row items-center">
-                      <Fish size={20} color="#60a5fa" />
-                      <Text className="ml-3 text-base font-bold text-blue-400">
-                        Cá Koi bị ảnh hưởng ({incidentData.koiIncidents.length})
-                      </Text>
-                    </View>
-                    <View className="flex-1 gap-4">
+                  <View className="mb-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-800">
+                      Cá Koi ({incidentData.koiIncidents.length})
+                    </Text>
+                    <View className="flex-col gap-4">
                       {incidentData.koiIncidents.map(
                         (koiIncident: KoiIncident, index: number) => (
                           <ModernKoiIncidentCard
@@ -505,17 +451,13 @@ export default function IncidentDetailScreen() {
                   </View>
                 )}
 
-                {/* Affected Ponds */}
+                {/* Danh sách Ao */}
                 {incidentData.pondIncidents.length > 0 && (
                   <View>
-                    <View className="mb-4 flex-row items-center">
-                      <Waves size={20} color="#34d399" />
-                      <Text className="ml-3 text-base font-bold text-emerald-400">
-                        Ao nuôi bị ảnh hưởng (
-                        {incidentData.pondIncidents.length})
-                      </Text>
-                    </View>
-                    <View className="flex-1 gap-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-800">
+                      Ao nuôi ({incidentData.pondIncidents.length})
+                    </Text>
+                    <View className="flex-col gap-4">
                       {incidentData.pondIncidents.map(
                         (pondIncident: PondIncident, index: number) => (
                           <ModernPondIncidentCard
@@ -527,49 +469,28 @@ export default function IncidentDetailScreen() {
                     </View>
                   </View>
                 )}
-              </LinearGradient>
-            </View>
-          )}
+              </InfoCard>
+            )}
 
-          {/* Resolution Notes */}
-          {incidentData.resolutionNotes && (
-            <View
-              className="mb-6 overflow-hidden rounded-3xl bg-slate-800/90 backdrop-blur-xl"
-              style={{
-                shadowColor: '#10b981',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 24,
-                elevation: 8,
-              }}
-            >
-              <LinearGradient
-                colors={['rgba(16, 185, 129, 0.2)', 'transparent']}
-                className="p-6"
-              >
-                <View className="mb-4 flex-row items-center">
-                  <View className="rounded-2xl bg-emerald-500/30 p-3">
-                    <CheckCircle size={20} color="#10b981" />
-                  </View>
-                  <Text className="ml-4 text-lg font-bold text-emerald-400">
-                    Ghi chú giải quyết
-                  </Text>
-                </View>
-                <View className="rounded-2xl bg-emerald-500/10 p-4">
-                  <Text className="text-base leading-7 text-emerald-300">
+            {/* Thẻ Ghi Chú Giải Quyết */}
+            {incidentData.resolutionNotes && (
+              <InfoCard title="Ghi chú giải quyết" icon={<CheckCircle />}>
+                <View className="rounded-2xl bg-emerald-50 p-4">
+                  <Text className="text-base leading-7 text-emerald-800">
                     {incidentData.resolutionNotes}
                   </Text>
                 </View>
-              </LinearGradient>
-            </View>
-          )}
-        </Animated.ScrollView>
+              </InfoCard>
+            )}
+          </ScrollView>
+        </Animated.View>
 
-        {/* Modern Floating Action Buttons */}
+        {/* 4. Nút Hành Động (FAB) */}
         {incidentData.status !== IncidentStatus.Resolved &&
-          incidentData.status !== IncidentStatus.Closed && (
+          incidentData.status !== IncidentStatus.Closed &&
+          incidentData.status !== IncidentStatus.Cancelled && (
             <Animated.View
-              className="absolute bottom-8 left-6 right-6"
+              className="absolute bottom-6 left-6 right-6"
               style={{
                 opacity: fadeAnim,
                 transform: [
@@ -582,165 +503,204 @@ export default function IncidentDetailScreen() {
                 ],
               }}
             >
-              <TouchableOpacity
-                onPress={handleResolveIncident}
-                disabled={isResolving}
-                activeOpacity={0.9}
-                style={{
-                  shadowColor: '#10b981',
-                  shadowOffset: { width: 0, height: 12 },
-                  shadowOpacity: 0.4,
-                  shadowRadius: 20,
-                  elevation: 12,
-                }}
-              >
-                <LinearGradient
-                  colors={['#10b981', '#059669', '#047857']}
-                  className="overflow-hidden rounded-3xl"
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+              <View className="flex-row gap-3">
+                {/* Cancel Button */}
+                <TouchableOpacity
+                  onPress={handleCancelIncident}
+                  disabled={isCancelling}
+                  activeOpacity={0.9}
+                  className="flex-1"
+                  style={{
+                    shadowColor: '#dc2626',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 16,
+                    elevation: 8,
+                  }}
                 >
-                  <View className="flex-row items-center justify-center px-8 py-5">
-                    {isResolving ? (
-                      <Activity size={24} color="white" />
-                    ) : (
-                      <CheckCircle size={24} color="white" />
-                    )}
-                    <Text className="ml-3 text-lg font-bold text-white">
-                      {isResolving ? 'Đang xử lý...' : 'Đánh dấu đã giải quyết'}
-                    </Text>
-                  </View>
-                  <View className="absolute inset-0 bg-white/10" />
-                </LinearGradient>
-              </TouchableOpacity>
+                  <LinearGradient
+                    colors={['#ef4444', '#dc2626']}
+                    className="overflow-hidden rounded-3xl py-4"
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View className="flex-row items-center justify-center">
+                      <XCircle size={20} color="white" />
+                      <Text className="ml-2 text-base font-bold text-white">
+                        {isCancelling ? 'Đang hủy...' : 'Hủy sự cố'}
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Resolve Button */}
+                <TouchableOpacity
+                  onPress={handleResolveIncident}
+                  disabled={isResolving}
+                  activeOpacity={0.9}
+                  className="flex-1"
+                  style={{
+                    shadowColor: '#0A3D62',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 16,
+                    elevation: 8,
+                  }}
+                >
+                  <LinearGradient
+                    colors={['#10b981', '#059669']}
+                    className="overflow-hidden rounded-3xl py-4"
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View className="flex-row items-center justify-center">
+                      <CheckCircle size={20} color="white" />
+                      <Text className="ml-2 text-base font-bold text-white">
+                        {isResolving ? 'Đang giải quyết...' : 'Giải quyết'}
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </Animated.View>
           )}
+
+        {/* 5. Modals */}
+        <ResolveIncidentModal
+          visible={showResolveModal}
+          onClose={() => setShowResolveModal(false)}
+          onResolve={handleSubmitResolve}
+          isSubmitting={isResolving}
+          incidentTitle={incidentData?.incidentTitle}
+        />
+
+        <CancelIncidentModal
+          visible={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onCancel={handleSubmitCancel}
+          isSubmitting={isCancelling}
+          incidentTitle={incidentData?.incidentTitle}
+        />
       </SafeAreaView>
     </>
   );
 }
 
-// Modern Koi Incident Card Component
+// --- Component Thẻ Thông Tin (Card) ---
+const InfoCard = ({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <View className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
+    <View className="mb-4 flex-row items-center">
+      <View className="rounded-2xl bg-blue-100 p-3"></View>
+      <Text className="ml-4 text-lg font-bold text-[#0A3D62]">{title}</Text>
+    </View>
+    {children}
+  </View>
+);
+
+// --- Component Dòng Thông Tin (Row) ---
+const InfoRow = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) => (
+  <View className="flex-row items-start">
+    <View className="mt-1 rounded-lg bg-slate-100 p-2"></View>
+    <View className="ml-3 flex-1">
+      <Text className="text-sm font-medium text-slate-500">{label}</Text>
+      <Text className="text-base font-semibold text-slate-900">{value}</Text>
+    </View>
+  </View>
+);
+
+// --- Thẻ Cá Koi (Đã thiết kế lại) ---
 function ModernKoiIncidentCard({ koiIncident }: { koiIncident: KoiIncident }) {
   const { data: koi } = useGetKoiFishById(koiIncident.koiFishId, true);
-
-  const getAffectedStatusInfo = (status: string) => {
-    switch (status) {
-      case 'Healthy':
-        return {
-          icon: <Heart size={18} color="#10b981" />,
-          color: '#10b981',
-          bgColor: 'rgba(16, 185, 129, 0.2)',
-          label: 'Khỏe mạnh',
-        };
-      case 'Warning':
-        return {
-          icon: <AlertTriangle size={18} color="#f59e0b" />,
-          color: '#f59e0b',
-          bgColor: 'rgba(245, 158, 11, 0.2)',
-          label: 'Cảnh báo',
-        };
-      case 'Sick':
-        return {
-          icon: <AlertTriangle size={18} color="#ef4444" />,
-          color: '#ef4444',
-          bgColor: 'rgba(239, 68, 68, 0.2)',
-          label: 'Bệnh',
-        };
-      case 'Dead':
-        return {
-          icon: <XCircle size={18} color="#991b1b" />,
-          color: '#991b1b',
-          bgColor: 'rgba(153, 27, 27, 0.2)',
-          label: 'Chết',
-        };
-      default:
-        return {
-          icon: <AlertCircle size={18} color="#6b7280" />,
-          color: '#6b7280',
-          bgColor: 'rgba(107, 114, 128, 0.2)',
-          label: 'Không rõ',
-        };
-    }
-  };
-
   const statusInfo = getAffectedStatusInfo(koiIncident.affectedStatus);
 
   return (
-    <View className="overflow-hidden rounded-2xl bg-slate-700/50 backdrop-blur-sm">
-      <LinearGradient
-        colors={['rgba(59, 130, 246, 0.1)', 'transparent']}
-        className="p-4"
-      >
+    <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <View className="p-4">
+        {/* Header Cá */}
         <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            <View className="mb-2 flex-row items-center">
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-600">
-                <Fish size={20} color="white" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-bold text-white">
-                  {koi?.rfid || `Cá #${koiIncident.koiFishId}`}
-                </Text>
-                {koi?.variety && (
-                  <Text className="text-sm text-slate-300">
-                    {koi.variety.varietyName} •{' '}
-                    {koi.gender === 'Male' ? 'Đực' : 'Cái'}
-                  </Text>
-                )}
-              </View>
-              <View
-                className="rounded-2xl px-3 py-2"
-                style={{ backgroundColor: statusInfo.bgColor }}
-              >
-                <View className="flex-row items-center">
-                  {statusInfo.icon}
-                  <Text
-                    className="ml-2 text-sm font-bold"
-                    style={{ color: statusInfo.color }}
-                  >
-                    {statusInfo.label}
-                  </Text>
-                </View>
-              </View>
+          <View className="flex-1 flex-row items-center">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+              <Fish size={20} color="#2563eb" />
             </View>
-
-            {/* Symptoms & Treatment */}
-            {koiIncident.specificSymptoms && (
-              <View className="mb-2 rounded-2xl bg-slate-600/30 p-3">
-                <Text className="mb-1 text-xs font-medium text-slate-400">
-                  Triệu chứng
+            <View className="flex-1">
+              <Text className="text-base font-bold text-slate-900">
+                {koi?.rfid || `Cá #${koiIncident.koiFishId}`}
+              </Text>
+              {koi?.variety && (
+                <Text className="text-sm text-slate-500">
+                  {koi.variety.varietyName} •{' '}
+                  {koi.gender === 'Male' ? 'Đực' : 'Cái'}
                 </Text>
-                <Text className="text-sm text-slate-200 ">
-                  {koiIncident.specificSymptoms}
+              )}
+            </View>
+          </View>
+          {/* Tag Trạng thái */}
+          <View
+            className="flex-shrink-0 rounded-full px-3 py-1.5"
+            style={{ backgroundColor: statusInfo.bgColor }}
+          >
+            <Text
+              className="text-xs font-bold"
+              style={{ color: statusInfo.color }}
+            >
+              {statusInfo.label}
+            </Text>
+          </View>
+        </View>
+
+        {/* Triệu chứng */}
+        {koiIncident.specificSymptoms && (
+          <View className="mt-3 rounded-lg bg-slate-50 p-3">
+            <Text className="mb-1 text-xs font-medium text-slate-500">
+              Triệu chứng
+            </Text>
+            <Text className="text-sm text-slate-800">
+              {koiIncident.specificSymptoms}
+            </Text>
+          </View>
+        )}
+
+        {/* Tags (Điều trị, Cách ly) */}
+        {(koiIncident.requiresTreatment || koiIncident.isIsolated) && (
+          <View className="mt-3 flex-row items-center space-x-2">
+            {koiIncident.requiresTreatment && (
+              <View className="rounded-full bg-red-100 px-2 py-1">
+                <Text className="text-xs font-medium text-red-700">
+                  Cần điều trị
                 </Text>
               </View>
             )}
-
-            {koiIncident.requiresTreatment && (
-              <View className="mb-2 flex-row items-center space-x-2">
-                <View className="rounded-full bg-red-500/20 px-2 py-1">
-                  <Text className="text-xs font-medium text-red-400">
-                    Cần điều trị
-                  </Text>
-                </View>
-                {koiIncident.isIsolated && (
-                  <View className="rounded-full bg-yellow-500/20 px-2 py-1">
-                    <Text className="text-xs font-medium text-yellow-400">
-                      Đã cách ly
-                    </Text>
-                  </View>
-                )}
+            {koiIncident.isIsolated && (
+              <View className="rounded-full bg-yellow-100 px-2 py-1">
+                <Text className="text-xs font-medium text-yellow-800">
+                  Đã cách ly
+                </Text>
               </View>
             )}
           </View>
-        </View>
-      </LinearGradient>
+        )}
+      </View>
     </View>
   );
 }
 
-// Modern Pond Incident Card Component
+// --- Thẻ Ao Nuôi (Đã thiết kế lại) ---
 function ModernPondIncidentCard({
   pondIncident,
 }: {
@@ -749,77 +709,66 @@ function ModernPondIncidentCard({
   const { data: pond } = useGetPondById(pondIncident.pondId, true);
 
   return (
-    <View className="overflow-hidden rounded-2xl bg-slate-700/50 backdrop-blur-sm">
-      <LinearGradient
-        colors={['rgba(34, 197, 94, 0.1)', 'transparent']}
-        className="p-4"
-      >
-        <View className="flex-row items-center justify-between">
+    <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <View className="p-4">
+        {/* Header Ao */}
+        <View className="mb-3 flex-row items-center">
+          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+            <Waves size={20} color="#059669" />
+          </View>
           <View className="flex-1">
-            <View className="mb-3 flex-row items-center">
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600">
-                <Waves size={20} color="white" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-bold text-white">
-                  {pond?.pondName || `Ao #${pondIncident.pondId}`}
-                </Text>
-                {pond && (
-                  <View className="mt-1 flex-row items-center space-x-3">
-                    <View className="flex-row items-center">
-                      <Droplets size={12} color="#64748b" />
-                      <Text className="ml-1 text-xs text-slate-400">
-                        {pond.capacityLiters}L
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <TrendingUp size={12} color="#64748b" />
-                      <Text className="ml-1 text-xs text-slate-400">
-                        {pond.depthMeters}m sâu
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-              <View className="rounded-2xl bg-emerald-500/20 px-3 py-2">
-                <Text className="text-xs font-bold text-emerald-400">
-                  Bị ảnh hưởng
-                </Text>
-              </View>
-            </View>
-
-            {/* Environmental Changes */}
-            {pondIncident.environmentalChanges && (
-              <View className="mb-2 rounded-2xl bg-slate-600/30 p-3">
-                <Text className="mb-1 text-xs font-medium text-slate-400">
-                  Thay đổi môi trường
-                </Text>
-                <Text className="text-sm text-slate-200">
-                  {pondIncident.environmentalChanges}
-                </Text>
+            <Text className="text-base font-bold text-slate-900">
+              {pond?.pondName || `Ao #${pondIncident.pondId}`}
+            </Text>
+            {pond && (
+              <View className="mt-1 flex-row items-center space-x-3">
+                <View className="flex-row items-center">
+                  <Droplets size={12} color="#64748b" />
+                  <Text className="ml-1 text-xs text-slate-500">
+                    {pond.capacityLiters}L
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  <TrendingUp size={12} color="#64748b" />
+                  <Text className="ml-1 text-xs text-slate-500">
+                    {pond.depthMeters}m sâu
+                  </Text>
+                </View>
               </View>
             )}
-
-            {/* Actions & Status */}
-            <View className="flex-row items-center space-x-2">
-              {pondIncident.requiresWaterChange && (
-                <View className="rounded-full bg-blue-500/20 px-2 py-1">
-                  <Text className="text-xs font-medium text-blue-400">
-                    Cần thay nước
-                  </Text>
-                </View>
-              )}
-              {pondIncident.fishDiedCount > 0 && (
-                <View className="rounded-full bg-red-500/20 px-2 py-1">
-                  <Text className="text-xs font-medium text-red-400">
-                    {pondIncident.fishDiedCount} cá chết
-                  </Text>
-                </View>
-              )}
-            </View>
           </View>
         </View>
-      </LinearGradient>
+
+        {/* Thay đổi môi trường */}
+        {pondIncident.environmentalChanges && (
+          <View className="mb-3 rounded-lg bg-slate-50 p-3">
+            <Text className="mb-1 text-xs font-medium text-slate-500">
+              Thay đổi môi trường
+            </Text>
+            <Text className="text-sm text-slate-800">
+              {pondIncident.environmentalChanges}
+            </Text>
+          </View>
+        )}
+
+        {/* Tags (Thay nước, Cá chết) */}
+        <View className="flex-row items-center space-x-2">
+          {pondIncident.requiresWaterChange && (
+            <View className="rounded-full bg-blue-100 px-2 py-1">
+              <Text className="text-xs font-medium text-blue-700">
+                Cần thay nước
+              </Text>
+            </View>
+          )}
+          {pondIncident.fishDiedCount > 0 && (
+            <View className="rounded-full bg-red-100 px-2 py-1">
+              <Text className="text-xs font-medium text-red-700">
+                {pondIncident.fishDiedCount} cá chết
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
     </View>
   );
 }

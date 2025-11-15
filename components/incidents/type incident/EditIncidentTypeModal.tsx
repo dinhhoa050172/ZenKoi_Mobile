@@ -178,7 +178,7 @@ export default function EditIncidentTypeModal({
         {/* Header với Glass Effect */}
         <View className="relative overflow-hidden">
           <LinearGradient
-            colors={['#7c3aed', '#5b21b6', '#4c1d95']}
+            colors={['#0A3D62', '#054A91', '#0E5CAD']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             className="px-6 pb-8 pt-12"
@@ -494,7 +494,7 @@ export default function EditIncidentTypeModal({
                     colors={
                       !isValid || updateMutation.isPending
                         ? ['#d1d5db', '#9ca3af']
-                        : ['#7c3aed', '#5b21b6']
+                        : ['#0A3D62', '#054A91']
                     }
                     className="flex-row items-center justify-center py-4"
                   >

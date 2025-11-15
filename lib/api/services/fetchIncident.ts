@@ -70,8 +70,6 @@ export interface IncidentSearchParams {
   Status?: IncidentStatus;
   Severity?: IncidentSeverity;
   IncidentTypeId?: number;
-  ReportedByUserId?: number;
-  ResolvedByUserId?: number;
   PondId?: number;
   KoiId?: number;
   OccurredFrom?: string;
@@ -116,6 +114,7 @@ export interface RequestIncident {
 }
 
 export interface IncidentResolutionRequest {
+  status: string;
   resolutionNotes: string;
 }
 
@@ -132,10 +131,6 @@ export const convertIncidentFilter = (
   if (filters.Status) params.status = filters.Status;
   if (filters.Severity) params.severity = filters.Severity;
   if (filters.IncidentTypeId) params.incidentTypeId = filters.IncidentTypeId;
-  if (filters.ReportedByUserId)
-    params.reportedByUserId = filters.ReportedByUserId;
-  if (filters.ResolvedByUserId)
-    params.resolvedByUserId = filters.ResolvedByUserId;
   if (filters.OccurredFrom) params.occurredFrom = filters.OccurredFrom;
   if (filters.OccurredTo) params.occurredTo = filters.OccurredTo;
   if (filters.pageIndex) params.pageIndex = filters.pageIndex;
@@ -216,24 +211,12 @@ export const incidentServices = {
   //Update incident status
   updateIncidentStatus: async (
     id: number,
-    status: string
-  ): Promise<IncidentResponse> => {
-    const response = await apiService.patch<
-      IncidentResponse,
-      { status: string }
-    >(`/api/Incident/${id}/status`, { status });
-    return response.data;
-  },
-
-  // Resolve an incident
-  resolveIncident: async (
-    id: number,
-    resolution: IncidentResolutionRequest
+    IncidentResolutionRequest: IncidentResolutionRequest
   ): Promise<IncidentResponse> => {
     const response = await apiService.patch<
       IncidentResponse,
       IncidentResolutionRequest
-    >(`/api/Incident/${id}/resolve`, resolution);
+    >(`/api/Incident/${id}/status`, IncidentResolutionRequest);
     return response.data;
   },
 

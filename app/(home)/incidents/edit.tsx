@@ -1,3 +1,5 @@
+import FishSvg from '@/components/icons/FishSvg';
+import PondSvg from '@/components/icons/PondSvg';
 import Loading from '@/components/Loading';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGetIncidentById, useUpdateIncident } from '@/hooks/useIncident';
@@ -11,13 +13,27 @@ import {
   PondIncident,
   RequestIncident,
 } from '@/lib/api/services/fetchIncident';
+import { IncidentType } from '@/lib/api/services/fetchIncidentType';
 import { Gender, KoiFish } from '@/lib/api/services/fetchKoiFish';
 import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Check, ChevronLeft, Search, X } from 'lucide-react-native';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  Check,
+  ChevronLeft,
+  Clock,
+  Droplets,
+  Plus,
+  Search,
+  Stethoscope,
+  Thermometer,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -28,13 +44,13 @@ import {
   Platform,
   ScrollView,
   StatusBar,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getAffectedStatusInfo } from './[id]';
 
 // Extended types
 type SelectedPond = Pond & {
@@ -454,399 +470,615 @@ export default function EditIncidentScreen() {
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {activeSection === 'basic' ? (
-          <ScrollView
-            className="flex-1 px-6 py-4"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Incident Type */}
-            <View className="mb-6">
-              <Text className="mb-3 text-base font-semibold text-gray-900">
-                Loại sự cố <Text className="text-red-500">*</Text>
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowIncidentTypeModal(true)}
-                className="rounded-xl border border-gray-200 bg-white p-4"
-              >
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <Animated.View style={{ opacity: fadeAnim }} className="p-6">
+            {/* Basic Information Section */}
+            {activeSection === 'basic' && (
+              <View className="space-y-6">
                 <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    {formData.incidentTypeId ? (
-                      <Text className="text-gray-900">
-                        {incidentTypes?.data?.find(
-                          (type: any) => type.id === formData.incidentTypeId
-                        )?.name || 'Đã chọn'}
-                      </Text>
-                    ) : (
-                      <Text className="text-gray-500">Chọn loại sự cố</Text>
-                    )}
+                  <Text className="text-2xl font-light text-slate-900">
+                    Thông tin sự cố
+                  </Text>
+                  <View
+                    className={`rounded-full border px-3 py-1 ${formData.severity ? getSeverityColor(formData.severity) : 'border-gray-200 bg-gray-100'}`}
+                  >
+                    <Text className="text-sm font-medium">
+                      {formData.severity
+                        ? getSeverityText(formData.severity)
+                        : 'Chưa đánh giá'}
+                    </Text>
                   </View>
-                  <ChevronLeft
-                    size={20}
-                    color="#6b7280"
-                    style={{ transform: [{ rotate: '180deg' }] }}
-                  />
                 </View>
-              </TouchableOpacity>
-            </View>
 
-            {/* Incident Title */}
-            <View className="mb-6">
-              <Text className="mb-3 text-base font-semibold text-gray-900">
-                Tiêu đề sự cố <Text className="text-red-500">*</Text>
-              </Text>
-              <TextInput
-                value={formData.incidentTitle}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, incidentTitle: text })
-                }
-                placeholder="Nhập tiêu đề sự cố..."
-                className="rounded-xl border border-gray-200 bg-white p-4 text-gray-900"
-                placeholderTextColor="#9ca3af"
-                multiline={false}
-              />
-            </View>
-
-            {/* Description */}
-            <View className="mb-6">
-              <Text className="mb-3 text-base font-semibold text-gray-900">
-                Mô tả chi tiết <Text className="text-red-500">*</Text>
-              </Text>
-              <TextInput
-                value={formData.description}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, description: text })
-                }
-                placeholder="Mô tả chi tiết về sự cố..."
-                className="rounded-xl border border-gray-200 bg-white p-4 text-gray-900"
-                placeholderTextColor="#9ca3af"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-
-            {/* Severity */}
-            <View className="mb-6">
-              <Text className="mb-3 text-base font-semibold text-gray-900">
-                Mức độ nghiêm trọng <Text className="text-red-500">*</Text>
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowSeverityModal(true)}
-                className="rounded-xl border border-gray-200 bg-white p-4"
-              >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    {formData.severity ? (
+                {/* Incident Type Field */}
+                <View>
+                  <Text className="mb-3 text-sm font-medium text-slate-600">
+                    Loại sự cố <Text className="text-rose-500">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    onPress={() => setShowIncidentTypeModal(true)}
+                  >
+                    <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center">
-                        <View
-                          className={`mr-2 rounded-full px-3 py-1 ${getSeverityColor(
-                            formData.severity
-                          )}`}
+                        <AlertTriangle className="mr-3 h-5 w-5 text-slate-400" />
+                        <Text
+                          className={`text-lg ${formData.incidentTypeId ? 'text-slate-900' : 'text-slate-400'}`}
                         >
-                          <Text className="text-xs font-medium">
-                            {getSeverityText(formData.severity)}
-                          </Text>
-                        </View>
+                          {incidentTypes?.data?.find(
+                            (t: IncidentType) =>
+                              t.id === formData.incidentTypeId
+                          )?.name || 'Chọn loại sự cố'}
+                        </Text>
                       </View>
-                    ) : (
-                      <Text className="text-gray-500">
-                        Chọn mức độ nghiêm trọng
-                      </Text>
-                    )}
-                  </View>
-                  <ChevronLeft
-                    size={20}
-                    color="#6b7280"
-                    style={{ transform: [{ rotate: '180deg' }] }}
+                      <ChevronLeft className="h-5 w-5 rotate-180 text-slate-400" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Incident Title Field */}
+                <View>
+                  <Text className="mb-3 text-sm font-medium text-slate-600">
+                    Tiêu đề sự cố <Text className="text-rose-500">*</Text>
+                  </Text>
+                  <TextInput
+                    className="rounded-2xl border border-slate-200 bg-white p-5 text-lg text-slate-900 shadow-sm"
+                    placeholder="Nhập tiêu đề sự cố"
+                    placeholderTextColor="#94A3B8"
+                    value={formData.incidentTitle}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, incidentTitle: text })
+                    }
+                    multiline
                   />
                 </View>
-              </TouchableOpacity>
-            </View>
 
-            {/* Occurred At */}
-            <View className="mb-6">
-              <Text className="mb-3 text-base font-semibold text-gray-900">
-                Thời gian xảy ra <Text className="text-red-500">*</Text>
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowDatePicker(true)}
-                className="rounded-xl border border-gray-200 bg-white p-4"
-              >
+                {/* Description Field */}
+                <View>
+                  <Text className="mb-3 text-sm font-medium text-slate-600">
+                    Mô tả chi tiết <Text className="text-rose-500">*</Text>
+                  </Text>
+                  <TextInput
+                    className="min-h-[120px] rounded-2xl border border-slate-200 bg-white p-5 text-lg text-slate-900 shadow-sm"
+                    placeholder="Mô tả chi tiết về sự cố..."
+                    placeholderTextColor="#94A3B8"
+                    value={formData.description}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, description: text })
+                    }
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                {/* Severity Field */}
+                <View>
+                  <Text className="mb-3 text-sm font-medium text-slate-600">
+                    Mức độ nghiêm trọng <Text className="text-rose-500">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    onPress={() => setShowSeverityModal(true)}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <Thermometer className="mr-3 h-5 w-5 text-slate-400" />
+                        <Text
+                          className={`text-lg ${formData.severity ? 'text-slate-900' : 'text-slate-400'}`}
+                        >
+                          {formData.severity
+                            ? getSeverityText(formData.severity)
+                            : 'Chọn mức độ nghiêm trọng'}
+                        </Text>
+                      </View>
+                      <ChevronLeft className="h-5 w-5 rotate-180 text-slate-400" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Occurred At Field */}
+                <View>
+                  <Text className="mb-3 text-sm font-medium text-slate-600">
+                    Ngày xảy ra <Text className="text-rose-500">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <Clock className="mr-3 h-5 w-5 text-slate-400" />
+                        <Text
+                          className={`text-lg ${formData.occurredAt ? 'text-slate-900' : 'text-slate-400'}`}
+                        >
+                          {formData.occurredAt
+                            ? new Date(formData.occurredAt).toLocaleDateString(
+                                'vi-VN'
+                              )
+                            : 'Chọn ngày xảy ra'}
+                        </Text>
+                      </View>
+                      <Calendar className="h-5 w-5 text-slate-400" />
+                    </View>
+                  </TouchableOpacity>
+                  {/* DateTimePicker */}
+                  {showDatePicker && (
+                    <View className="absolute inset-0 justify-end bg-black/50">
+                      <View className="rounded-t-3xl bg-white p-6">
+                        <View className="mb-4 flex-row items-center justify-between">
+                          <Text className="text-xl font-bold text-slate-900">
+                            Chọn ngày xảy ra
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => setShowDatePicker(false)}
+                            className="rounded-full bg-slate-100 p-2"
+                          >
+                            <X className="h-5 w-5 text-slate-600" />
+                          </TouchableOpacity>
+                        </View>
+
+                        <DateTimePicker
+                          value={
+                            formData.occurredAt
+                              ? new Date(formData.occurredAt)
+                              : new Date()
+                          }
+                          mode="date"
+                          display={
+                            Platform.OS === 'ios' ? 'spinner' : 'calendar'
+                          }
+                          maximumDate={new Date()}
+                          onChange={(event, selectedDate) => {
+                            if (Platform.OS === 'android') {
+                              setShowDatePicker(false);
+                            }
+
+                            if (selectedDate) {
+                              const today = new Date();
+                              today.setHours(23, 59, 59, 999);
+
+                              if (selectedDate > today) {
+                                Alert.alert(
+                                  'Lỗi',
+                                  'Không được chọn ngày trong tương lai'
+                                );
+                                return;
+                              }
+
+                              const dateOnly = new Date(selectedDate);
+                              dateOnly.setHours(0, 0, 0, 0);
+
+                              setFormData({
+                                ...formData,
+                                occurredAt: dateOnly.toISOString(),
+                              });
+
+                              if (Platform.OS === 'ios') {
+                                setTimeout(() => setShowDatePicker(false), 300);
+                              }
+                            }
+                          }}
+                          style={
+                            Platform.OS === 'ios'
+                              ? { height: 200 }
+                              : { alignSelf: 'center' }
+                          }
+                          textColor="#1E293B"
+                        />
+
+                        {Platform.OS === 'ios' && (
+                          <TouchableOpacity
+                            onPress={() => setShowDatePicker(false)}
+                            className="mt-4 rounded-xl bg-blue-500 py-4"
+                          >
+                            <Text className="text-center text-lg font-semibold text-white">
+                              Xác nhận
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Assets Section */}
+            {activeSection === 'assets' && (
+              <View className="space-y-6">
                 <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <Calendar size={20} color="#6b7280" />
-                    <Text className="ml-2 text-gray-900">
-                      {formData.occurredAt
-                        ? new Date(formData.occurredAt).toLocaleString('vi-VN')
-                        : 'Chọn thời gian'}
+                  <Text className="text-2xl font-light text-slate-900">
+                    Cá và hồ bị ảnh hưởng
+                  </Text>
+                  <View className="rounded-full border border-blue-200 bg-blue-100 px-3 py-1">
+                    <Text className="text-sm font-medium text-blue-800">
+                      {selectedPonds.length + selectedKois.length} cá & hồ
                     </Text>
                   </View>
-                  <ChevronLeft
-                    size={20}
-                    color="#6b7280"
-                    style={{ transform: [{ rotate: '180deg' }] }}
-                  />
                 </View>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        ) : (
-          <ScrollView
-            className="flex-1 px-6 py-4"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Selected Ponds */}
-            <View className="mb-6">
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-base font-semibold text-gray-900">
-                  Ao bị ảnh hưởng ({selectedPonds.length})
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowPondModal(true)}
-                  className="rounded-lg bg-blue-500 px-3 py-1"
-                >
-                  <Text className="text-sm font-medium text-white">
-                    Chọn ao
-                  </Text>
-                </TouchableOpacity>
-              </View>
 
-              {selectedPonds.map((pond) => (
-                <View
-                  key={pond.id}
-                  className="mb-4 rounded-xl border border-gray-200 bg-white p-4"
-                >
-                  <View className="mb-3 flex-row items-center justify-between">
-                    <Text className="font-semibold text-gray-900">
-                      {pond.pondName}
+                {/* Summary Cards */}
+                <View className="flex-row space-x-4">
+                  <View className="flex-1 rounded-2xl p-4">
+                    <View className="flex-row items-center justify-center gap-2">
+                      <PondSvg size={20} />
+                      <Text className="font-semibold text-cyan-800">
+                        Ao nuôi
+                      </Text>
+                    </View>
+                    <Text className="mt-2 text-center text-2xl font-bold text-cyan-600">
+                      {selectedPonds.length}
+                    </Text>
+                    <Text className="text-center text-sm text-cyan-700">
+                      ao được chọn
+                    </Text>
+                  </View>
+
+                  <View className="flex-1 rounded-2xl p-4 ">
+                    <View className="flex-row items-center justify-center gap-2 ">
+                      <FishSvg size={20} />
+                      <Text className="font-semibold text-orange-800">
+                        Cá Koi
+                      </Text>
+                    </View>
+                    <Text className="mt-2 text-center text-2xl font-bold text-orange-600">
+                      {selectedKois.length}
+                    </Text>
+                    <Text className="text-center text-sm text-orange-700">
+                      cá được chọn
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Pond Selection */}
+                <View>
+                  <View className="mb-4 flex-row items-center justify-between">
+                    <Text className="text-xl font-semibold text-slate-900">
+                      Ao nuôi
                     </Text>
                     <TouchableOpacity
-                      onPress={() =>
-                        setSelectedPonds(
-                          selectedPonds.filter((p) => p.id !== pond.id)
-                        )
-                      }
-                      className="rounded-full bg-red-100 p-1"
+                      className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 shadow-lg"
+                      onPress={() => setShowPondModal(true)}
                     >
-                      <X size={16} color="#dc2626" />
+                      <View className="flex-row items-center">
+                        <Plus className="mr-2 h-4 w-4 text-white" />
+                      </View>
                     </TouchableOpacity>
                   </View>
 
-                  <View className="space-y-3">
-                    <View>
-                      <Text className="mb-2 text-sm font-medium text-gray-700">
-                        Thay đổi môi trường
-                      </Text>
-                      <TextInput
-                        value={pond.environmentalChanges}
-                        onChangeText={(text) =>
-                          updatePondField(pond.id, 'environmentalChanges', text)
-                        }
-                        placeholder="Mô tả các thay đổi môi trường..."
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                      />
-                    </View>
+                  {selectedPonds.length > 0 ? (
+                    <View className="mb-4">
+                      {selectedPonds.map((pond) => (
+                        <View
+                          key={pond.id}
+                          className="mb-4 rounded-2xl border border-cyan-100 bg-white p-5 shadow-sm"
+                        >
+                          {/* Pond Header */}
+                          <View className="mb-4 flex-row items-center justify-between">
+                            <View className="flex-1">
+                              <View className="flex-row items-center">
+                                <PondSvg size={20} />
+                                <Text className="text-xl font-semibold text-cyan-800">
+                                  {pond.pondName}
+                                </Text>
+                              </View>
+                              <Text className="mt-1 text-sm text-cyan-600">
+                                Diện tích:{' '}
+                                {(
+                                  pond.lengthMeters * pond.widthMeters
+                                )?.toFixed(1)}
+                                m²
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => togglePondSelection(pond)}
+                              className="rounded-full bg-rose-500 p-2"
+                            >
+                              <X className="h-4 w-4 text-white" />
+                            </TouchableOpacity>
+                          </View>
 
-                    <View>
-                      <Text className="mb-2 text-sm font-medium text-gray-700">
-                        Biện pháp khắc phục
-                      </Text>
-                      <TextInput
-                        value={pond.correctiveActions}
-                        onChangeText={(text) =>
-                          updatePondField(pond.id, 'correctiveActions', text)
-                        }
-                        placeholder="Các biện pháp đã thực hiện..."
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                      />
-                    </View>
+                          {/* Pond Incident Details */}
+                          <View className="space-y-4">
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Thay đổi môi trường
+                              </Text>
+                              <TextInput
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900"
+                                placeholder="Mô tả các thay đổi môi trường..."
+                                value={pond.environmentalChanges || ''}
+                                onChangeText={(text) =>
+                                  updatePondField(
+                                    pond.id,
+                                    'environmentalChanges',
+                                    text
+                                  )
+                                }
+                                multiline
+                              />
+                            </View>
 
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-sm font-medium text-gray-700">
-                        Cần thay nước
-                      </Text>
-                      <Switch
-                        value={pond.requiresWaterChange}
-                        onValueChange={(value) =>
-                          updatePondField(pond.id, 'requiresWaterChange', value)
-                        }
-                        trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
-                        thumbColor={
-                          pond.requiresWaterChange ? '#ffffff' : '#ffffff'
-                        }
-                      />
-                    </View>
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Biện pháp khắc phục
+                              </Text>
+                              <TextInput
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900"
+                                placeholder="Các biện pháp đã thực hiện..."
+                                value={pond.correctiveActions || ''}
+                                onChangeText={(text) =>
+                                  updatePondField(
+                                    pond.id,
+                                    'correctiveActions',
+                                    text
+                                  )
+                                }
+                                multiline
+                              />
+                            </View>
 
-                    <View>
-                      <Text className="mb-2 text-sm font-medium text-gray-700">
-                        Số cá chết
-                      </Text>
-                      <TextInput
-                        value={pond.fishDiedCount?.toString() || '0'}
-                        onChangeText={(text) =>
-                          updatePondField(
-                            pond.id,
-                            'fishDiedCount',
-                            parseInt(text) || 0
-                          )
-                        }
-                        placeholder="0"
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        keyboardType="numeric"
-                      />
-                    </View>
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Số lượng cá chết
+                              </Text>
+                              <TextInput
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900"
+                                placeholder="0"
+                                value={pond.fishDiedCount?.toString() || '0'}
+                                onChangeText={(text) =>
+                                  updatePondField(
+                                    pond.id,
+                                    'fishDiedCount',
+                                    parseInt(text) || 0
+                                  )
+                                }
+                                keyboardType="numeric"
+                              />
+                            </View>
 
-                    <View>
-                      <Text className="mb-2 text-sm font-medium text-gray-700">
-                        Ghi chú
-                      </Text>
-                      <TextInput
-                        value={pond.notes}
-                        onChangeText={(text) =>
-                          updatePondField(pond.id, 'notes', text)
-                        }
-                        placeholder="Ghi chú thêm..."
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                      />
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Ghi chú
+                              </Text>
+                              <TextInput
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900"
+                                placeholder="Ghi chú thêm..."
+                                value={pond.notes || ''}
+                                onChangeText={(text) =>
+                                  updatePondField(pond.id, 'notes', text)
+                                }
+                                multiline
+                              />
+                            </View>
+
+                            <View className="mt-4 flex-row items-center justify-between">
+                              <Text className="text-sm font-medium text-slate-700">
+                                Cần thay nước
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() =>
+                                  updatePondField(
+                                    pond.id,
+                                    'requiresWaterChange',
+                                    !pond.requiresWaterChange
+                                  )
+                                }
+                                className={`rounded-full p-1 ${pond.requiresWaterChange ? 'bg-blue-500' : 'bg-slate-300'}`}
+                              >
+                                <Check className="h-4 w-4 text-white" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
                     </View>
-                  </View>
+                  ) : (
+                    <View className="rounded-2xl border-2 border-dashed border-slate-300 p-8">
+                      <PondSvg size={48} />
+                      <Text className="text-center text-slate-500">
+                        Chưa chọn ao nào
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              ))}
-            </View>
 
-            {/* Selected Kois */}
-            <View className="mb-6">
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-base font-semibold text-gray-900">
-                  Cá Koi bị ảnh hưởng ({selectedKois.length})
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowKoiModal(true)}
-                  className="rounded-lg bg-blue-500 px-3 py-1"
-                >
-                  <Text className="text-sm font-medium text-white">
-                    Chọn cá
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {selectedKois.map((koi) => (
-                <View
-                  key={koi.id}
-                  className="mb-4 rounded-xl border border-gray-200 bg-white p-4"
-                >
-                  <View className="mb-3 flex-row items-center justify-between">
-                    <Text className="font-semibold text-gray-900">
-                      {(koi as any).koiName || 'Cá Koi'}
+                {/* Koi Selection */}
+                <View>
+                  <View className="mb-4 flex-row items-center justify-between">
+                    <Text className="text-xl font-semibold text-slate-900">
+                      Cá Koi
                     </Text>
                     <TouchableOpacity
-                      onPress={() =>
-                        setSelectedKois(
-                          selectedKois.filter((k) => k.id !== koi.id)
-                        )
-                      }
-                      className="rounded-full bg-red-100 p-1"
+                      className="rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 px-5 py-3 shadow-lg"
+                      onPress={() => setShowKoiModal(true)}
                     >
-                      <X size={16} color="#dc2626" />
+                      <View className="flex-row items-center">
+                        <Plus className="mr-2 h-4 w-4 text-white" />
+                      </View>
                     </TouchableOpacity>
                   </View>
 
-                  <View className="space-y-3">
-                    <View>
-                      <Text className="mb-2 text-sm font-medium text-gray-700">
-                        Triệu chứng cụ thể
-                      </Text>
-                      <TextInput
-                        value={koi.specificSymptoms}
-                        onChangeText={(text) =>
-                          updateKoiField(koi.id, 'specificSymptoms', text)
-                        }
-                        placeholder="Mô tả triệu chứng..."
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                      />
-                    </View>
+                  {selectedKois.length > 0 ? (
+                    <View className="mb-4">
+                      {selectedKois.map((koi) => (
+                        <View
+                          key={koi.id}
+                          className="mb-4 rounded-2xl border border-orange-100 bg-white p-5 shadow-sm"
+                        >
+                          {/* Koi Header */}
+                          <View className="mb-4 flex-row items-center justify-between gap-2">
+                            <View className="flex-1">
+                              <View className="flex-row items-center">
+                                <FishSvg size={20} />
+                                <Text className="text-xl font-semibold text-orange-800">
+                                  {(koi as KoiFish).rfid || `Cá Koi #${koi.id}`}
+                                </Text>
+                              </View>
+                              <Text className="mt-1 text-sm text-orange-600">
+                                RFID: {koi.rfid}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => toggleKoiSelection(koi)}
+                              className="rounded-full bg-rose-500 p-2"
+                            >
+                              <X className="h-4 w-4 text-white" />
+                            </TouchableOpacity>
+                          </View>
 
-                    <View>
-                      <Text className="mb-2 text-sm font-medium text-gray-700">
-                        Ghi chú điều trị
-                      </Text>
-                      <TextInput
-                        value={koi.treatmentNotes}
-                        onChangeText={(text) =>
-                          updateKoiField(koi.id, 'treatmentNotes', text)
-                        }
-                        placeholder="Ghi chú về điều trị..."
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                      />
-                    </View>
+                          {/* Koi Incident Details */}
+                          <View className="flex-col gap-4">
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Trạng thái
+                              </Text>
+                              <View className="flex-row flex-wrap gap-2">
+                                {Object.values(KoiAffectedStatus).map(
+                                  (status) => (
+                                    <TouchableOpacity
+                                      key={status}
+                                      onPress={() =>
+                                        updateKoiField(
+                                          koi.id,
+                                          'affectedStatus',
+                                          status
+                                        )
+                                      }
+                                      className={`rounded-lg px-3 py-2 ${koi.affectedStatus === status ? 'bg-orange-500' : 'bg-slate-100'}`}
+                                    >
+                                      <Text
+                                        className={`text-xs font-medium ${koi.affectedStatus === status ? 'text-white' : 'text-slate-600'}`}
+                                      >
+                                        {getAffectedStatusInfo(status).label}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  )
+                                )}
+                              </View>
+                            </View>
 
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-sm font-medium text-gray-700">
-                        Cần điều trị
-                      </Text>
-                      <Switch
-                        value={koi.requiresTreatment}
-                        onValueChange={(value) =>
-                          updateKoiField(koi.id, 'requiresTreatment', value)
-                        }
-                        trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
-                        thumbColor={
-                          koi.requiresTreatment ? '#ffffff' : '#ffffff'
-                        }
-                      />
-                    </View>
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Triệu chứng
+                              </Text>
+                              <TextInput
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900"
+                                placeholder="Mô tả triệu chứng cụ thể..."
+                                value={koi.specificSymptoms || ''}
+                                onChangeText={(text) =>
+                                  updateKoiField(
+                                    koi.id,
+                                    'specificSymptoms',
+                                    text
+                                  )
+                                }
+                                multiline
+                              />
+                            </View>
 
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-sm font-medium text-gray-700">
-                        Đã cách ly
-                      </Text>
-                      <Switch
-                        value={koi.isIsolated}
-                        onValueChange={(value) =>
-                          updateKoiField(koi.id, 'isIsolated', value)
-                        }
-                        trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
-                        thumbColor={koi.isIsolated ? '#ffffff' : '#ffffff'}
-                      />
+                            <View>
+                              <Text className="mb-2 text-sm font-medium text-slate-700">
+                                Ghi chú điều trị
+                              </Text>
+                              <TextInput
+                                className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900"
+                                placeholder="Ghi chú về điều trị..."
+                                value={koi.treatmentNotes || ''}
+                                onChangeText={(text) =>
+                                  updateKoiField(koi.id, 'treatmentNotes', text)
+                                }
+                                multiline
+                              />
+                            </View>
+
+                            <View className="flex-row justify-between">
+                              <View className="flex-row items-center">
+                                <Stethoscope className="mr-2 h-4 w-4 text-slate-600" />
+                                <Text className="text-sm font-medium text-slate-700">
+                                  Cần điều trị
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    updateKoiField(
+                                      koi.id,
+                                      'requiresTreatment',
+                                      !koi.requiresTreatment
+                                    )
+                                  }
+                                  className={`ml-2 rounded-full p-1 ${koi.requiresTreatment ? 'bg-orange-500' : 'bg-slate-300'}`}
+                                >
+                                  <Check className="h-3 w-3 text-white" />
+                                </TouchableOpacity>
+                              </View>
+
+                              <View className="flex-row items-center">
+                                <Droplets className="mr-2 h-4 w-4 text-slate-600" />
+                                <Text className="text-sm font-medium text-slate-700">
+                                  Cách ly
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    updateKoiField(
+                                      koi.id,
+                                      'isIsolated',
+                                      !koi.isIsolated
+                                    )
+                                  }
+                                  className={`ml-2 rounded-full p-1 ${koi.isIsolated ? 'bg-orange-500' : 'bg-slate-300'}`}
+                                >
+                                  <Check className="h-3 w-3 text-white" />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
                     </View>
-                  </View>
+                  ) : (
+                    <View className="rounded-2xl border-2 border-dashed border-slate-300 p-8">
+                      <FishSvg size={48} />
+                      <Text className="text-center text-slate-500">
+                        Chưa chọn cá nào
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              ))}
-            </View>
-          </ScrollView>
-        )}
+              </View>
+            )}
+          </Animated.View>
+          {/* Bottom Actions */}
+          <View className="border-t border-slate-200 bg-white p-6">
+            <TouchableOpacity
+              onPress={handleSubmit}
+              className="rounded-2xl shadow-xl"
+              disabled={isSubmitting || !isFormValid()}
+            >
+              <LinearGradient
+                colors={
+                  isFormValid()
+                    ? ['#F97316', '#E11D48']
+                    : ['#94A3B8', '#64748B']
+                }
+                className="rounded-2xl py-4"
+              >
+                <Text className="text-center text-lg font-semibold text-white">
+                  {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật sự cố'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {!isFormValid() && (
+              <View className="mt-3 flex-row items-center justify-center">
+                <AlertCircle className="mr-1 h-4 w-4 text-rose-500" />
+                <Text className="text-sm text-rose-600">
+                  Vui lòng điền đầy đủ thông tin bắt buộc
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* DateTimePicker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={
-            formData.occurredAt ? new Date(formData.occurredAt) : new Date()
-          }
-          mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) {
-              setFormData({
-                ...formData,
-                occurredAt: selectedDate.toISOString(),
-              });
-            }
-          }}
-        />
-      )}
 
       {/* Modals - giữ nguyên các modal từ code trước */}
       {renderIncidentTypeModal()}
