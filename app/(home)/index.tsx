@@ -2,6 +2,10 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 import WaterAlertBottomSheet from '@/components/WaterAlertBottomSheet';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
+import {
+  useGetFarmQuickStats,
+  useGetFarmStatistics,
+} from '@/hooks/useFarmDashboard';
 import { useGetWaterAlerts } from '@/hooks/useWaterAlert';
 import { Severity, WaterAlert } from '@/lib/api/services/fetchWaterAlert';
 import { useFocusEffect } from '@react-navigation/native';
@@ -202,28 +206,35 @@ const FarmStaffDashboard: React.FC = () => {
     },
   ];
 
+  // Farm dashboard queries
+  const statsQuery = useGetFarmStatistics(true);
+  const quickStatsQuery = useGetFarmQuickStats(true);
+
+  const stats = statsQuery.data;
+  const quick = quickStatsQuery.data;
+
   const summaryData: SummaryData[] = [
     {
-      value: '127',
+      value: stats ? String(stats.totalKoi.current) : '—',
       label: 'Tổng số cá Koi',
       gradient: ['#f97316', '#ea580c'] as [string, string],
       icon: '🐟',
     },
     {
-      value: '8',
+      value: stats ? String(stats.pondsInUse.current) : '—',
       label: 'Ao đang hoạt động',
       gradient: ['#0ea5e9', '#0284c7'] as [string, string],
       icon: '💧',
     },
     {
-      value: '3',
+      value: quick ? String(quick.activeBreedingProcesses) : '—',
       label: 'Cặp cá sinh sản',
       gradient: ['#10b981', '#059669'] as [string, string],
       icon: '💚',
     },
     {
-      value: '12',
-      label: 'Công việc hoàn thành',
+      value: stats ? String(quick?.activeBreedingProcesses) : '—',
+      label: 'Quá trình sinh sản',
       gradient: ['#8b5cf6', '#7c3aed'] as [string, string],
       icon: '✅',
     },
@@ -328,6 +339,7 @@ const FarmStaffDashboard: React.FC = () => {
               <Text className="text-3xl">📊</Text>
             </View>
 
+            {/* Summary items */}
             <View className="-mx-2 flex-row flex-wrap">
               {summaryData.map((item, index) => (
                 <SummaryItem key={index} item={item} />

@@ -32,7 +32,8 @@ export default function TasksScreen() {
     'danger' | 'warning' | 'info'
   >('info');
   const insets = useSafeAreaInsets();
-
+  console.log('today:', today);
+  console.log('selected day:', selectedDate);
   // Get user from auth store
   const { user } = useAuthStore();
   const staffId = user?.id ? Number(user.id) : 0;
@@ -54,6 +55,8 @@ export default function TasksScreen() {
 
   const weekRange = getWeekRange(weekOffset);
 
+  console.log('week form:', weekRange.from);
+  console.log('week to:', weekRange.to);
   // Fetch work schedules for the entire week
   const {
     data: workScheduleData,
