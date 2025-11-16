@@ -100,7 +100,7 @@ export default function TabHomeLayout() {
     '/profile', // (home)/profile
     '/water', // (home)/water/index
     '/pond', // (home)/pond/index
-    '/incidents', // (home)/incidents
+    // '/incidents', // (home)/incidents
     '/tasks', // (home)/tasks
   ];
 

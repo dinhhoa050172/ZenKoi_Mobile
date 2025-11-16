@@ -2,7 +2,6 @@ import {
   authServices,
   LoginCredentials,
   LoginResponse,
-  RegisterRequest,
 } from '@/lib/api/services/fetchAuth';
 import { userServices } from '@/lib/api/services/fetchUser';
 import { useAuthStore } from '@/lib/store/authStore';
