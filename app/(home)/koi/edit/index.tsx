@@ -15,6 +15,7 @@ import {
   KoiType,
   SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
+import { PondStatus } from '@/lib/api/services/fetchPond';
 import { formatDate } from '@/lib/utils/formatDate';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -37,7 +38,7 @@ import {
   VenusAndMars,
   X,
 } from 'lucide-react-native';
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -134,7 +135,7 @@ export default function EditKoiPage() {
           origin: koiData.origin ?? '',
           size: sizeVal,
           type: koiData.type ?? KoiType.HIGH,
-          patternType: koiData.patternType,
+          pattern: koiData.pattern,
           birthDate: koiData.birthDate ?? '',
           gender: koiData.gender ?? Gender.MALE,
           healthStatus: koiData.healthStatus ?? HealthStatus.HEALTHY,
@@ -176,7 +177,10 @@ export default function EditKoiPage() {
     { pageIndex: 1, pageSize: 100 },
     true
   );
-  const pondOptions = pondsPage?.data ?? [];
+  const pondOptions = (pondsPage?.data ?? []).filter(
+    (p) =>
+      p.pondStatus === PondStatus.EMPTY || p.pondStatus === PondStatus.ACTIVE
+  );
   const varietyOptions = varietiesPage?.data ?? [];
 
   const pondSelectOptions = pondsLoading
@@ -485,7 +489,7 @@ export default function EditKoiPage() {
       rfid: String(formData.rfid),
       origin: String(formData.origin ?? ''),
       size: formData.size,
-      patternType: formData.patternType as string | null,
+      pattern: formData.pattern as string | null,
       birthDate: formData.birthDate || new Date().toISOString(),
       gender: formData.gender as Gender,
       healthStatus: formData.healthStatus as HealthStatus,
@@ -544,12 +548,12 @@ export default function EditKoiPage() {
 
       <KeyboardAwareScrollView
         ref={scrollRef}
-        bottomOffset={insets.bottom + 80}
+        bottomOffset={insets.bottom + 60}
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 20,
-          paddingBottom: insets.bottom + 30,
+          paddingBottom: insets.bottom,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -1019,17 +1023,18 @@ export default function EditKoiPage() {
                 <View className="flex-1">
                   <ContextMenuField
                     label="Kiểu hoa văn"
-                    value={formData.patternType ?? undefined}
+                    value={formData.pattern ?? undefined}
                     options={patternOptionsVN}
+                    onPress={() => patternQuery.refetch()}
                     onSelect={(v: string) => {
                       if (!v || v === '__none') {
-                        setFormData({ ...formData, patternType: null });
+                        setFormData({ ...formData, pattern: null });
                         return;
                       }
-                      setFormData({ ...formData, patternType: v });
+                      setFormData({ ...formData, pattern: v });
                       setErrors((prev) => {
                         const copy = { ...prev };
-                        delete copy.patternType;
+                        delete copy.pattern;
                         return copy;
                       });
                     }}
@@ -1119,7 +1124,7 @@ export default function EditKoiPage() {
                     Ngày sinh
                   </Text>
                   <TouchableOpacity
-                    className="flex-row items-center rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                    className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3"
                     onPress={() => {
                       setDatePickerMode('date');
                       setShowDatePicker(true);

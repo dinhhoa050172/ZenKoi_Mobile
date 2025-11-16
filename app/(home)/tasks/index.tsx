@@ -1,3 +1,4 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import Loading from '@/components/Loading';
 import TaskCard from '@/components/tasks/TaskCard';
 import TaskCompletionModal from '@/components/tasks/TaskCompletionModal';
@@ -9,13 +10,7 @@ import {
 import { useAuthStore } from '@/lib/store/authStore';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react-native';
 import React, { useState } from 'react';
-import {
-  Alert,
-  RefreshControl,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
@@ -29,6 +24,13 @@ export default function TasksScreen() {
   const [selectedTask, setSelectedTask] = useState<WorkSchedule | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Custom alert state
+  const [customAlertVisible, setCustomAlertVisible] = useState(false);
+  const [customAlertTitle, setCustomAlertTitle] = useState('');
+  const [customAlertMessage, setCustomAlertMessage] = useState('');
+  const [customAlertType, setCustomAlertType] = useState<
+    'danger' | 'warning' | 'info'
+  >('info');
   const insets = useSafeAreaInsets();
 
   // Get user from auth store
@@ -95,16 +97,28 @@ export default function TasksScreen() {
       : schedule.scheduledDate;
     return scheduleDate === selectedDateString;
   });
+  const timeToMinutes = (t?: string) => {
+    if (!t) return 0;
+    const m = String(t).match(/(\d{1,2}):(\d{2})/);
+    if (!m) return 0;
+    const hh = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    return hh * 60 + mm;
+  };
 
-  const morningTasks = todayTasks.filter((schedule) => {
-    const startHour = parseInt(schedule.startTime.split(':')[0]);
-    return startHour < 12;
-  });
+  const morningTasks = todayTasks
+    .filter((schedule) => {
+      const startHour = parseInt(String(schedule.startTime).split(':')[0], 10);
+      return startHour < 12;
+    })
+    .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
-  const eveningTasks = todayTasks.filter((schedule) => {
-    const startHour = parseInt(schedule.startTime.split(':')[0]);
-    return startHour >= 12;
-  });
+  const eveningTasks = todayTasks
+    .filter((schedule) => {
+      const startHour = parseInt(String(schedule.startTime).split(':')[0], 10);
+      return startHour >= 12;
+    })
+    .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
   // Get current date info
   const getCurrentDateInfo = () => {
@@ -185,11 +199,16 @@ export default function TasksScreen() {
       setSelectedTask(task);
       setIsModalVisible(true);
     } else {
-      Alert.alert(
-        'Thông báo',
-        `Nhiệm vụ này đã ${task.status === WorkScheduleStatus.COMPLETED ? 'hoàn thành' : 'được xử lý'}.`,
-        [{ text: 'OK' }]
+      setCustomAlertTitle('Thông báo');
+      setCustomAlertMessage(
+        `Nhiệm vụ này đã ${
+          task.status === WorkScheduleStatus.COMPLETED
+            ? 'hoàn thành'
+            : 'được xử lý'
+        }.`
       );
+      setCustomAlertType('info');
+      setCustomAlertVisible(true);
     }
   };
 
@@ -259,7 +278,7 @@ export default function TasksScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <KeyboardAwareScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 50 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -286,7 +305,7 @@ export default function TasksScreen() {
               </View>
             </View>
             <TouchableOpacity
-              className="rounded-lg bg-green-100 px-3 py-1"
+              className="rounded-2xl bg-green-100 px-3 py-1"
               onPress={() => {
                 setSelectedDate(new Date());
                 setWeekOffset(0);
@@ -395,7 +414,7 @@ export default function TasksScreen() {
                 <TaskCard key={task.id} task={task} onPress={handleTaskPress} />
               ))
             ) : (
-              <View className="mb-3 rounded-xl border border-gray-100 bg-white p-6">
+              <View className="mb-3 rounded-2xl border border-gray-100 bg-white p-6">
                 <Text className="text-center text-gray-500">
                   Không có công việc nào trong ca sáng
                 </Text>
@@ -413,7 +432,7 @@ export default function TasksScreen() {
                 <TaskCard key={task.id} task={task} onPress={handleTaskPress} />
               ))
             ) : (
-              <View className="mb-3 rounded-xl border border-gray-100 bg-white p-6">
+              <View className="mb-3 rounded-2xl border border-gray-100 bg-white p-6">
                 <Text className="text-center text-gray-500">
                   Không có công việc nào trong ca chiều
                 </Text>
@@ -429,6 +448,15 @@ export default function TasksScreen() {
         onClose={handleCloseModal}
         task={selectedTask}
         staffId={staffId}
+      />
+      <CustomAlert
+        visible={customAlertVisible}
+        title={customAlertTitle}
+        message={customAlertMessage}
+        type={customAlertType}
+        confirmText="Đóng"
+        onCancel={() => setCustomAlertVisible(false)}
+        onConfirm={() => setCustomAlertVisible(false)}
       />
     </SafeAreaView>
   );

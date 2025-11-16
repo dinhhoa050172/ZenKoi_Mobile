@@ -1,6 +1,14 @@
 import apiService, { RequestParams } from '../apiClient';
 import { FishSize } from './fetchKoiFish';
 
+interface PacketFishVariety {
+  id: number;
+  varietyId: string;
+  varietyName: string;
+  packetFishId: number;
+  packetFishName: string;
+}
+
 export interface PacketFish {
   id: number;
   name: string;
@@ -8,19 +16,20 @@ export interface PacketFish {
   fishPerPacket: number;
   pricePerPacket: number;
   stockQuantity: number;
-  size: FishSize;
+  size: string;
   ageMonths: number;
   images: string[];
   videos: string[];
   isAvailable: boolean;
   createdAt: string;
   updatedAt: string | null;
-  varietyPacketFishes: string[];
+  varietyPacketFishes: PacketFishVariety[];
 }
 
 export interface PacketFishSearchParams {
   search?: string;
-  size?: FishSize;
+  minSize?: number;
+  maxSize?: number;
   isAvailable?: boolean;
   minPrice?: number;
   maxPrice?: number;
@@ -35,10 +44,12 @@ export interface PacketFishSearchParams {
 export interface PacketFishRequest {
   name: string;
   description: string;
+  minSize: number;
+  maxSize: number;
   fishPerPacket: number;
   pricePerPacket: number;
-  size: FishSize;
   birthDate: string;
+  varietyIds: number[];
   images: string[];
   videos: string[];
   isAvailable: boolean;
@@ -77,7 +88,8 @@ export const convertPacketFishFilter = (
 
   // Basic parameters
   if (filters.search) params.search = filters.search;
-  if (filters.size) params.size = filters.size;
+  if (filters.minSize) params.minSize = filters.minSize;
+  if (filters.maxSize) params.maxSize = filters.maxSize;
   if (filters.isAvailable !== undefined)
     params.isAvailable = filters.isAvailable;
   if (filters.minPrice) params.minPrice = filters.minPrice;

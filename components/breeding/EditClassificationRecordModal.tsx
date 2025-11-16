@@ -330,7 +330,7 @@ export function EditClassificationRecordModal({
             </TouchableOpacity>
             <TouchableOpacity
               className={`flex-1 items-center justify-center rounded-2xl py-3 ${
-                isLoading ? 'bg-blue-400' : 'bg-primary'
+                isLoading ? 'bg-gray-400' : 'bg-primary'
               }`}
               disabled={isLoading}
               onPress={handleSave}

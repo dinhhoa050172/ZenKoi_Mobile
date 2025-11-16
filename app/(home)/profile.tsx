@@ -280,7 +280,7 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <KeyboardAwareScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
         showsVerticalScrollIndicator={false}
         bottomOffset={20}
         keyboardShouldPersistTaps="handled"

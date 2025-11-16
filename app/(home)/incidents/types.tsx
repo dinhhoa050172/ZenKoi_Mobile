@@ -13,13 +13,14 @@ import {
   AlertCircle,
   AlertTriangle,
   ChevronLeft,
+  CircleAlert,
   Clock,
   Edit3,
   Heart,
   Plus,
   Search,
   Shield,
-  TrendingUp,
+  TriangleAlert,
   Zap,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -168,7 +169,7 @@ export default function IncidentTypesScreen() {
           <View className="mb-3 flex-row items-start justify-between">
             <View className="flex-1 flex-row items-start">
               <View
-                className="mr-3 rounded-2xl p-2.5"
+                className="mr-3 rounded-full p-2.5"
                 style={{ backgroundColor: severityInfo.bgColor }}
               >
                 <TypeIcon size={20} color={severityInfo.color} />
@@ -178,7 +179,7 @@ export default function IncidentTypesScreen() {
                 <Text className="mb-1 text-lg font-bold text-gray-900">
                   {item.name}
                 </Text>
-                <Text className="text-sm text-gray-600" numberOfLines={2}>
+                <Text className="text-base text-gray-600">
                   {item.description}
                 </Text>
               </View>
@@ -191,20 +192,18 @@ export default function IncidentTypesScreen() {
               >
                 <SeverityIcon size={14} color={severityInfo.color} />
                 <Text
-                  className="ml-1.5 text-xs font-semibold"
+                  className="ml-1.5 text-sm font-semibold"
                   style={{ color: severityInfo.color }}
                 >
                   {severityInfo.label}
                 </Text>
               </View>
-
-              <Text className="text-xs text-gray-400">#{item.id}</Text>
             </View>
 
             {/* Edit Button */}
             <TouchableOpacity
               onPress={() => handleEdit(item.id)}
-              className="ml-3 rounded-full bg-gray-100 p-2"
+              className="ml-3 rounded-full bg-gray-200 p-2"
               activeOpacity={0.7}
             >
               <Edit3 size={16} color="#6b7280" />
@@ -215,8 +214,8 @@ export default function IncidentTypesScreen() {
           <View className="flex-row flex-wrap gap-2">
             {item.requiresQuarantine && (
               <View className="flex-row items-center rounded-lg bg-red-50 px-2.5 py-1">
-                <Shield size={12} color="#dc2626" />
-                <Text className="ml-1 text-xs font-medium text-red-700">
+                <TriangleAlert size={12} color="#dc2626" />
+                <Text className="ml-1 text-sm font-medium text-red-700">
                   Cần cách ly
                 </Text>
               </View>
@@ -224,8 +223,8 @@ export default function IncidentTypesScreen() {
 
             {item.affectsBreeding && (
               <View className="flex-row items-center rounded-lg bg-pink-50 px-2.5 py-1">
-                <Heart size={12} color="#ec4899" />
-                <Text className="ml-1 text-xs font-medium text-pink-700">
+                <CircleAlert size={12} color="#ec4899" />
+                <Text className="ml-1 text-sm font-medium text-pink-700">
                   Ảnh hưởng sinh sản
                 </Text>
               </View>
@@ -233,8 +232,8 @@ export default function IncidentTypesScreen() {
 
             {!item.requiresQuarantine && !item.affectsBreeding && (
               <View className="flex-row items-center rounded-lg bg-green-50 px-2.5 py-1">
-                <TrendingUp size={12} color="#059669" />
-                <Text className="ml-1 text-xs font-medium text-green-700">
+                <Shield size={12} color="#059669" />
+                <Text className="ml-1 text-sm font-medium text-green-700">
                   Kiểm soát thường
                 </Text>
               </View>
@@ -307,7 +306,7 @@ export default function IncidentTypesScreen() {
           </View>
 
           {/* Search Bar */}
-          <View className="mt-4 flex-row items-center rounded-2xl bg-white/90 px-4 py-1">
+          <View className="mt-4 flex-row items-center rounded-2xl bg-white/90 px-4 py-2">
             <Search size={20} color="#6b7280" />
             <TextInput
               value={searchQuery}

@@ -4,20 +4,23 @@ import { IncidentSeverity } from '@/lib/api/services/fetchIncidentType';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   AlertTriangle,
-  Check,
+  CircleAlert,
   Edit3,
+  FileText,
   Heart,
+  OctagonAlert,
+  Plus,
+  Settings,
   Shield,
-  Sparkles,
+  TriangleAlert,
   X,
-  Zap,
 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   ActivityIndicator,
+  Animated,
   Modal,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -60,31 +63,39 @@ const getSeverityInfo = (severity: IncidentSeverity) => {
   switch (severity) {
     case IncidentSeverity.CRITICAL:
       return {
+        gradient: ['#ef4444', '#dc2626'] as const,
         color: '#dc2626',
         bgColor: '#fef2f2',
         label: 'Nghiêm trọng',
-        icon: AlertTriangle,
+        icon: OctagonAlert,
+        emoji: '🔴',
       };
     case IncidentSeverity.HIGH:
       return {
+        gradient: ['#f97316', '#ea580c'] as const,
         color: '#ea580c',
         bgColor: '#fff7ed',
         label: 'Cao',
-        icon: Zap,
+        icon: CircleAlert,
+        emoji: '🟠',
       };
     case IncidentSeverity.MEDIUM:
       return {
+        gradient: ['#f59e0b', '#d97706'] as const,
         color: '#d97706',
         bgColor: '#fffbeb',
         label: 'Trung bình',
-        icon: Shield,
+        icon: TriangleAlert,
+        emoji: '🟡',
       };
     default:
       return {
+        gradient: ['#10b981', '#059669'] as const,
         color: '#059669',
         bgColor: '#f0fdf4',
         label: 'Thấp',
-        icon: Check,
+        icon: Shield,
+        emoji: '🟢',
       };
   }
 };
@@ -98,7 +109,7 @@ export default function EditIncidentTypeModal({
   visible,
   onClose,
 }: EditIncidentTypeModalProps) {
-  const [showPreview, setShowPreview] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
 
   const createMutation = useCreateIncidentType();
 
@@ -119,7 +130,24 @@ export default function EditIncidentTypeModal({
   });
 
   const watchedValues = watch();
-  const severityInfo = getSeverityInfo(watchedValues.defaultSeverity);
+  const defaultSeverity = useWatch({
+    control,
+    name: 'defaultSeverity',
+    defaultValue: IncidentSeverity.MEDIUM,
+  });
+  const severityInfo = getSeverityInfo(defaultSeverity);
+
+  React.useEffect(() => {
+    if (visible) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [visible, fadeAnim]);
 
   const onSubmit = useCallback(
     (data: CreateIncidentTypeForm) => {
@@ -135,7 +163,6 @@ export default function EditIncidentTypeModal({
 
   const handleClose = () => {
     reset();
-    setShowPreview(false);
     onClose();
   };
 
@@ -148,79 +175,81 @@ export default function EditIncidentTypeModal({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View className="flex-1 bg-white">
-        {/* Header với Glass Effect */}
-        <View className="relative overflow-hidden">
+      <View className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50">
+        {/* Header - simplified */}
+        <View
+          className="overflow-hidden rounded-t-2xl shadow-xl"
+          style={{ elevation: 6 }}
+        >
           <LinearGradient
-            colors={['#0A3D62', '#054A91', '#0E5CAD']}
+            colors={['#6366f1', '#4f46e5']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="px-6 pb-8 pt-12"
+            className="px-4 py-4"
           >
-            {/* Background Pattern */}
-            <View className="absolute inset-0 opacity-10">
-              <View className="h-full w-full bg-white/5" />
-            </View>
-
-            <View className="relative flex-row items-center justify-between">
-              <TouchableOpacity
-                onPress={handleClose}
-                className="rounded-full bg-white/20 p-2"
-                activeOpacity={0.8}
-              >
-                <X size={20} color="white" />
-              </TouchableOpacity>
+            <View className="flex-row items-center justify-between">
+              <View className="h-9 w-9" />
 
               <View className="flex-1 items-center">
-                <Text className="text-sm font-medium text-purple-100">
-                  Chỉnh sửa
+                <Text className="text-lg font-black text-white">
+                  Tạo loại sự cố
                 </Text>
-                <Text className="text-xl font-bold text-white">Loại sự cố</Text>
+                <Text className="mt-1 text-sm text-white/90">
+                  Định nghĩa loại sự cố mới
+                </Text>
               </View>
 
               <TouchableOpacity
-                onPress={() => setShowPreview(!showPreview)}
-                className="rounded-full bg-white/20 p-2"
-                activeOpacity={0.8}
+                onPress={handleClose}
+                className="bg-white/14 h-9 w-9 items-center justify-center rounded-md"
+                activeOpacity={0.7}
               >
-                <Sparkles size={20} color="white" />
+                <X size={18} color="white" />
               </TouchableOpacity>
             </View>
           </LinearGradient>
         </View>
 
-        <>
-          <KeyboardAwareScrollView
-            //   className="flex-1"
-            contentContainerStyle={{
-              paddingBottom: 120,
-            }}
-            style={{ flex: 1 }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View className="px-6 py-6">
-              {/* Form Container */}
-              <View className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg">
+        <KeyboardAwareScrollView
+          // contentContainerStyle={{ paddingBottom: 40 }}
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={{ opacity: fadeAnim }} className="px-6 py-6">
+            {/* Basic Info Section */}
+            <View
+              className="mb-6 overflow-hidden rounded-3xl bg-white shadow-xl"
+              style={{ elevation: 8 }}
+            >
+              <LinearGradient colors={['#f0f9ff', '#ffffff']} className="p-6">
                 <View className="mb-6 flex-row items-center">
-                  <View className="rounded-2xl bg-purple-50 p-3">
-                    <Edit3 size={24} color="#7c3aed" />
+                  <View className="mr-4 h-14 w-14 items-center justify-center rounded-2xl">
+                    <Edit3 size={24} color="gray" />
                   </View>
-                  <View className="ml-4 flex-1">
-                    <Text className="text-lg font-bold text-gray-900">
+                  <View className="flex-1">
+                    <Text className="text-xl font-black text-gray-900">
                       Thông tin cơ bản
                     </Text>
-                    <Text className="text-sm text-gray-500">
-                      Cập nhật thông tin loại sự cố
+                    <Text className="mt-1 text-sm text-gray-500">
+                      Định nghĩa loại sự cố mới
                     </Text>
                   </View>
                 </View>
 
-                {/* Tên loại sự cố */}
+                {/* Name Field */}
                 <View className="mb-6">
-                  <Text className="mb-2 text-base font-medium text-gray-900">
-                    Tên loại sự cố *
-                  </Text>
+                  <View className="mb-3 flex-row items-center">
+                    <FileText size={16} color="#6b7280" />
+                    <Text className="ml-2 text-base font-bold uppercase tracking-wide text-gray-600">
+                      Tên loại sự cố
+                    </Text>
+                    <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
+                      <Text className="text-sm font-bold text-red-600">
+                        Bắt buộc
+                      </Text>
+                    </View>
+                  </View>
                   <Controller
                     control={control}
                     name="name"
@@ -232,60 +261,102 @@ export default function EditIncidentTypeModal({
                       },
                     }}
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="VD: Bệnh nấm, Chất lượng nước kém..."
-                        className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-base text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        returnKeyType="next"
-                        autoCapitalize="sentences"
-                        autoCorrect={true}
-                      />
+                      <View
+                        className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm"
+                        style={{ elevation: 2 }}
+                      >
+                        <TextInput
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder="VD: Bệnh nấm, Chất lượng nước kém..."
+                          className="px-5 py-4 text-base font-semibold text-gray-900"
+                          placeholderTextColor="#9ca3af"
+                          returnKeyType="next"
+                          autoCapitalize="sentences"
+                          autoCorrect={true}
+                        />
+                        {value.length > 0 && (
+                          <View className="border-t border-gray-100 bg-gray-50 px-4 py-2">
+                            <Text className="text-xs text-gray-500">
+                              {value.length} ký tự
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     )}
                   />
                   {errors.name && (
-                    <Text className="mt-1 text-sm text-red-500">
-                      {errors.name.message}
-                    </Text>
+                    <View className="mt-2 flex-row items-center">
+                      <AlertTriangle size={14} color="#ef4444" />
+                      <Text className="ml-1 text-sm font-medium text-red-500">
+                        {errors.name.message}
+                      </Text>
+                    </View>
                   )}
                 </View>
 
-                {/* Mô tả */}
+                {/* Description Field */}
                 <View className="mb-6">
-                  <Text className="mb-2 text-base font-medium text-gray-900">
-                    Mô tả chi tiết
-                  </Text>
+                  <View className="mb-3 flex-row items-center">
+                    <FileText size={16} color="#6b7280" />
+                    <Text className="ml-2 text-base font-bold uppercase tracking-wide text-gray-600">
+                      Mô tả chi tiết
+                    </Text>
+                  </View>
                   <Controller
                     control={control}
                     name="description"
                     render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Mô tả chi tiết về loại sự cố này, cách nhận biết và xử lý..."
-                        className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 text-base text-gray-900"
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                        numberOfLines={4}
-                        textAlignVertical="top"
-                        returnKeyType="done"
-                        blurOnSubmit={true}
-                        autoCapitalize="sentences"
-                        autoCorrect={true}
-                      />
+                      <View
+                        className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm"
+                        style={{ elevation: 2 }}
+                      >
+                        <TextInput
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder="Mô tả chi tiết về loại sự cố, cách nhận biết và xử lý..."
+                          className="px-5 py-4 text-base text-gray-900"
+                          placeholderTextColor="#9ca3af"
+                          multiline
+                          numberOfLines={4}
+                          textAlignVertical="top"
+                          style={{ minHeight: 100 }}
+                          returnKeyType="done"
+                          blurOnSubmit={true}
+                          autoCapitalize="sentences"
+                          autoCorrect={true}
+                        />
+                        {value.length > 0 && (
+                          <View className="border-t border-gray-100 bg-gray-50 px-4 py-2">
+                            <Text className="text-xs text-gray-500">
+                              {value.length} ký tự
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     )}
                   />
                 </View>
 
-                {/* Mức độ nghiêm trọng */}
-                <View className="mb-6">
+                {/* Severity Field */}
+                <View>
+                  <View className="mb-3 flex-row items-center">
+                    <AlertTriangle size={16} color="#6b7280" />
+                    <Text className="ml-2 text-base font-bold uppercase tracking-wide text-gray-600">
+                      Mức độ nghiêm trọng
+                    </Text>
+                    <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
+                      <Text className="text-sm font-bold text-red-600">
+                        Bắt buộc
+                      </Text>
+                    </View>
+                  </View>
                   <Controller
                     control={control}
                     name="defaultSeverity"
                     render={({ field: { onChange, value } }) => (
                       <ContextMenuField
-                        label="Mức độ nghiêm trọng mặc định *"
+                        label=""
                         value={value}
                         options={severityOptions}
                         onSelect={onChange}
@@ -293,196 +364,212 @@ export default function EditIncidentTypeModal({
                       />
                     )}
                   />
-                </View>
-              </View>
 
-              {/* Advanced Options */}
-              <View className="mt-6 rounded-3xl border border-gray-100 bg-white p-6 shadow-lg">
-                <View className="mb-6 flex-row items-center">
-                  <View className="rounded-2xl bg-pink-50 p-3">
-                    <Heart size={24} color="#ec4899" />
+                  {/* Current Severity Display */}
+                  <View
+                    className="mt-3 overflow-hidden rounded-2xl shadow-md"
+                    style={{ elevation: 3 }}
+                  >
+                    <LinearGradient
+                      colors={severityInfo.gradient}
+                      className="flex-row items-center p-4"
+                    >
+                      <Text className="mr-3 text-2xl">
+                        {severityInfo.emoji}
+                      </Text>
+                      <View className="flex-1">
+                        <Text className="text-sm font-semibold uppercase tracking-wide text-white/80">
+                          Mức độ hiện tại
+                        </Text>
+                        <Text className="text-lg font-black text-white">
+                          {severityInfo.label}
+                        </Text>
+                      </View>
+                      <severityInfo.icon size={24} color="white" />
+                    </LinearGradient>
                   </View>
-                  <View className="ml-4 flex-1">
-                    <Text className="text-lg font-bold text-gray-900">
+                </View>
+              </LinearGradient>
+            </View>
+
+            {/* Advanced Options */}
+            <View
+              className="mb-6 overflow-hidden rounded-3xl bg-white shadow-xl"
+              style={{ elevation: 8 }}
+            >
+              <LinearGradient colors={['#fef3f2', '#ffffff']} className="p-6">
+                <View className="mb-6 flex-row items-center">
+                  <View className="mr-4 h-14 w-14 items-center justify-center rounded-2xl">
+                    <Settings size={24} color="gray" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xl font-black text-gray-900">
                       Tùy chọn nâng cao
                     </Text>
-                    <Text className="text-sm text-gray-500">
+                    <Text className="mt-1 text-sm text-gray-500">
                       Cấu hình tác động của sự cố
                     </Text>
                   </View>
                 </View>
 
-                {/* Yêu cầu cách ly */}
+                {/* Quarantine Toggle */}
                 <Controller
                   control={control}
                   name="requiresQuarantine"
                   render={({ field: { onChange, value } }) => (
-                    <View className="mb-4 flex-row items-center justify-between rounded-2xl bg-red-50 p-4">
-                      <View className="flex-1 flex-row items-center">
-                        <Shield size={20} color="#dc2626" />
-                        <View className="ml-3 flex-1">
-                          <Text className="font-medium text-gray-900">
+                    <View
+                      className="mb-4 overflow-hidden rounded-2xl shadow-md"
+                      style={{ elevation: 3 }}
+                    >
+                      <LinearGradient
+                        colors={
+                          value
+                            ? ['#fecaca', '#fee2e2']
+                            : ['#f3f4f6', '#ffffff']
+                        }
+                        className="flex-row items-center p-5"
+                      >
+                        <View
+                          className={`mr-4 h-12 w-12 items-center justify-center rounded-2xl ${value ? 'bg-red-500' : 'bg-gray-300'} shadow-lg`}
+                          style={{ elevation: 4 }}
+                        >
+                          <Shield size={24} color="white" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-base font-bold text-gray-900">
                             Yêu cầu cách ly
                           </Text>
-                          <Text className="text-sm text-gray-500">
-                            Cá bị ảnh hưởng cần được cách ly
+                          <Text className="mt-1 text-sm text-gray-600">
+                            Cá bị ảnh hưởng cần được cách ly ngay
                           </Text>
                         </View>
-                      </View>
-                      <Switch
-                        value={value}
-                        onValueChange={onChange}
-                        trackColor={{ false: '#f3f4f6', true: '#fecaca' }}
-                        thumbColor={value ? '#dc2626' : '#9ca3af'}
-                      />
+                        <View className="ml-3">
+                          <TouchableOpacity
+                            onPress={() => onChange(!value)}
+                            className={`h-8 w-14 items-center justify-center rounded-full ${value ? 'bg-red-500' : 'bg-gray-300'}`}
+                            activeOpacity={0.8}
+                          >
+                            <View
+                              className={`h-6 w-6 rounded-full bg-white shadow-md ${value ? 'self-end' : 'self-start'}`}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </LinearGradient>
                     </View>
                   )}
                 />
 
-                {/* Ảnh hưởng sinh sản */}
+                {/* Breeding Toggle */}
                 <Controller
                   control={control}
                   name="affectsBreeding"
                   render={({ field: { onChange, value } }) => (
-                    <View className="flex-row items-center justify-between rounded-2xl bg-pink-50 p-4">
-                      <View className="flex-1 flex-row items-center">
-                        <Heart size={20} color="#ec4899" />
-                        <View className="ml-3 flex-1">
-                          <Text className="font-medium text-gray-900">
+                    <View
+                      className="overflow-hidden rounded-2xl shadow-md"
+                      style={{ elevation: 3 }}
+                    >
+                      <LinearGradient
+                        colors={
+                          value
+                            ? ['#fbcfe8', '#fce7f3']
+                            : ['#f3f4f6', '#ffffff']
+                        }
+                        className="flex-row items-center p-5"
+                      >
+                        <View
+                          className={`mr-4 h-12 w-12 items-center justify-center rounded-2xl ${value ? 'bg-pink-500' : 'bg-gray-300'} shadow-lg`}
+                          style={{ elevation: 4 }}
+                        >
+                          <Heart size={24} color="white" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-base font-bold text-gray-900">
                             Ảnh hưởng sinh sản
                           </Text>
-                          <Text className="text-sm text-gray-500">
-                            Tác động đến quá trình sinh sản
+                          <Text className="mt-1 text-sm text-gray-600">
+                            Tác động đến khả năng sinh sản của cá
                           </Text>
                         </View>
-                      </View>
-                      <Switch
-                        value={value}
-                        onValueChange={onChange}
-                        trackColor={{ false: '#f3f4f6', true: '#fbcfe8' }}
-                        thumbColor={value ? '#ec4899' : '#9ca3af'}
-                      />
+                        <View className="ml-3">
+                          <TouchableOpacity
+                            onPress={() => onChange(!value)}
+                            className={`h-8 w-14 items-center justify-center rounded-full ${value ? 'bg-pink-500' : 'bg-gray-300'}`}
+                            activeOpacity={0.8}
+                          >
+                            <View
+                              className={`h-6 w-6 rounded-full bg-white shadow-md ${value ? 'self-end' : 'self-start'}`}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </LinearGradient>
                     </View>
                   )}
                 />
-              </View>
-
-              {/* Preview Card */}
-              {showPreview && (
-                <View className="mt-6 rounded-3xl bg-gradient-to-r from-purple-50 to-pink-50 p-6">
-                  <Text className="mb-4 text-lg font-bold text-gray-900">
-                    🎯 Xem trước
-                  </Text>
-
-                  <View className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                    <View className="mb-3 flex-row items-start justify-between">
-                      <View className="flex-1 flex-row items-start">
-                        <View
-                          className="mr-3 rounded-2xl p-2.5"
-                          style={{ backgroundColor: severityInfo.bgColor }}
-                        >
-                          <severityInfo.icon
-                            size={20}
-                            color={severityInfo.color}
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="mb-1 text-lg font-bold text-gray-900">
-                            {watchedValues.name || 'Tên loại sự cố'}
-                          </Text>
-                          <Text
-                            className="text-sm text-gray-600"
-                            numberOfLines={2}
-                          >
-                            {watchedValues.description || 'Mô tả chi tiết...'}
-                          </Text>
-                        </View>
-                      </View>
-                      <View
-                        className="rounded-full px-3 py-1.5"
-                        style={{ backgroundColor: severityInfo.bgColor }}
-                      >
-                        <Text
-                          className="text-xs font-semibold"
-                          style={{ color: severityInfo.color }}
-                        >
-                          {severityInfo.label}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row flex-wrap gap-2">
-                      {watchedValues.requiresQuarantine && (
-                        <View className="flex-row items-center rounded-lg bg-red-50 px-2.5 py-1">
-                          <Shield size={12} color="#dc2626" />
-                          <Text className="ml-1 text-xs font-medium text-red-700">
-                            Cách ly
-                          </Text>
-                        </View>
-                      )}
-                      {watchedValues.affectsBreeding && (
-                        <View className="flex-row items-center rounded-lg bg-pink-50 px-2.5 py-1">
-                          <Heart size={12} color="#ec4899" />
-                          <Text className="ml-1 text-xs font-medium text-pink-700">
-                            Sinh sản
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              )}
+              </LinearGradient>
             </View>
-          </KeyboardAwareScrollView>
 
-          {/* Action Buttons */}
-          <View className="border-t border-gray-100 bg-white px-6 py-4">
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={handleClose}
-                className="flex-1 rounded-2xl border border-gray-200 py-4"
-                activeOpacity={0.8}
-              >
-                <Text className="text-center text-base font-semibold text-gray-700">
-                  Hủy
-                </Text>
-              </TouchableOpacity>
+            {/* Preview removed */}
+          </Animated.View>
+        </KeyboardAwareScrollView>
 
-              <TouchableOpacity
-                onPress={handleSubmit(onSubmit)}
-                disabled={!isValid || createMutation.isPending}
-                activeOpacity={0.8}
-                className={`flex-1 overflow-hidden rounded-2xl ${
-                  !isValid || createMutation.isPending ? 'bg-gray-300' : ''
-                }`}
+        {/* Bottom Action Bar */}
+        <View
+          className="border-t border-gray-200 bg-white px-6 py-4 shadow-2xl"
+          style={{ elevation: 10 }}
+        >
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={handleClose}
+              className="flex-1 items-center justify-center rounded-2xl border-2 border-gray-300 bg-white py-4 shadow-sm"
+              style={{ elevation: 2 }}
+              activeOpacity={0.7}
+            >
+              <Text className="text-base font-bold text-gray-700">Hủy bỏ</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleSubmit(onSubmit)}
+              disabled={!isValid || createMutation.isPending}
+              activeOpacity={0.8}
+              className="flex-1 overflow-hidden rounded-2xl shadow-lg"
+              style={{ elevation: 4 }}
+            >
+              <LinearGradient
+                colors={
+                  !isValid || createMutation.isPending
+                    ? ['#d1d5db', '#9ca3af']
+                    : ['#6366f1', '#4f46e5']
+                }
+                className="flex-row items-center justify-center py-4"
               >
-                <LinearGradient
-                  colors={
-                    !isValid || createMutation.isPending
-                      ? ['#d1d5db', '#9ca3af']
-                      : ['#0A3D62', '#054A91']
-                  }
-                  className="flex-row items-center justify-center py-4"
-                >
-                  {createMutation.isPending ? (
-                    <>
-                      <ActivityIndicator color="#fff" size="small" />
-                      <Text className="ml-2 text-lg font-semibold text-white">
-                        Đang lưu...
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text className="ml-2 text-base font-bold text-white">
-                        Tạo mới
-                      </Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+                {createMutation.isPending ? (
+                  <>
+                    <ActivityIndicator color="#fff" size="small" />
+                    <Text className="ml-3 text-base font-black text-white">
+                      Đang tạo...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={20} color="white" />
+                    <Text className="ml-2 text-base font-black text-white">
+                      Tạo mới
+                    </Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-        </>
+
+          {!isValid && watchedValues.name && (
+            <View className="mt-3 flex-row items-center justify-center">
+              <AlertTriangle size={14} color="#ef4444" />
+              <Text className="ml-2 text-xs font-medium text-red-600">
+                Vui lòng điền đầy đủ thông tin bắt buộc
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </Modal>
   );
