@@ -1,7 +1,7 @@
+import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import Loading from '@/components/Loading';
-import { useDebounce } from '@/hooks/useDebounce';
 import { useGetIncidentById, useUpdateIncident } from '@/hooks/useIncident';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import { useGetKoiFish } from '@/hooks/useKoiFish';
@@ -30,8 +30,6 @@ import {
   Clock,
   Droplets,
   FileText,
-  Plus,
-  Search,
   Stethoscope,
   Thermometer,
   Waves,
@@ -79,14 +77,6 @@ export default function EditIncidentScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
 
-  // Search states
-  const [pondSearchQuery, setPondSearchQuery] = useState('');
-  const [koiSearchQuery, setKoiSearchQuery] = useState('');
-
-  // Debounced search queries
-  const debouncedPondSearch = useDebounce(pondSearchQuery, 300);
-  const debouncedKoiSearch = useDebounce(koiSearchQuery, 300);
-
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -102,6 +92,7 @@ export default function EditIncidentScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // API Hooks
@@ -111,12 +102,8 @@ export default function EditIncidentScreen() {
   const updateIncidentMutation = useUpdateIncident();
   const { data: incidentTypes, isLoading: incidentTypesLoading } =
     useGetIncidentTypes();
-  const { data: ponds, isLoading: pondsLoading } = useGetPonds({
-    search: debouncedPondSearch,
-  });
-  const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish({
-    search: debouncedKoiSearch,
-  });
+  const { data: ponds, isLoading: pondsLoading } = useGetPonds();
+  const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish();
 
   // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,8 +125,6 @@ export default function EditIncidentScreen() {
   // Modal States
   const [showIncidentTypeModal, setShowIncidentTypeModal] = useState(false);
   const [showSeverityModal, setShowSeverityModal] = useState(false);
-  const [showPondModal, setShowPondModal] = useState(false);
-  const [showKoiModal, setShowKoiModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Pre-populate form with incident data
@@ -280,40 +265,76 @@ export default function EditIncidentScreen() {
       setIsSubmitting(false);
     }
   };
-  // Toggle selections
-  const togglePondSelection = (pond: Pond) => {
-    const isSelected = selectedPonds.some((sp) => sp.id === pond.id);
-    if (isSelected) {
-      setSelectedPonds(selectedPonds.filter((sp) => sp.id !== pond.id));
-    } else {
-      const newPond: SelectedPond = {
-        ...pond,
-        environmentalChanges: '',
-        requiresWaterChange: false,
-        fishDiedCount: 0,
-        correctiveActions: '',
-        notes: '',
-      };
-      setSelectedPonds([...selectedPonds, newPond]);
-    }
+  // Selection handlers for ContextMenuMultiSelect
+  const handlePondSelectionChange = (pondIds: string[]) => {
+    const allPonds = ponds?.data || [];
+
+    // Keep existing selected ponds that are still in the new selection
+    const updatedPonds = selectedPonds.filter((sp) =>
+      pondIds.includes(sp.id.toString())
+    );
+
+    // Add new ponds that weren't previously selected
+    const newPondIds = pondIds.filter(
+      (id) => !selectedPonds.some((sp) => sp.id.toString() === id)
+    );
+
+    newPondIds.forEach((id) => {
+      const pond = allPonds.find((p: Pond) => p.id.toString() === id);
+      if (pond) {
+        const newPond: SelectedPond = {
+          ...pond,
+          environmentalChanges: '',
+          requiresWaterChange: false,
+          fishDiedCount: 0,
+          correctiveActions: '',
+          notes: '',
+        };
+        updatedPonds.push(newPond);
+      }
+    });
+
+    setSelectedPonds(updatedPonds);
   };
 
-  const toggleKoiSelection = (koi: KoiFish) => {
-    const isSelected = selectedKois.some((sk) => sk.id === koi.id);
-    if (isSelected) {
-      setSelectedKois(selectedKois.filter((sk) => sk.id !== koi.id));
-    } else {
-      const newKoi: SelectedKoi = {
-        ...koi,
-        affectedStatus: KoiAffectedStatus.HEALTHY,
-        specificSymptoms: '',
-        requiresTreatment: false,
-        isIsolated: false,
-        treatmentNotes: '',
-        affectedFrom: new Date().toISOString(),
-      };
-      setSelectedKois([...selectedKois, newKoi]);
-    }
+  const handleKoiSelectionChange = (koiIds: string[]) => {
+    const allKois = koiFishes?.data || [];
+
+    // Keep existing selected kois that are still in the new selection
+    const updatedKois = selectedKois.filter((sk) =>
+      koiIds.includes(sk.id.toString())
+    );
+
+    // Add new kois that weren't previously selected
+    const newKoiIds = koiIds.filter(
+      (id) => !selectedKois.some((sk) => sk.id.toString() === id)
+    );
+
+    newKoiIds.forEach((id) => {
+      const koi = allKois.find((k: KoiFish) => k.id.toString() === id);
+      if (koi) {
+        const newKoi: SelectedKoi = {
+          ...koi,
+          affectedStatus: KoiAffectedStatus.HEALTHY,
+          specificSymptoms: '',
+          requiresTreatment: false,
+          isIsolated: false,
+          treatmentNotes: '',
+          affectedFrom: new Date().toISOString(),
+        };
+        updatedKois.push(newKoi);
+      }
+    });
+
+    setSelectedKois(updatedKois);
+  };
+
+  const removePond = (pondId: number) => {
+    setSelectedPonds(selectedPonds.filter((sp) => sp.id !== pondId));
+  };
+
+  const removeKoi = (koiId: number) => {
+    setSelectedKois(selectedKois.filter((sk) => sk.id !== koiId));
   };
 
   // Helper functions
@@ -686,29 +707,29 @@ export default function EditIncidentScreen() {
 
                 {/* Ponds Section */}
                 <View>
-                  <View className="mb-4 flex-row items-center justify-between">
-                    <View>
-                      <Text className="text-xl font-black text-gray-900">
-                        Ao nuôi
-                      </Text>
-                      <Text className="text-sm text-gray-500">
-                        Ao bị ảnh hưởng bởi sự cố
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => setShowPondModal(true)}
-                      className="overflow-hidden rounded-2xl shadow-md"
-                      style={{ elevation: 3 }}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={['#06b6d4', '#0891b2']}
-                        className="flex-row items-center px-4 py-3"
-                      >
-                        <Plus size={18} color="white" />
-                        <Text className="ml-2 font-bold text-white">Thêm</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-xl font-black text-gray-900">
+                      Ao nuôi
+                    </Text>
+                    <Text className="mb-3 text-sm text-gray-500">
+                      Ao bị ảnh hưởng bởi sự cố
+                    </Text>
+                    <ContextMenuMultiSelect
+                      label="Chọn ao nuôi"
+                      placeholder="Chọn các ao bị ảnh hưởng"
+                      options={
+                        pondsLoading
+                          ? [{ label: 'Đang tải...', value: '', meta: '' }]
+                          : (ponds?.data || []).map((pond: Pond) => ({
+                              label: pond.pondName,
+                              value: pond.id.toString(),
+                              meta: `${pond.pondTypeName || 'N/A'} - ${pond.capacityLiters}L`,
+                            }))
+                      }
+                      values={selectedPonds.map((p) => p.id.toString())}
+                      onChange={handlePondSelectionChange}
+                      disabled={pondsLoading}
+                    />
                   </View>
 
                   {selectedPonds.length > 0 ? (
@@ -717,7 +738,7 @@ export default function EditIncidentScreen() {
                         key={pond.id}
                         pond={pond}
                         index={index}
-                        onRemove={() => togglePondSelection(pond)}
+                        onRemove={() => removePond(pond.id)}
                         onUpdate={updatePondField}
                       />
                     ))
@@ -731,29 +752,29 @@ export default function EditIncidentScreen() {
 
                 {/* Koi Section */}
                 <View>
-                  <View className="mb-4 flex-row items-center justify-between">
-                    <View>
-                      <Text className="text-xl font-black text-gray-900">
-                        Cá Koi
-                      </Text>
-                      <Text className="text-sm text-gray-500">
-                        Cá bị ảnh hưởng bởi sự cố
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => setShowKoiModal(true)}
-                      className="overflow-hidden rounded-2xl shadow-md"
-                      style={{ elevation: 3 }}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={['#f97316', '#ea580c']}
-                        className="flex-row items-center px-4 py-3"
-                      >
-                        <Plus size={18} color="white" />
-                        <Text className="ml-2 font-bold text-white">Thêm</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-xl font-black text-gray-900">
+                      Cá Koi
+                    </Text>
+                    <Text className="mb-3 text-sm text-gray-500">
+                      Cá bị ảnh hưởng bởi sự cố
+                    </Text>
+                    <ContextMenuMultiSelect
+                      label="Chọn cá Koi"
+                      placeholder="Chọn các cá bị ảnh hưởng"
+                      options={
+                        koisLoading
+                          ? [{ label: 'Đang tải...', value: '', meta: '' }]
+                          : (koiFishes?.data || []).map((koi: KoiFish) => ({
+                              label: koi.rfid || `Cá #${koi.id}`,
+                              value: koi.id.toString(),
+                              meta: `${koi.variety?.varietyName || 'Không xác định'} - ${koi.gender === Gender.MALE ? 'Đực' : 'Cái'}`,
+                            }))
+                      }
+                      values={selectedKois.map((k) => k.id.toString())}
+                      onChange={handleKoiSelectionChange}
+                      disabled={koisLoading}
+                    />
                   </View>
 
                   {selectedKois.length > 0 ? (
@@ -762,7 +783,7 @@ export default function EditIncidentScreen() {
                         key={koi.id}
                         koi={koi}
                         index={index}
-                        onRemove={() => toggleKoiSelection(koi)}
+                        onRemove={() => removeKoi(koi.id)}
                         onUpdate={updateKoiField}
                       />
                     ))
@@ -862,8 +883,6 @@ export default function EditIncidentScreen() {
       {/* Modals */}
       {renderIncidentTypeModal()}
       {renderSeverityModal()}
-      {renderPondSelectionModal()}
-      {renderKoiSelectionModal()}
     </SafeAreaView>
   );
 
@@ -1210,14 +1229,6 @@ export default function EditIncidentScreen() {
 
   // Modal render functions
   function renderIncidentTypeModal() {
-    const filteredIncidentTypes = incidentTypes?.data?.filter(
-      (type: IncidentType) =>
-        type.name?.toLowerCase().includes(debouncedKoiSearch.toLowerCase()) ||
-        type.description
-          ?.toLowerCase()
-          .includes(debouncedKoiSearch.toLowerCase())
-    );
-
     return (
       <Modal
         visible={showIncidentTypeModal}
@@ -1245,7 +1256,7 @@ export default function EditIncidentScreen() {
                 <Loading />
               </View>
             ) : (
-              filteredIncidentTypes?.map((type: IncidentType) => (
+              incidentTypes?.data?.map((type: IncidentType) => (
                 <TouchableOpacity
                   key={type.id}
                   onPress={() => {
@@ -1376,170 +1387,6 @@ export default function EditIncidentScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
-
-  function renderPondSelectionModal() {
-    const filteredPonds = ponds?.data?.filter((pond: Pond) =>
-      pond.pondName.toLowerCase().includes(debouncedPondSearch.toLowerCase())
-    );
-
-    return (
-      <Modal
-        visible={showPondModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="border-b border-gray-200 px-6 py-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-black text-gray-900">Chọn ao</Text>
-              <TouchableOpacity
-                onPress={() => setShowPondModal(false)}
-                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
-              >
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <View className="mt-4 flex-row items-center rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3">
-              <Search size={20} color="#6b7280" />
-              <TextInput
-                value={pondSearchQuery}
-                onChangeText={setPondSearchQuery}
-                placeholder="Tìm kiếm ao..."
-                className="ml-3 flex-1 text-gray-900"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
-          </View>
-
-          <ScrollView className="flex-1 p-6">
-            {pondsLoading ? (
-              <View className="flex-1 items-center justify-center py-20">
-                <Loading />
-              </View>
-            ) : (
-              filteredPonds?.map((pond: Pond) => {
-                const isSelected = selectedPonds.some(
-                  (sp) => sp.id === pond.id
-                );
-                return (
-                  <TouchableOpacity
-                    key={pond.id}
-                    onPress={() => togglePondSelection(pond)}
-                    className={`mb-3 overflow-hidden rounded-2xl border-2 ${
-                      isSelected
-                        ? 'border-cyan-500 bg-cyan-50'
-                        : 'border-gray-200 bg-white'
-                    } shadow-sm`}
-                    style={{ elevation: 2 }}
-                  >
-                    <View className="flex-row items-center justify-between p-4">
-                      <View className="flex-1">
-                        <Text className="text-base font-bold text-gray-900">
-                          {pond.pondName}
-                        </Text>
-                        <Text className="mt-1 text-sm text-gray-500">
-                          {(pond.lengthMeters * pond.widthMeters).toFixed(1)}m²
-                          • Độ sâu: {pond.depthMeters}m
-                        </Text>
-                      </View>
-                      {isSelected && (
-                        <View className="ml-3 h-8 w-8 items-center justify-center rounded-full bg-cyan-500">
-                          <Check size={18} color="white" />
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
-
-  function renderKoiSelectionModal() {
-    const filteredKois = koiFishes?.data?.filter((koi: KoiFish) =>
-      koi.rfid?.toLowerCase().includes(debouncedKoiSearch.toLowerCase())
-    );
-
-    return (
-      <Modal
-        visible={showKoiModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="border-b border-gray-200 px-6 py-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-black text-gray-900">
-                Chọn cá Koi
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowKoiModal(false)}
-                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
-              >
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <View className="mt-4 flex-row items-center rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3">
-              <Search size={20} color="#6b7280" />
-              <TextInput
-                value={koiSearchQuery}
-                onChangeText={setKoiSearchQuery}
-                placeholder="Tìm kiếm cá Koi..."
-                className="ml-3 flex-1 text-gray-900"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
-          </View>
-
-          <ScrollView className="flex-1 p-6">
-            {koisLoading ? (
-              <View className="flex-1 items-center justify-center py-20">
-                <Loading />
-              </View>
-            ) : (
-              filteredKois?.map((koi: KoiFish) => {
-                const isSelected = selectedKois.some((sk) => sk.id === koi.id);
-                return (
-                  <TouchableOpacity
-                    key={koi.id}
-                    onPress={() => toggleKoiSelection(koi)}
-                    className={`mb-3 overflow-hidden rounded-2xl border-2 ${
-                      isSelected
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 bg-white'
-                    } shadow-sm`}
-                    style={{ elevation: 2 }}
-                  >
-                    <View className="flex-row items-center justify-between p-4">
-                      <View className="flex-1">
-                        <Text className="text-base font-bold text-gray-900">
-                          {koi.rfid}
-                        </Text>
-                        <Text className="mt-1 text-sm text-gray-500">
-                          Size: {koi.size} •{' '}
-                          {koi.gender === Gender.MALE ? 'Đực' : 'Cái'}
-                        </Text>
-                      </View>
-                      {isSelected && (
-                        <View className="ml-3 h-8 w-8 items-center justify-center rounded-full bg-orange-500">
-                          <Check size={18} color="white" />
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>

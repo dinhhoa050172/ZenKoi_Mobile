@@ -153,19 +153,16 @@ const SummaryItem: React.FC<SummaryItemProps> = ({ item }) => (
 const FarmStaffDashboard: React.FC = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const insets = useSafeAreaInsets();
-  // fetch water alerts and show the 2 most recent entries client-side
   const alertsQuery = useGetWaterAlerts({ pageIndex: 1, pageSize: 100 }, true);
   const alerts = (alertsQuery.data?.data || []).slice(0, 2);
-  const notificationCount =
-    (alertsQuery.data?.data.length || 0) > 99
-      ? '99+'
-      : alertsQuery.data?.data.length.toString();
+  const totalAlerts = alertsQuery.data?.totalItems || 0;
+  const notificationCount = totalAlerts > 99 ? '99+' : totalAlerts.toString();
 
   useFocusEffect(
     useCallback(() => {
-      alertsQuery.refetch?.();
-      return undefined;
-    }, [alertsQuery])
+      alertsQuery.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
   );
 
   const quickActions: QuickAction[] = [
@@ -279,7 +276,7 @@ const FarmStaffDashboard: React.FC = () => {
               className="rounded-full p-2"
             >
               <Bell size={24} color="#0A3D62" />
-              {alerts.length > 0 && (
+              {totalAlerts > 0 && (
                 <View className="absolute -right-1 -top-1 min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5">
                   <Text className="text-xs font-bold text-white">
                     {notificationCount}

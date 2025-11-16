@@ -50,10 +50,11 @@ export interface WaterAlertSearchParams {
 }
 
 export interface WaterAlertPagination {
-  totalItems: number;
+  pageIndex: number;
   totalPages: number;
-  currentPage: number;
-  pageSize: number;
+  totalItems: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
   data: WaterAlert[];
 }
 

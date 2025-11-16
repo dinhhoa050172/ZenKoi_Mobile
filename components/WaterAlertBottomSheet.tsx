@@ -1,12 +1,12 @@
 import {
   useDeleteWaterAlert,
-  useGetWaterAlerts,
+  useGetInfiniteWaterAlerts,
   useResolveWaterAlert,
 } from '@/hooks/useWaterAlert';
 import { Severity, WaterAlert } from '@/lib/api/services/fetchWaterAlert';
 import { formatDate } from '@/lib/utils/formatDate';
 import { AlertCircle, Check, Droplets, Trash2, X } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -31,9 +31,24 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
   pondId,
 }) => {
   const filters = pondId ? { pondId } : undefined;
-  const alertsQuery = useGetWaterAlerts(filters, visible);
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useGetInfiniteWaterAlerts(filters, visible);
+
   const resolveMutation = useResolveWaterAlert();
   const deleteMutation = useDeleteWaterAlert();
+
+  // Flatten pages data
+  const alertsList = useMemo(() => {
+    const list = data?.pages.flatMap((page) => page.data) ?? [];
+    return list;
+  }, [data]);
 
   const onResolve = (id: number) => {
     resolveMutation.mutate(id);
@@ -220,6 +235,24 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
     </View>
   );
 
+  // Load more handler
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  // Footer component for loading indicator
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View className="items-center py-4">
+        <ActivityIndicator size="small" color="#3b82f6" />
+        <Text className="mt-2 text-sm text-gray-500">Đang tải thêm...</Text>
+      </View>
+    );
+  };
+
   // Bottom sheet animation and pan responder (self-contained — no BottomSheetModal)
   const slideAnim = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
@@ -313,27 +346,33 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
 
         {/* Content: FlatList */}
         <FlatList
-          ListHeaderComponent={null}
-          data={alertsQuery.data?.data ?? []}
-          keyExtractor={(item) => String(item.id)}
+          data={alertsList}
+          keyExtractor={(item, index) => `alert-${item.id}-${index}`}
           renderItem={renderItem}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 8,
             paddingBottom: 90,
           }}
-          nestedScrollEnabled
+          style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={renderFooter}
+          scrollEventThrottle={16}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+          }}
           ListEmptyComponent={() => (
             <View className="items-center py-12">
-              {alertsQuery.isLoading ? (
+              {isLoading ? (
                 <>
                   <ActivityIndicator size="large" color="#3b82f6" />
                   <Text className="mt-4 text-sm font-medium text-gray-600">
                     Đang tải cảnh báo...
                   </Text>
                 </>
-              ) : alertsQuery.isError ? (
+              ) : isError ? (
                 <>
                   <View className="rounded-full bg-red-100 p-4">
                     <AlertCircle size={32} color="#dc2626" />
@@ -346,7 +385,7 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
                   </Text>
 
                   <TouchableOpacity
-                    onPress={() => alertsQuery.refetch()}
+                    onPress={() => refetch()}
                     className="mt-4 rounded-2xl bg-primary px-4 py-2"
                     activeOpacity={0.8}
                   >
