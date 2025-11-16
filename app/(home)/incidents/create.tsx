@@ -1,6 +1,7 @@
 import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
+import InputField from '@/components/InputField';
 import Loading from '@/components/Loading';
 import { useCreateIncident } from '@/hooks/useIncident';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
@@ -23,15 +24,11 @@ import { useRouter } from 'expo-router';
 import {
   AlertCircle,
   AlertTriangle,
-  Calendar,
   Check,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Droplets,
   FileText,
-  Stethoscope,
-  Thermometer,
   Waves,
   X,
 } from 'lucide-react-native';
@@ -46,12 +43,13 @@ import {
   ScrollView,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAffectedStatusInfo } from './[id]';
+
+import KoiCard from '@/components/incidents/KoiCard';
+import PondCard from '@/components/incidents/PondCard';
 
 // Extended types
 type SelectedPond = Pond & {
@@ -440,7 +438,11 @@ export default function CreateIncidentScreen() {
         className="flex-1 "
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView className="flex-1 " showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 "
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <Animated.View
             style={{
               opacity: fadeAnim,
@@ -479,75 +481,96 @@ export default function CreateIncidentScreen() {
                   </View>
                 )}
 
+                <View>
+                  <InputField
+                    // icon={<FileText size={20} color="#6b7280" />}
+                    label="Tiêu đề sự cố *"
+                    placeholder="Nhập tiêu đề sự cố"
+                    value={formData.incidentTitle}
+                    onChangeText={(text: string) =>
+                      setFormData({ ...formData, incidentTitle: text })
+                    }
+                    // iconBg="bg-blue-100"
+                    multiline
+                  />
+                </View>
+
+                <View>
+                  <InputField
+                    // icon={<FileText size={20} color="#6b7280" />}
+                    label="Mô tả chi tiết *"
+                    placeholder="Mô tả chi tiết về sự cố..."
+                    value={formData.description}
+                    onChangeText={(text: string) =>
+                      setFormData({ ...formData, description: text })
+                    }
+                    // iconBg="bg-blue-100"
+                    multiline
+                  />
+                </View>
+
                 {/* Form Fields */}
-                <FormField
-                  label="Loại sự cố"
-                  required
-                  icon={<AlertTriangle size={20} color="#6b7280" />}
-                  value={
-                    incidentTypes?.data?.find(
-                      (t: IncidentType) => t.id === formData.incidentTypeId
-                    )?.name || 'Chọn loại sự cố'
-                  }
-                  onPress={() => setShowIncidentTypeModal(true)}
-                  placeholder="Chọn loại sự cố"
-                />
+                <View>
+                  <TouchableOpacity
+                    onPress={() => setShowIncidentTypeModal(true)}
+                    className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                  >
+                    <Text
+                      className={`flex-1 text-base ${
+                        formData.incidentTypeId
+                          ? 'font-medium text-gray-900'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {incidentTypes?.data?.find(
+                        (t: IncidentType) => t.id === formData.incidentTypeId
+                      )?.name || 'Chọn loại sự cố'}
+                    </Text>
+                    <ChevronRight size={20} color="#9ca3af" />
+                  </TouchableOpacity>
+                </View>
 
-                <FormField
-                  label="Tiêu đề sự cố"
-                  required
-                  icon={<FileText size={20} color="#6b7280" />}
-                  value={formData.incidentTitle}
-                  onChangeText={(text: string) =>
-                    setFormData({ ...formData, incidentTitle: text })
-                  }
-                  placeholder="Nhập tiêu đề sự cố"
-                  multiline
-                  isInput
-                />
+                <View>
+                  <TouchableOpacity
+                    onPress={() => setShowSeverityModal(true)}
+                    className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                  >
+                    <Text
+                      className={`flex-1 text-base ${
+                        formData.severity
+                          ? 'font-medium text-gray-900'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {formData.severity
+                        ? getSeverityInfo(formData.severity).text
+                        : 'Chọn mức độ'}
+                    </Text>
+                    <ChevronRight size={20} color="#9ca3af" />
+                  </TouchableOpacity>
+                </View>
 
-                <FormField
-                  label="Mô tả chi tiết"
-                  required
-                  icon={<FileText size={20} color="#6b7280" />}
-                  value={formData.description}
-                  onChangeText={(text: string) =>
-                    setFormData({ ...formData, description: text })
-                  }
-                  placeholder="Mô tả chi tiết về sự cố..."
-                  multiline
-                  isInput
-                  minHeight={120}
-                />
-
-                <FormField
-                  label="Mức độ nghiêm trọng"
-                  required
-                  icon={<Thermometer size={20} color="#6b7280" />}
-                  value={
-                    formData.severity
-                      ? getSeverityInfo(formData.severity).text
-                      : 'Chọn mức độ'
-                  }
-                  onPress={() => setShowSeverityModal(true)}
-                  placeholder="Chọn mức độ nghiêm trọng"
-                />
-
-                <FormField
-                  label="Ngày xảy ra"
-                  required
-                  icon={<Calendar size={20} color="#6b7280" />}
-                  value={
-                    formData.occurredAt
-                      ? new Date(formData.occurredAt).toLocaleDateString(
-                          'vi-VN'
-                        )
-                      : 'Chọn ngày'
-                  }
-                  onPress={() => setShowDatePicker(true)}
-                  placeholder="Chọn ngày xảy ra"
-                  rightIcon={<Clock size={20} color="#6b7280" />}
-                />
+                <View>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                  >
+                    <Text
+                      className={`flex-1 text-base ${
+                        formData.occurredAt
+                          ? 'font-medium text-gray-900'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {formData.occurredAt
+                        ? new Date(formData.occurredAt).toLocaleDateString(
+                            'vi-VN'
+                          )
+                        : 'Chọn ngày'}
+                    </Text>
+                    <Clock size={20} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
@@ -776,343 +799,11 @@ export default function CreateIncidentScreen() {
     </SafeAreaView>
   );
 
-  // Helper Components (copied from edit screen to keep parity)
-  function FormField({
-    label,
-    required,
-    icon,
-    value,
-    onPress,
-    onChangeText,
-    placeholder,
-    multiline,
-    isInput,
-    minHeight,
-    rightIcon,
-  }: any) {
-    return (
-      <View>
-        <View className="mb-2 flex-row items-center">
-          <Text className="text-sm font-bold uppercase  text-gray-600">
-            {label}
-          </Text>
-          {required && (
-            <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
-              <Text className="text-xs font-bold text-red-600">Bắt buộc</Text>
-            </View>
-          )}
-        </View>
-
-        {isInput ? (
-          <View
-            className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm"
-            style={{ elevation: 2 }}
-          >
-            <View className="flex-row items-start border-b border-gray-100 px-4 py-3">
-              {icon}
-              <View className="ml-3 flex-1">
-                <TextInput
-                  value={value}
-                  onChangeText={onChangeText}
-                  placeholder={placeholder}
-                  placeholderTextColor="#9ca3af"
-                  multiline={multiline}
-                  className="text-base text-gray-900"
-                  style={
-                    minHeight ? { minHeight, textAlignVertical: 'top' } : {}
-                  }
-                />
-              </View>
-            </View>
-          </View>
-        ) : (
-          <TouchableOpacity
-            onPress={onPress}
-            className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm"
-            style={{ elevation: 2 }}
-            activeOpacity={0.7}
-          >
-            <View className="flex-row items-center justify-between px-4 py-4">
-              <View className="flex-1 flex-row items-center">
-                {icon}
-                <Text
-                  className={`ml-3 text-base ${value.startsWith('Chọn') ? 'text-gray-400' : 'font-semibold text-gray-900'}`}
-                >
-                  {value}
-                </Text>
-              </View>
-              {rightIcon || <ChevronRight size={20} color="#9ca3af" />}
-            </View>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
-
   function EmptyState({ icon, text }: any) {
     return (
       <View className="items-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-12">
         {icon}
         <Text className="mt-3 text-base font-medium text-gray-500">{text}</Text>
-      </View>
-    );
-  }
-
-  function PondCard({ pond, index, onRemove, onUpdate }: any) {
-    return (
-      <View
-        className="mb-4 overflow-hidden rounded-2xl border-2 border-cyan-200 bg-white shadow-md"
-        style={{ elevation: 3 }}
-      >
-        {/* Header */}
-        <LinearGradient colors={['#06b6d4', '#0891b2']} className="px-5 py-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                <PondSvg size={24} color="white" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-lg font-black text-white">
-                  {pond.pondName}
-                </Text>
-                <Text className="text-sm text-white/80">
-                  {(pond.lengthMeters * pond.widthMeters)?.toFixed(1)}m² • Độ
-                  sâu: {pond.depth}m
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={onRemove}
-              className="h-10 w-10 items-center justify-center rounded-full bg-red-500 shadow-lg"
-              style={{ elevation: 4 }}
-              activeOpacity={0.7}
-            >
-              <X size={20} color="white" />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-
-        {/* Content */}
-        <View className="flex-1 gap-4 p-5">
-          <InputField
-            label="Thay đổi môi trường"
-            value={pond.environmentalChanges}
-            onChangeText={(text: string) =>
-              onUpdate(pond.id, 'environmentalChanges', text)
-            }
-            placeholder="Mô tả các thay đổi môi trường..."
-            multiline
-          />
-
-          <InputField
-            label="Biện pháp khắc phục"
-            value={pond.correctiveActions}
-            onChangeText={(text: string) =>
-              onUpdate(pond.id, 'correctiveActions', text)
-            }
-            placeholder="Các biện pháp đã thực hiện..."
-            multiline
-          />
-
-          <InputField
-            label="Số cá chết"
-            value={pond.fishDiedCount?.toString() || '0'}
-            onChangeText={(text: string) =>
-              onUpdate(pond.id, 'fishDiedCount', parseInt(text) || 0)
-            }
-            placeholder="0"
-            keyboardType="numeric"
-          />
-
-          <InputField
-            label="Ghi chú"
-            value={pond.notes}
-            onChangeText={(text: string) => onUpdate(pond.id, 'notes', text)}
-            placeholder="Ghi chú thêm..."
-            multiline
-          />
-
-          <View className="flex-row items-center justify-between rounded-2xl bg-cyan-50 px-4 py-3">
-            <View className="flex-row items-center">
-              <Droplets size={20} color="#0891b2" />
-              <Text className="ml-2 font-bold text-cyan-900">
-                Cần thay nước
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() =>
-                onUpdate(
-                  pond.id,
-                  'requiresWaterChange',
-                  !pond.requiresWaterChange
-                )
-              }
-              className={`h-8 w-14 items-center justify-center rounded-full ${pond.requiresWaterChange ? 'bg-cyan-500' : 'bg-gray-300'}`}
-              activeOpacity={0.8}
-            >
-              <View
-                className={`h-6 w-6 rounded-full bg-white shadow-md ${pond.requiresWaterChange ? 'self-end' : 'self-start'}`}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  function KoiCard({ koi, index, onRemove, onUpdate }: any) {
-    return (
-      <View
-        className="mb-4 overflow-hidden rounded-2xl border-2 border-orange-200 bg-white shadow-md"
-        style={{ elevation: 3 }}
-      >
-        {/* Header */}
-        <LinearGradient colors={['#f97316', '#ea580c']} className="px-5 py-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                <FishSvg size={24} color="white" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-lg font-black text-white">
-                  {koi.koiName || `Cá #${koi.id}`}
-                </Text>
-                <Text className="text-sm text-white/80">RFID: {koi.rfid}</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={onRemove}
-              className="h-10 w-10 items-center justify-center rounded-full bg-red-500 shadow-lg"
-              style={{ elevation: 4 }}
-              activeOpacity={0.7}
-            >
-              <X size={20} color="white" />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-
-        {/* Content */}
-        <View className="flex-1 gap-4 p-5">
-          {/* Status Selection */}
-          <View>
-            <Text className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-600">
-              Trạng thái
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {Object.values(KoiAffectedStatus).map((status) => {
-                const statusInfo = getAffectedStatusInfo(status);
-                const isSelected = koi.affectedStatus === status;
-                return (
-                  <TouchableOpacity
-                    key={`${koi.id}-${status}`}
-                    onPress={() => onUpdate(koi.id, 'affectedStatus', status)}
-                    className="overflow-hidden rounded-lg"
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={
-                        isSelected
-                          ? ['#f97316', '#ea580c']
-                          : ['#f3f4f6', '#e5e7eb']
-                      }
-                      className="px-4 py-2"
-                    >
-                      <Text
-                        className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-gray-600'}`}
-                      >
-                        {statusInfo.label}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <InputField
-            label="Triệu chứng"
-            value={koi.specificSymptoms}
-            onChangeText={(text: string) =>
-              onUpdate(koi.id, 'specificSymptoms', text)
-            }
-            placeholder="Mô tả triệu chứng cụ thể..."
-            multiline
-          />
-
-          <InputField
-            label="Ghi chú điều trị"
-            value={koi.treatmentNotes}
-            onChangeText={(text: string) =>
-              onUpdate(koi.id, 'treatmentNotes', text)
-            }
-            placeholder="Ghi chú về điều trị..."
-            multiline
-          />
-
-          {/* Toggles */}
-          <View className="flex-row gap-3">
-            <View className="flex-1 flex-row items-center justify-between rounded-2xl bg-orange-50 px-4 py-3">
-              <View className="flex-row items-center">
-                <Stethoscope size={16} color="#ea580c" />
-                <Text className="ml-2 text-xs font-bold text-orange-900">
-                  Điều trị
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() =>
-                  onUpdate(koi.id, 'requiresTreatment', !koi.requiresTreatment)
-                }
-                className={`h-6 w-6 items-center justify-center rounded-full ${koi.requiresTreatment ? 'bg-orange-500' : 'bg-gray-300'}`}
-                activeOpacity={0.8}
-              >
-                {koi.requiresTreatment && <Check size={14} color="white" />}
-              </TouchableOpacity>
-            </View>
-
-            <View className="flex-1 flex-row items-center justify-between rounded-2xl bg-orange-50 px-4 py-3">
-              <View className="flex-row items-center">
-                <Droplets size={16} color="#ea580c" />
-                <Text className="ml-2 text-xs font-bold text-orange-900">
-                  Cách ly
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => onUpdate(koi.id, 'isIsolated', !koi.isIsolated)}
-                className={`h-6 w-6 items-center justify-center rounded-full ${koi.isIsolated ? 'bg-orange-500' : 'bg-gray-300'}`}
-                activeOpacity={0.8}
-              >
-                {koi.isIsolated && <Check size={14} color="white" />}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  function InputField({
-    label,
-    value,
-    onChangeText,
-    placeholder,
-    multiline,
-    keyboardType,
-  }: any) {
-    return (
-      <View>
-        <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-600">
-          {label}
-        </Text>
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
-          multiline={multiline}
-          keyboardType={keyboardType}
-          className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-900"
-          style={multiline ? { minHeight: 80, textAlignVertical: 'top' } : {}}
-        />
       </View>
     );
   }
@@ -1140,7 +831,10 @@ export default function CreateIncidentScreen() {
             </View>
           </View>
 
-          <ScrollView className="flex-1 p-6">
+          <ScrollView
+            className="flex-1 p-6"
+            keyboardShouldPersistTaps="handled"
+          >
             {incidentTypesLoading ? (
               <View className="flex-1 items-center justify-center py-20">
                 <Loading />
