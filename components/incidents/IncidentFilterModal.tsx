@@ -80,6 +80,7 @@ export default function IncidentFilterModal({
   const handleResetFilter = () => {
     const resetFilters: IncidentSearchParams = {};
     setFilters(resetFilters);
+    onApplyFilter(resetFilters);
   };
 
   const updateFilter = (key: keyof IncidentSearchParams, value: any) => {
@@ -122,330 +123,315 @@ export default function IncidentFilterModal({
     >
       <SafeAreaView className="flex-1 bg-black/60">
         <KeyboardAvoidingView
-          className="flex-1"
+          className="flex-1 justify-end"
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <TouchableOpacity
-            className="flex-1"
-            activeOpacity={1} // Sửa từ 2 thành 1
-            onPress={onClose}
-          >
-            {/* SỬA LỖI: Đổi justify-center thành justify-end */}
-            <View className="flex-1 justify-end">
-              <TouchableOpacity activeOpacity={1}>
-                <View className="max-h-[90%] rounded-t-3xl bg-white">
-                  {/* Header */}
-                  <LinearGradient
-                    colors={['#3b82f6', '#1d4ed8']}
-                    className="rounded-t-3xl px-6 py-4" // Thêm rounded-t-3xl
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center">
-                        <View className="mr-3 rounded-full bg-white/20 p-2">
-                          <Filter size={20} color="white" />
-                        </View>
-                        <View>
-                          <Text className="text-lg font-bold text-white">
-                            Lọc sự cố
-                          </Text>
-                          {getFilterCount() > 0 && (
-                            <Text className="text-sm text-blue-100">
-                              {getFilterCount()} bộ lọc đang áp dụng
-                            </Text>
-                          )}
-                        </View>
-                      </View>
+          <View className="flex-1 justify-end">
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={onClose}
+              className="absolute inset-0"
+            >
+              <View className="flex-1 bg-transparent" />
+            </TouchableOpacity>
 
-                      <TouchableOpacity
-                        onPress={onClose}
-                        className="rounded-full bg-white/20 p-2"
-                      >
-                        <X size={20} color="white" />
-                      </TouchableOpacity>
+            <View
+              className="absolute bottom-0 left-0 right-0 max-h-[90%] w-full rounded-t-2xl bg-white"
+              style={{ zIndex: 10 }}
+            >
+              {/* Header */}
+              <LinearGradient
+                colors={['#3b82f6', '#1d4ed8']}
+                className="rounded-t-2xl px-6 py-4"
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <View className="mr-3 rounded-full bg-white/20 p-2">
+                      <Filter size={20} color="white" />
                     </View>
-                  </LinearGradient>
-
-                  {/* Content */}
-                  <ScrollView
-                    className="px-6" // Xóa padding y
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {/* CẢI TIỆN: Thêm View wrapper và padding cho từng section */}
                     <View>
-                      {/* Search Section */}
-                      <View className="py-6">
-                        <Text className="mb-3 text-sm font-medium text-slate-600">
-                          Tìm kiếm theo tiêu đề
+                      <Text className="text-lg font-bold text-white">
+                        Lọc sự cố
+                      </Text>
+                      {getFilterCount() > 0 && (
+                        <Text className="text-sm text-blue-100">
+                          {getFilterCount()} bộ lọc đang áp dụng
                         </Text>
-                        <View className="flex-row items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-1">
-                          <Search size={20} color="#94a3b8" />
-                          <TextInput
-                            className="ml-3 flex-1 py-3 text-base text-slate-900"
-                            placeholder="Nhập tiêu đề sự cố..."
-                            placeholderTextColor="#94a3b8"
-                            value={filters.Search || ''}
-                            onChangeText={(text) =>
-                              updateFilter('Search', text)
-                            }
-                          />
-                          {filters.Search && (
-                            <TouchableOpacity
-                              onPress={() => removeFilter('Search')}
-                              className="ml-2 rounded-full bg-slate-200 p-1"
-                            >
-                              <X size={14} color="#64748b" />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-
-                      {/* Divider */}
-                      <View className="h-px bg-slate-100" />
-
-                      {/* Status Filter Section */}
-                      <View className="py-6">
-                        <Text className="mb-3 text-sm font-medium text-slate-600">
-                          Trạng thái
-                        </Text>
-                        <View className="flex-row flex-wrap gap-4">
-                          {statusOptions.map((status) => (
-                            <TouchableOpacity
-                              key={status.value}
-                              onPress={() =>
-                                filters.Status === status.value
-                                  ? removeFilter('Status')
-                                  : updateFilter('Status', status.value)
-                              }
-                              className={`rounded-2xl border px-4 py-2 ${
-                                filters.Status === status.value
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-slate-200 bg-white'
-                              }`}
-                            >
-                              <View className="flex-row items-center">
-                                <View
-                                  className="mr-2 h-3 w-3 rounded-full"
-                                  style={{ backgroundColor: status.color }}
-                                />
-                                <Text
-                                  className={`text-sm font-medium ${
-                                    filters.Status === status.value
-                                      ? 'text-blue-700'
-                                      : 'text-slate-700'
-                                  }`}
-                                >
-                                  {status.label}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-
-                      {/* Divider */}
-                      <View className="h-px bg-slate-100" />
-
-                      {/* Severity Filter Section */}
-                      <View className="py-6">
-                        <Text className="mb-3 text-sm font-medium text-slate-600">
-                          Mức độ nghiêm trọng
-                        </Text>
-                        <View className="flex-row flex-wrap gap-2">
-                          {severityOptions.map((severity) => (
-                            <TouchableOpacity
-                              key={severity.value}
-                              onPress={() =>
-                                filters.Severity === severity.value
-                                  ? removeFilter('Severity')
-                                  : updateFilter('Severity', severity.value)
-                              }
-                              className={`rounded-2xl border px-4 py-2 ${
-                                filters.Severity === severity.value
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-slate-200 bg-white'
-                              }`}
-                            >
-                              <View className="flex-row items-center">
-                                <AlertTriangle
-                                  size={16}
-                                  color={severity.color}
-                                />
-                                <Text
-                                  className={`ml-2 text-sm font-medium ${
-                                    filters.Severity === severity.value
-                                      ? 'text-blue-700'
-                                      : 'text-slate-700'
-                                  }`}
-                                >
-                                  {severity.label}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-
-                      {/* Divider */}
-                      <View className="h-px bg-slate-100" />
-
-                      {/* CẢI TIỆN: Incident Type Filter (Vertical List) */}
-                      <View className="py-6">
-                        <Text className="mb-3 text-sm font-medium text-slate-600">
-                          Loại sự cố
-                        </Text>
-                        <View className="flex-col gap-4">
-                          {incidentTypes.map((type) => (
-                            <TouchableOpacity
-                              key={type.id}
-                              onPress={() =>
-                                filters.IncidentTypeId === type.id
-                                  ? removeFilter('IncidentTypeId')
-                                  : updateFilter('IncidentTypeId', type.id)
-                              }
-                              className={`rounded-2xl border p-3 ${
-                                filters.IncidentTypeId === type.id
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-slate-200 bg-white'
-                              }`}
-                            >
-                              <Text
-                                className={`text-sm font-medium ${
-                                  filters.IncidentTypeId === type.id
-                                    ? 'text-blue-700'
-                                    : 'text-slate-700'
-                                }`}
-                              >
-                                {type.name}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-
-                      {/* Divider */}
-                      <View className="h-px bg-slate-100" />
-
-                      {/* Date Range Filter Section */}
-                      <View className="py-6">
-                        <Text className="mb-3 text-sm font-medium text-slate-600">
-                          Thời gian xảy ra
-                        </Text>
-                        <View className="flex-row gap-3">
-                          {/* From Date */}
-                          <View className="flex-1">
-                            <Text className="mb-2 text-xs font-medium text-slate-500">
-                              Từ ngày
-                            </Text>
-                            {/* CẢI TIỆN: Đổi bg-white -> bg-slate-50 */}
-                            <TouchableOpacity
-                              onPress={() => setShowFromDatePicker(true)}
-                              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                            >
-                              <View className="flex-row items-center justify-between">
-                                <Text
-                                  className={`text-sm ${
-                                    filters.OccurredFrom
-                                      ? 'text-slate-900'
-                                      : 'text-slate-400'
-                                  }`}
-                                >
-                                  {formatDate(filters.OccurredFrom) ||
-                                    'Chọn ngày'}
-                                </Text>
-                                {/* CẢI TIỆN: Hiển thị X thay vì Calendar nếu có date */}
-                                {filters.OccurredFrom ? (
-                                  <TouchableOpacity
-                                    onPress={() => removeFilter('OccurredFrom')}
-                                    className="p-1"
-                                  >
-                                    <X size={16} color="#64748b" />
-                                  </TouchableOpacity>
-                                ) : (
-                                  <Calendar size={16} color="#94a3b8" />
-                                )}
-                              </View>
-                            </TouchableOpacity>
-                            {/* Bỏ text "Xóa" bên dưới */}
-                          </View>
-
-                          {/* To Date */}
-                          <View className="flex-1">
-                            <Text className="mb-2 text-xs font-medium text-slate-500">
-                              Đến ngày
-                            </Text>
-                            {/* CẢI TIỆN: Đổi bg-white -> bg-slate-50 */}
-                            <TouchableOpacity
-                              onPress={() => setShowToDatePicker(true)}
-                              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                            >
-                              <View className="flex-row items-center justify-between">
-                                <Text
-                                  className={`text-sm ${
-                                    filters.OccurredTo
-                                      ? 'text-slate-900'
-                                      : 'text-slate-400'
-                                  }`}
-                                >
-                                  {formatDate(filters.OccurredTo) ||
-                                    'Chọn ngày'}
-                                </Text>
-                                {/* CẢI TIỆN: Hiển thị X thay vì Calendar nếu có date */}
-                                {filters.OccurredTo ? (
-                                  <TouchableOpacity
-                                    onPress={() => removeFilter('OccurredTo')}
-                                    className="p-1"
-                                  >
-                                    <X size={16} color="#64748b" />
-                                  </TouchableOpacity>
-                                ) : (
-                                  <Calendar size={16} color="#94a3b8" />
-                                )}
-                              </View>
-                            </TouchableOpacity>
-                            {/* Bỏ text "Xóa" bên dưới */}
-                          </View>
-                        </View>
-                      </View>
+                      )}
                     </View>
-                  </ScrollView>
+                  </View>
 
-                  {/* Footer Actions */}
-                  <View className="border-t border-slate-100 px-6 py-4">
-                    <View className="flex-row gap-4">
-                      {/* Reset Button */}
-                      <TouchableOpacity
-                        onPress={handleResetFilter}
-                        className="flex-1 items-center rounded-2xl border border-slate-200 bg-slate-50 py-4"
-                      >
-                        <View className="flex-row items-center">
-                          <RotateCcw size={18} color="#64748b" />
-                          <Text className="ml-2 text-base font-semibold text-slate-700">
-                            Đặt lại
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={onClose}
+                    className="rounded-full bg-white/20 p-2"
+                  >
+                    <X size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
 
-                      {/* Apply Button */}
-                      <TouchableOpacity
-                        onPress={handleApplyFilter}
-                        className="flex-1 overflow-hidden rounded-2xl"
-                      >
-                        <LinearGradient
-                          colors={['#3b82f6', '#1d4ed8']}
-                          className="py-4"
+              {/* Content */}
+              <ScrollView className="px-6" showsVerticalScrollIndicator={false}>
+                <View>
+                  {/* Search Section */}
+                  <View className="py-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-600">
+                      Tìm kiếm theo tiêu đề
+                    </Text>
+                    <View className="flex-row items-center rounded-2xl border border-slate-200 bg-slate-50 px-4">
+                      <Search size={20} color="#94a3b8" />
+                      <TextInput
+                        className="ml-3 flex-1 py-3 text-base text-slate-900"
+                        placeholder="Nhập tiêu đề sự cố..."
+                        placeholderTextColor="#94a3b8"
+                        value={filters.Search || ''}
+                        onChangeText={(text) => updateFilter('Search', text)}
+                      />
+                      {filters.Search && (
+                        <TouchableOpacity
+                          onPress={() => removeFilter('Search')}
+                          className="ml-2 rounded-full bg-slate-200 p-1"
                         >
-                          <Text className="text-center text-base font-bold text-white">
-                            Áp dụng{' '}
-                            {getFilterCount() > 0 && `(${getFilterCount()})`}
+                          <X size={14} color="#64748b" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Divider */}
+                  <View className="h-px bg-slate-100" />
+
+                  {/* Status Filter Section */}
+                  <View className="py-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-600">
+                      Trạng thái
+                    </Text>
+                    <View className="flex-row flex-wrap gap-4">
+                      {statusOptions.map((status) => (
+                        <TouchableOpacity
+                          key={status.value}
+                          onPress={() =>
+                            filters.Status === status.value
+                              ? removeFilter('Status')
+                              : updateFilter('Status', status.value)
+                          }
+                          className={`rounded-2xl border px-4 py-2 ${
+                            filters.Status === status.value
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-slate-200 bg-white'
+                          }`}
+                        >
+                          <View className="flex-row items-center">
+                            <View
+                              className="mr-2 h-3 w-3 rounded-full"
+                              style={{ backgroundColor: status.color }}
+                            />
+                            <Text
+                              className={`text-base font-medium ${
+                                filters.Status === status.value
+                                  ? 'text-blue-700'
+                                  : 'text-slate-700'
+                              }`}
+                            >
+                              {status.label}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Divider */}
+                  <View className="h-px bg-slate-100" />
+
+                  {/* Severity Filter Section */}
+                  <View className="py-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-600">
+                      Mức độ nghiêm trọng
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {severityOptions.map((severity) => (
+                        <TouchableOpacity
+                          key={severity.value}
+                          onPress={() =>
+                            filters.Severity === severity.value
+                              ? removeFilter('Severity')
+                              : updateFilter('Severity', severity.value)
+                          }
+                          className={`rounded-2xl border px-4 py-2 ${
+                            filters.Severity === severity.value
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-slate-200 bg-white'
+                          }`}
+                        >
+                          <View className="flex-row items-center">
+                            <AlertTriangle size={16} color={severity.color} />
+                            <Text
+                              className={`ml-2 text-base font-medium ${
+                                filters.Severity === severity.value
+                                  ? 'text-blue-700'
+                                  : 'text-slate-700'
+                              }`}
+                            >
+                              {severity.label}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Divider */}
+                  <View className="h-px bg-slate-100" />
+
+                  {/* Incident Type Filter */}
+                  <View className="py-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-600">
+                      Loại sự cố
+                    </Text>
+                    <View className="flex-col gap-2">
+                      {incidentTypes.map((type) => (
+                        <TouchableOpacity
+                          key={type.id}
+                          onPress={() =>
+                            filters.IncidentTypeId === type.id
+                              ? removeFilter('IncidentTypeId')
+                              : updateFilter('IncidentTypeId', type.id)
+                          }
+                          className={`rounded-2xl border p-3 ${
+                            filters.IncidentTypeId === type.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-slate-200 bg-white'
+                          }`}
+                        >
+                          <Text
+                            className={`text-base font-medium ${
+                              filters.IncidentTypeId === type.id
+                                ? 'text-blue-700'
+                                : 'text-slate-700'
+                            }`}
+                          >
+                            {type.name}
                           </Text>
-                        </LinearGradient>
-                      </TouchableOpacity>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Divider */}
+                  <View className="h-px bg-slate-100" />
+
+                  {/* Date Range Filter Section */}
+                  <View className="py-4">
+                    <Text className="mb-3 text-base font-semibold text-slate-600">
+                      Thời gian xảy ra
+                    </Text>
+                    <View className="flex-row gap-3">
+                      {/* From Date */}
+                      <View className="flex-1">
+                        <Text className="mb-2 text-base font-semibold text-slate-500">
+                          Từ ngày
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setShowFromDatePicker(true)}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <View className="flex-row items-center justify-between">
+                            <Text
+                              className={`text-base ${
+                                filters.OccurredFrom
+                                  ? 'text-slate-900'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {formatDate(filters.OccurredFrom) || 'Chọn ngày'}
+                            </Text>
+                            {filters.OccurredFrom ? (
+                              <TouchableOpacity
+                                onPress={() => removeFilter('OccurredFrom')}
+                                className="p-1"
+                              >
+                                <X size={16} color="#64748b" />
+                              </TouchableOpacity>
+                            ) : (
+                              <Calendar size={16} color="#94a3b8" />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* To Date */}
+                      <View className="flex-1">
+                        <Text className="mb-2 text-base font-semibold text-slate-500">
+                          Đến ngày
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setShowToDatePicker(true)}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <View className="flex-row items-center justify-between">
+                            <Text
+                              className={`text-base ${
+                                filters.OccurredTo
+                                  ? 'text-slate-900'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {formatDate(filters.OccurredTo) || 'Chọn ngày'}
+                            </Text>
+                            {filters.OccurredTo ? (
+                              <TouchableOpacity
+                                onPress={() => removeFilter('OccurredTo')}
+                                className="p-1"
+                              >
+                                <X size={16} color="#64748b" />
+                              </TouchableOpacity>
+                            ) : (
+                              <Calendar size={16} color="#94a3b8" />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </ScrollView>
+
+              {/* Footer Actions */}
+              <View className="border-t border-slate-100 px-6 py-4">
+                <View className="flex-row gap-4">
+                  {/* Reset Button */}
+                  <TouchableOpacity
+                    onPress={handleResetFilter}
+                    className="flex-1 items-center rounded-2xl border border-slate-200 bg-slate-50 py-4"
+                  >
+                    <View className="flex-row items-center">
+                      <RotateCcw size={18} color="#64748b" />
+                      <Text className="ml-2 text-base font-semibold text-slate-700">
+                        Đặt lại
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Apply Button */}
+                  <TouchableOpacity
+                    onPress={handleApplyFilter}
+                    className="flex-1 overflow-hidden rounded-2xl"
+                  >
+                    <LinearGradient
+                      colors={['#3b82f6', '#1d4ed8']}
+                      className="py-4"
+                    >
+                      <Text className="text-center text-base font-bold text-white">
+                        Áp dụng{' '}
+                        {getFilterCount() > 0 && `(${getFilterCount()})`}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
 
         {/* Date Pickers */}

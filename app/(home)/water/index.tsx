@@ -8,6 +8,8 @@ import { useGetAreas } from '@/hooks/useArea';
 import { useGetPondsInfinite } from '@/hooks/usePond';
 import { useGetPondTypes } from '@/hooks/usePondType';
 import { PondSearchParams, PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import {
@@ -57,6 +59,17 @@ export default function PondManagementScreen() {
   const [modalPondTypeId, setModalPondTypeId] = useState<number | undefined>(
     undefined
   );
+  const [modalPondTypeEnum, setModalPondTypeEnum] = useState<
+    TypeOfPond | undefined
+  >(undefined);
+
+  // Capacity (liters) range
+  const [modalCapacityMin, setModalCapacityMin] = useState<number>(0);
+  const [modalCapacityMax, setModalCapacityMax] = useState<number>(10000);
+
+  // Depth (meters) range
+  const [modalDepthMin, setModalDepthMin] = useState<number>(0);
+  const [modalDepthMax, setModalDepthMax] = useState<number>(5);
 
   // Debounce search input
   useEffect(() => {
@@ -84,6 +97,11 @@ export default function PondManagementScreen() {
     setModalStatus(undefined);
     setModalAreaId(undefined);
     setModalPondTypeId(undefined);
+    setModalPondTypeEnum(undefined);
+    setModalCapacityMin(0);
+    setModalCapacityMax(1000);
+    setModalDepthMin(0);
+    setModalDepthMax(5);
   };
 
   const statusToLabel = (status: PondStatus) => {
@@ -96,6 +114,25 @@ export default function PondManagementScreen() {
         return 'Trống';
       default:
         return status;
+    }
+  };
+
+  const typeOfPondToLabel = (t: TypeOfPond) => {
+    switch (t) {
+      case TypeOfPond.PARING:
+        return 'Ao phối giống';
+      case TypeOfPond.EGG_BATCH:
+        return 'Ao ấp trứng';
+      case TypeOfPond.FRY_FISH:
+        return 'Ao nuôi cá bột';
+      case TypeOfPond.CLASSIFICATION:
+        return 'Ao tuyển chọn';
+      case TypeOfPond.MARKET_POND:
+        return 'Ao cá bán';
+      case TypeOfPond.BROOD_STOCK:
+        return 'Ao cá giống';
+      default:
+        return String(t);
     }
   };
 
@@ -170,7 +207,7 @@ export default function PondManagementScreen() {
     <>
       <SafeAreaView className="flex-1 bg-gray-50">
         {/* Header */}
-        <View className="bg-primary pb-6">
+        <View className="rounded-t-2xl bg-primary pb-6">
           <View className="px-4 pt-2">
             <View className="mb-4 mt-2 flex-row items-center justify-between">
               <View>
@@ -247,7 +284,7 @@ export default function PondManagementScreen() {
         <FlatList
           data={ponds}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + 10,
+            paddingBottom: insets.bottom + 30,
             paddingHorizontal: 16,
           }}
           showsVerticalScrollIndicator={false}
@@ -498,6 +535,138 @@ export default function PondManagementScreen() {
                     )}
                   </View>
                 </View>
+
+                {/* Pond Type Enum Filter */}
+                <View className="mt-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
+                    <Layers size={18} color="#6366f1" />
+                  </View>
+                  <View className="flex-1">
+                    <ContextMenuField
+                      label="Mục đích"
+                      value={modalPondTypeEnum || ''}
+                      placeholder="Chọn mục đích"
+                      options={Object.values(TypeOfPond).map((t) => ({
+                        label: typeOfPondToLabel(t as TypeOfPond),
+                        value: t,
+                      }))}
+                      onSelect={(val) =>
+                        setModalPondTypeEnum(val as TypeOfPond)
+                      }
+                    />
+                    {modalPondTypeEnum && (
+                      <TouchableOpacity
+                        onPress={() => setModalPondTypeEnum(undefined)}
+                        className="mt-2"
+                      >
+                        <Text className="text-sm font-medium text-blue-500">
+                          Xóa lựa chọn
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                {/* Capacity (liters) Range Filter */}
+                <View className="mt-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-blue-100">
+                    <Droplet size={18} color="#3b82f6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-2 text-sm font-medium text-gray-700">
+                      Dung tích (L)
+                    </Text>
+                    <Text className="mb-2 text-sm text-gray-500">
+                      Từ {modalCapacityMin} đến {modalCapacityMax} L
+                    </Text>
+                    <MultiSlider
+                      values={[modalCapacityMin, modalCapacityMax]}
+                      min={0}
+                      max={100000}
+                      step={10}
+                      onValuesChangeFinish={(vals: number[]) => {
+                        setModalCapacityMin(Math.round(vals[0]));
+                        setModalCapacityMax(Math.round(vals[1]));
+                      }}
+                      selectedStyle={{ backgroundColor: '#3b82f6' }}
+                      unselectedStyle={{ backgroundColor: '#e5e7eb' }}
+                      trackStyle={{ height: 6, borderRadius: 3 }}
+                      markerStyle={{
+                        marginTop: 4,
+                        backgroundColor: '#3b82f6',
+                        height: 20,
+                        width: 20,
+                        borderRadius: 10,
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                      }}
+                      pressedMarkerStyle={{
+                        height: 28,
+                        width: 28,
+                        backgroundColor: '#3b82f6',
+                      }}
+                      touchDimensions={{
+                        height: 48,
+                        width: 48,
+                        borderRadius: 24,
+                        slipDisplacement: 200,
+                      }}
+                      allowOverlap={false}
+                      minMarkerOverlapDistance={16}
+                    />
+                  </View>
+                </View>
+
+                {/* Depth (meters) Range Filter */}
+                <View className="mt-4 flex-row items-start">
+                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-cyan-100">
+                    <MapPin size={18} color="#06b6d4" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="mb-2 text-sm font-medium text-gray-700">
+                      Độ sâu (m)
+                    </Text>
+                    <Text className="mb-2 text-sm text-gray-500">
+                      Từ {modalDepthMin} đến {modalDepthMax} m
+                    </Text>
+                    <MultiSlider
+                      values={[modalDepthMin, modalDepthMax]}
+                      min={0}
+                      max={20}
+                      step={0.1}
+                      onValuesChangeFinish={(vals: number[]) => {
+                        // keep one decimal for meters
+                        setModalDepthMin(Math.round(vals[0] * 10) / 10);
+                        setModalDepthMax(Math.round(vals[1] * 10) / 10);
+                      }}
+                      selectedStyle={{ backgroundColor: '#06b6d4' }}
+                      unselectedStyle={{ backgroundColor: '#e5e7eb' }}
+                      trackStyle={{ height: 6, borderRadius: 3 }}
+                      markerStyle={{
+                        marginTop: 4,
+                        backgroundColor: '#06b6d4',
+                        height: 20,
+                        width: 20,
+                        borderRadius: 10,
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                      }}
+                      pressedMarkerStyle={{
+                        height: 28,
+                        width: 28,
+                        backgroundColor: '#06b6d4',
+                      }}
+                      touchDimensions={{
+                        height: 48,
+                        width: 48,
+                        borderRadius: 24,
+                        slipDisplacement: 200,
+                      }}
+                      allowOverlap={false}
+                      minMarkerOverlapDistance={16}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -525,6 +694,11 @@ export default function PondManagementScreen() {
                     status: modalStatus,
                     areaId: modalAreaId,
                     pondTypeId: modalPondTypeId,
+                    pondTypeEnum: modalPondTypeEnum,
+                    minCapacityLiters: modalCapacityMin,
+                    maxCapacityLiters: modalCapacityMax,
+                    minDepthMeters: modalDepthMin,
+                    maxDepthMeters: modalDepthMax,
                   };
                   setAppliedFilters(newFilters);
                   setShowFilterSheet(false);

@@ -113,6 +113,8 @@ export const convertPondFilter = (
   if (filters.status) params.status = filters.status;
   if (filters.areaId) params.areaId = filters.areaId;
   if (filters.pondTypeId) params.pondTypeId = filters.pondTypeId;
+  if (filters.pondTypeEnum) params.pondTypeEnum = filters.pondTypeEnum;
+  if (filters.available) params.available = filters.available;
   if (filters.minCapacityLiters)
     params.minCapacityLiters = filters.minCapacityLiters;
   if (filters.maxCapacityLiters)

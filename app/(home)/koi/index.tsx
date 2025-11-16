@@ -249,6 +249,66 @@ export default function KoiManagementScreen() {
 
   const activeFiltersCount = Object.keys(appliedFilters || {}).length;
 
+  const RangeSlider = React.memo(function RangeSlider({
+    initialValues,
+    min,
+    max,
+    step,
+    onFinish,
+  }: {
+    initialValues: [number, number];
+    min: number;
+    max: number;
+    step: number;
+    onFinish: (vals: [number, number]) => void;
+  }) {
+    const [vals, setVals] = useState<[number, number]>(initialValues);
+
+    return (
+      <View>
+        <MultiSlider
+          values={vals}
+          min={min}
+          max={max}
+          step={step}
+          onValuesChange={(values: number[]) => {
+            setVals([values[0], values[1]]);
+          }}
+          onValuesChangeFinish={(values: number[]) => {
+            const v: [number, number] = [values[0], values[1]];
+            setVals(v);
+            onFinish(v);
+          }}
+          selectedStyle={{ backgroundColor: '#06b6d4' }}
+          unselectedStyle={{ backgroundColor: '#e5e7eb' }}
+          trackStyle={{ height: 6, borderRadius: 3 }}
+          markerStyle={{
+            marginTop: 4,
+            backgroundColor: '#06b6d4',
+            height: 20,
+            width: 20,
+            borderRadius: 10,
+            borderWidth: 2,
+            borderColor: '#fff',
+          }}
+          pressedMarkerStyle={{
+            height: 28,
+            width: 28,
+            backgroundColor: '#06b6d4',
+          }}
+          touchDimensions={{
+            height: 48,
+            width: 48,
+            borderRadius: 24,
+            slipDisplacement: 200,
+          }}
+          allowOverlap={false}
+          minMarkerOverlapDistance={16}
+        />
+      </View>
+    );
+  });
+
   return (
     <>
       <SafeAreaView className="flex-1 bg-gray-50">
@@ -333,7 +393,7 @@ export default function KoiManagementScreen() {
         <FlatList
           data={koiList}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + 30,
+            paddingBottom: insets.bottom + 60,
             paddingHorizontal: 16,
             paddingTop: 16,
           }}
@@ -759,7 +819,7 @@ export default function KoiManagementScreen() {
                       Nguồn gốc
                     </Text>
                     <TextInput
-                      className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-1 text-base font-medium text-gray-900"
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                       placeholder="Xuất xứ"
                       placeholderTextColor="#9ca3af"
                       value={modalOrigin}
@@ -820,32 +880,14 @@ export default function KoiManagementScreen() {
                   </Text>
                 </View>
                 <View style={{ paddingHorizontal: 12 }}>
-                  <MultiSlider
-                    values={[modalMinSize, modalMaxSize]}
+                  <RangeSlider
+                    initialValues={[modalMinSize, modalMaxSize]}
                     min={SIZE_MIN}
                     max={SIZE_MAX}
                     step={SIZE_STEP}
-                    onValuesChange={(values: number[]) => {
-                      const [minV, maxV] = values;
+                    onFinish={([minV, maxV]) => {
                       setModalMinSize(minV);
                       setModalMaxSize(maxV);
-                    }}
-                    selectedStyle={{ backgroundColor: '#06b6d4' }}
-                    unselectedStyle={{ backgroundColor: '#e5e7eb' }}
-                    trackStyle={{ height: 6, borderRadius: 3 }}
-                    markerStyle={{
-                      marginTop: 3,
-                      backgroundColor: '#06b6d4',
-                      height: 20,
-                      width: 20,
-                      borderRadius: 10,
-                      borderWidth: 2,
-                      borderColor: '#fff',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 2,
-                      elevation: 3,
                     }}
                   />
                 </View>
@@ -945,32 +987,14 @@ export default function KoiManagementScreen() {
                   </View>
                 </View>
                 <View style={{ paddingHorizontal: 12 }}>
-                  <MultiSlider
-                    values={[modalMinPrice, modalMaxPrice]}
+                  <RangeSlider
+                    initialValues={[modalMinPrice, modalMaxPrice]}
                     min={PRICE_MIN}
                     max={PRICE_MAX}
                     step={PRICE_STEP}
-                    onValuesChange={(values: number[]) => {
-                      const [minV, maxV] = values;
+                    onFinish={([minV, maxV]) => {
                       setModalMinPrice(minV);
                       setModalMaxPrice(maxV);
-                    }}
-                    selectedStyle={{ backgroundColor: '#06b6d4' }}
-                    unselectedStyle={{ backgroundColor: '#e5e7eb' }}
-                    trackStyle={{ height: 6, borderRadius: 3 }}
-                    markerStyle={{
-                      marginTop: 3,
-                      backgroundColor: '#06b6d4',
-                      height: 20,
-                      width: 20,
-                      borderRadius: 10,
-                      borderWidth: 2,
-                      borderColor: '#fff',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 2,
-                      elevation: 3,
                     }}
                   />
                 </View>

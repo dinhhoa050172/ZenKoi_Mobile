@@ -11,6 +11,7 @@ import {
   SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import { formatDate } from '@/lib/utils/formatDate';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   AlertCircle,
@@ -31,7 +32,7 @@ import {
   Ruler,
   VenusAndMars,
 } from 'lucide-react-native';
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -44,7 +45,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 
 export default function KoiDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -216,7 +216,7 @@ export default function KoiDetailScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
         {/* Image Card */}
@@ -363,7 +363,7 @@ export default function KoiDetailScreen() {
                     icon={<Blend size={18} color="#6b7280" />}
                     iconBg="bg-gray-100"
                     label="Kiểu hoa văn"
-                    value={patternToLabel(koi?.patternType)}
+                    value={patternToLabel(koi?.pattern)}
                   />
                   <View style={{ height: 12 }} />
 

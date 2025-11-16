@@ -82,7 +82,7 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
 }) => {
   const Icon = action.icon;
   return (
-    <View className="w-1/2 p-2">
+    <View className="w-1/2 p-1.5">
       <TouchableOpacity
         onPress={onPress}
         className="overflow-hidden rounded-2xl bg-white shadow-md"
@@ -120,7 +120,7 @@ interface SummaryItemProps {
 }
 
 const SummaryItem: React.FC<SummaryItemProps> = ({ item }) => (
-  <View className="w-1/2 p-2">
+  <View className="w-1/2 p-1.5">
     <LinearGradient
       colors={item.gradient}
       start={{ x: 0, y: 0 }}
@@ -240,7 +240,7 @@ const FarmStaffDashboard: React.FC = () => {
     >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 70 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Animated Background */}
@@ -301,7 +301,7 @@ const FarmStaffDashboard: React.FC = () => {
           ) : null}
 
           {/* Quick Actions */}
-          <View className="-mx-2 flex-row flex-wrap">
+          <View className="-mx-2 mb-2 flex-row flex-wrap">
             {quickActions.map((action, index) => (
               <QuickActionCard
                 key={index}

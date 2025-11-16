@@ -98,6 +98,10 @@ export default function TabHomeLayout() {
     '/scan', // (home)/scan/index
     '/breeding', // (home)/breeding/index
     '/profile', // (home)/profile
+    '/water', // (home)/water/index
+    '/pond', // (home)/pond/index
+    '/incidents', // (home)/incidents
+    '/tasks', // (home)/tasks
   ];
 
   // Kiểm tra xem pathname hiện tại có nằm trong danh sách_layout

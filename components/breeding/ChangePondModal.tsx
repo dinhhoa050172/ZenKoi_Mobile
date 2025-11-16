@@ -1,4 +1,7 @@
-import { Pond } from '@/lib/api/services/fetchPond';
+import { useGetPonds } from '@/hooks/usePond';
+import { BreedingStatus } from '@/lib/api/services/fetchBreedingProcess';
+import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { AlertCircle, Droplet, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -17,8 +20,8 @@ interface ChangePondModalProps {
   onClose: () => void;
   currentPondId: number;
   currentPondName: string;
-  allPonds: Pond[];
-  onRefetchPonds: () => void;
+  // Receive the breeding status; the modal will derive pond filters from it.
+  breedingStatus?: BreedingStatus;
   onSave: (newPondId: number) => Promise<void>;
   title?: string;
   description?: string;
@@ -29,15 +32,44 @@ export function ChangePondModal({
   onClose,
   currentPondId,
   currentPondName,
-  allPonds,
-  onRefetchPonds,
   onSave,
+  breedingStatus,
   title = 'Chọn hồ',
   description,
 }: ChangePondModalProps) {
   const [selectedPondId, setSelectedPondId] = useState<number | null>(null);
   const [selectedPondLabel, setSelectedPondLabel] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const mapBreedingToPondType = (
+    s?: BreedingStatus
+  ): TypeOfPond | undefined => {
+    if (!s) return undefined;
+    switch (s) {
+      case BreedingStatus.PAIRING:
+        return TypeOfPond.PARING;
+      case BreedingStatus.EGG_BATCH:
+        return TypeOfPond.EGG_BATCH;
+      case BreedingStatus.FRY_FISH:
+        return TypeOfPond.FRY_FISH;
+      case BreedingStatus.CLASSIFICATION:
+        return TypeOfPond.CLASSIFICATION;
+      default:
+        return undefined;
+    }
+  };
+
+  const pondsQuery = useGetPonds(
+    {
+      pageIndex: 1,
+      pageSize: 200,
+      status: PondStatus.EMPTY,
+      pondTypeEnum: mapBreedingToPondType(breedingStatus),
+    },
+    !!visible
+  );
+
+  const allPonds = pondsQuery.data?.data ?? [];
 
   useEffect(() => {
     if (visible && currentPondId) {
@@ -165,8 +197,8 @@ export function ChangePondModal({
                   setSelectedPondId(id ? Number(id) : null);
                   setSelectedPondLabel(String(v));
                 }}
-                onPress={onRefetchPonds}
-                placeholder="Chọn hồ mới..."
+                onPress={() => pondsQuery.refetch()}
+                placeholder="Chọn hồ mới"
               />
             </View>
 

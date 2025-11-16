@@ -1,4 +1,6 @@
 import Loading from '@/components/Loading';
+import FishSvg from '@/components/icons/FishSvg';
+import PondSvg from '@/components/icons/PondSvg';
 import CancelIncidentModal from '@/components/incidents/CancelIncidentModal';
 import ResolveIncidentModal from '@/components/incidents/ResolveIncidentModal';
 import {
@@ -25,10 +27,9 @@ import {
   Droplets,
   Edit,
   FileText,
-  Fish,
   Heart,
-  ShieldCheck, // Thay thế cho Shield
-  Thermometer, // Thay cho Activity
+  ShieldCheck,
+  Thermometer,
   TrendingUp,
   User,
   Waves,
@@ -38,15 +39,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
-  ScrollView, // Import ScrollView
+  ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// --- BẮT ĐẦU: HELPER FUNCTIONS (Đã được tối ưu) ---
 
 // Helper cho TRẠNG THÁI (Status)
 export const getStatusInfo = (status: IncidentStatus) => {
@@ -374,7 +373,7 @@ export default function IncidentDetailScreen() {
             >
               {statusInfo.icon}
               <Text
-                className="ml-2 text-sm font-bold"
+                className="ml-2 text-base font-bold"
                 style={{ color: statusInfo.color }}
               >
                 {statusInfo.label}
@@ -386,7 +385,7 @@ export default function IncidentDetailScreen() {
             >
               {severityInfo.icon}
               <Text
-                className="ml-2 text-sm font-bold"
+                className="ml-2 text-base font-bold"
                 style={{ color: severityInfo.color }}
               >
                 {severityInfo.label}
@@ -406,7 +405,7 @@ export default function IncidentDetailScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               padding: 24,
-              paddingBottom: 120, // Nới rộng cho FAB
+              paddingBottom: 40,
             }}
           >
             {/* Thẻ Chi Tiết */}
@@ -414,7 +413,7 @@ export default function IncidentDetailScreen() {
               <Text className="mb-6 text-base leading-7 text-slate-700">
                 {incidentData.description}
               </Text>
-              <View className="space-y-4">
+              <View className="gap-4">
                 <InfoRow
                   icon={<Calendar size={20} color="#0A3D62" />}
                   label="Ngày xảy ra"
@@ -596,7 +595,7 @@ const InfoCard = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <View className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
+  <View className="mb-6 rounded-3xl bg-white p-5 shadow-md">
     <View className="mb-4 flex-row items-center">
       <View className="rounded-2xl bg-blue-100 p-3"></View>
       <Text className="ml-4 text-lg font-bold text-[#0A3D62]">{title}</Text>
@@ -618,7 +617,7 @@ const InfoRow = ({
   <View className="flex-row items-start">
     <View className="mt-1 rounded-lg bg-slate-100 p-2"></View>
     <View className="ml-3 flex-1">
-      <Text className="text-sm font-medium text-slate-500">{label}</Text>
+      <Text className="text-base font-medium text-slate-500">{label}</Text>
       <Text className="text-base font-semibold text-slate-900">{value}</Text>
     </View>
   </View>
@@ -636,14 +635,14 @@ function ModernKoiIncidentCard({ koiIncident }: { koiIncident: KoiIncident }) {
         <View className="flex-row items-center justify-between">
           <View className="flex-1 flex-row items-center">
             <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-              <Fish size={20} color="#2563eb" />
+              <FishSvg size={20} color="#2563eb" />
             </View>
             <View className="flex-1">
               <Text className="text-base font-bold text-slate-900">
                 {koi?.rfid || `Cá #${koiIncident.koiFishId}`}
               </Text>
               {koi?.variety && (
-                <Text className="text-sm text-slate-500">
+                <Text className="text-base text-slate-500">
                   {koi.variety.varietyName} •{' '}
                   {koi.gender === 'Male' ? 'Đực' : 'Cái'}
                 </Text>
@@ -656,7 +655,7 @@ function ModernKoiIncidentCard({ koiIncident }: { koiIncident: KoiIncident }) {
             style={{ backgroundColor: statusInfo.bgColor }}
           >
             <Text
-              className="text-xs font-bold"
+              className="text-sm font-bold"
               style={{ color: statusInfo.color }}
             >
               {statusInfo.label}
@@ -667,10 +666,10 @@ function ModernKoiIncidentCard({ koiIncident }: { koiIncident: KoiIncident }) {
         {/* Triệu chứng */}
         {koiIncident.specificSymptoms && (
           <View className="mt-3 rounded-lg bg-slate-50 p-3">
-            <Text className="mb-1 text-xs font-medium text-slate-500">
+            <Text className="mb-1 text-base font-medium text-slate-500">
               Triệu chứng
             </Text>
-            <Text className="text-sm text-slate-800">
+            <Text className="text-base text-slate-800">
               {koiIncident.specificSymptoms}
             </Text>
           </View>
@@ -678,17 +677,17 @@ function ModernKoiIncidentCard({ koiIncident }: { koiIncident: KoiIncident }) {
 
         {/* Tags (Điều trị, Cách ly) */}
         {(koiIncident.requiresTreatment || koiIncident.isIsolated) && (
-          <View className="mt-3 flex-row items-center space-x-2">
+          <View className="mt-3 flex-row items-center gap-2">
             {koiIncident.requiresTreatment && (
               <View className="rounded-full bg-red-100 px-2 py-1">
-                <Text className="text-xs font-medium text-red-700">
+                <Text className="text-sm font-medium text-red-700">
                   Cần điều trị
                 </Text>
               </View>
             )}
             {koiIncident.isIsolated && (
               <View className="rounded-full bg-yellow-100 px-2 py-1">
-                <Text className="text-xs font-medium text-yellow-800">
+                <Text className="text-sm font-medium text-yellow-800">
                   Đã cách ly
                 </Text>
               </View>
@@ -714,23 +713,23 @@ function ModernPondIncidentCard({
         {/* Header Ao */}
         <View className="mb-3 flex-row items-center">
           <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-            <Waves size={20} color="#059669" />
+            <PondSvg size={20} color="#059669" />
           </View>
           <View className="flex-1">
             <Text className="text-base font-bold text-slate-900">
               {pond?.pondName || `Ao #${pondIncident.pondId}`}
             </Text>
             {pond && (
-              <View className="mt-1 flex-row items-center space-x-3">
+              <View className="mt-1 flex-row items-center gap-3">
                 <View className="flex-row items-center">
-                  <Droplets size={12} color="#64748b" />
-                  <Text className="ml-1 text-xs text-slate-500">
+                  <Droplets size={18} color="#64748b" />
+                  <Text className="ml-1 text-base text-slate-500">
                     {pond.capacityLiters}L
                   </Text>
                 </View>
                 <View className="flex-row items-center">
-                  <TrendingUp size={12} color="#64748b" />
-                  <Text className="ml-1 text-xs text-slate-500">
+                  <TrendingUp size={18} color="#64748b" />
+                  <Text className="ml-1 text-base text-slate-500">
                     {pond.depthMeters}m sâu
                   </Text>
                 </View>
@@ -742,27 +741,27 @@ function ModernPondIncidentCard({
         {/* Thay đổi môi trường */}
         {pondIncident.environmentalChanges && (
           <View className="mb-3 rounded-lg bg-slate-50 p-3">
-            <Text className="mb-1 text-xs font-medium text-slate-500">
+            <Text className="mb-1 text-base font-medium text-slate-500">
               Thay đổi môi trường
             </Text>
-            <Text className="text-sm text-slate-800">
+            <Text className="text-base text-slate-800">
               {pondIncident.environmentalChanges}
             </Text>
           </View>
         )}
 
         {/* Tags (Thay nước, Cá chết) */}
-        <View className="flex-row items-center space-x-2">
+        <View className="flex-row items-center gap-2">
           {pondIncident.requiresWaterChange && (
             <View className="rounded-full bg-blue-100 px-2 py-1">
-              <Text className="text-xs font-medium text-blue-700">
+              <Text className="text-sm font-medium text-blue-700">
                 Cần thay nước
               </Text>
             </View>
           )}
           {pondIncident.fishDiedCount > 0 && (
             <View className="rounded-full bg-red-100 px-2 py-1">
-              <Text className="text-xs font-medium text-red-700">
+              <Text className="text-sm font-medium text-red-700">
                 {pondIncident.fishDiedCount} cá chết
               </Text>
             </View>

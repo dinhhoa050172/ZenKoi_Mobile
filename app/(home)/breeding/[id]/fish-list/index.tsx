@@ -165,7 +165,7 @@ export default function FishListScreen() {
           >
             <View className="flex-row items-center">
               <Plus size={18} color="#0A3D62" />
-              <Text className="ml-1 text-sm font-semibold text-primary">
+              <Text className="ml-1 text-base font-semibold text-primary">
                 Thêm cá
               </Text>
             </View>
@@ -355,13 +355,13 @@ export default function FishListScreen() {
                         <View className="flex-row flex-wrap gap-2">
                           <View className="flex-row items-center rounded-full bg-purple-50 px-2 py-1">
                             <Ruler size={12} color="#a855f7" />
-                            <Text className="ml-1 text-xs font-medium text-purple-700">
+                            <Text className="ml-1 text-sm font-medium text-purple-700">
                               {fish.size}
                             </Text>
                           </View>
                           <View className="flex-row items-center rounded-full bg-orange-50 px-2 py-1">
                             <Calendar size={12} color="#f97316" />
-                            <Text className="ml-1 text-xs font-medium text-orange-700">
+                            <Text className="ml-1 text-sm font-medium text-orange-700">
                               {formatKoiAge(fish.birthDate)}
                             </Text>
                           </View>
