@@ -2,13 +2,13 @@ import React from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 type Props = {
-  icon: React.ReactElement;
+  icon?: React.ReactElement;
   label: string;
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
   keyboardType?: 'default' | 'numeric';
-  iconBg: string;
+  iconBg?: string;
   multiline?: boolean;
   editable?: boolean;
   helper?: string;
@@ -60,13 +60,15 @@ export default function InputField({
   };
 
   return (
-    <View className="flex-row items-center">
-      <View
-        className={`h-9 w-9 rounded-full ${iconBg} mr-3 mt-5 items-center justify-center`}
-      >
-        {icon}
-      </View>
-      <View className="flex-1">
+    <View className={icon ? 'flex-row items-center' : 'w-full'}>
+      {icon && (
+        <View
+          className={`h-9 w-9 rounded-full ${iconBg} mr-3 mt-5 items-center justify-center`}
+        >
+          {icon}
+        </View>
+      )}
+      <View className={icon ? 'flex-1' : 'w-full'}>
         <Text className="mb-1 text-base font-medium text-gray-600">
           {label}
         </Text>
