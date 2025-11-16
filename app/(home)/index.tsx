@@ -277,7 +277,7 @@ const FarmStaffDashboard: React.FC = () => {
             >
               <Bell size={24} color="#0A3D62" />
               {totalAlerts > 0 && (
-                <View className="absolute -right-1 -top-1 min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5">
+                <View className="absolute -right-1 -top-1 min-w-[25px] items-center justify-center rounded-full bg-red-500 ">
                   <Text className="text-xs font-bold text-white">
                     {notificationCount}
                   </Text>
