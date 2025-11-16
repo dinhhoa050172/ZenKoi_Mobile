@@ -129,46 +129,6 @@ export function useUpdateIncident() {
 }
 
 /*
- * Hook to resolve an Incident
- */
-export function useResolveIncident() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      id,
-      resolution,
-    }: {
-      id: number;
-      resolution: IncidentResolutionRequest;
-    }) => {
-      const resp = await incidentServices.resolveIncident(id, resolution);
-      if (!resp.isSuccess)
-        throw new Error(resp.message || 'Không thể giải quyết sự cố');
-      return resp.result;
-    },
-    onSuccess: (_, vars) => {
-      Toast.show({
-        type: 'success',
-        text1: 'Giải quyết sự cố thành công',
-        position: 'top',
-      });
-      qc.invalidateQueries({ queryKey: incidentKeys.details() });
-      if (vars?.id)
-        qc.invalidateQueries({ queryKey: incidentKeys.detail(vars.id) });
-      qc.invalidateQueries({ queryKey: incidentKeys.lists() });
-    },
-    onError: (err: any) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Giải quyết thất bại',
-        text2: err?.message ?? String(err),
-        position: 'top',
-      });
-    },
-  });
-}
-
-/*
  * Hook to delete an Incident
  */
 export function useDeleteIncident() {
@@ -220,14 +180,14 @@ export function useCreateIncidentWithKoi() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      koiId,
+      Id,
       koiIncident,
     }: {
-      koiId: number;
+      Id: number;
       koiIncident: Omit<KoiIncident, 'id'>;
     }) => {
       const resp = await incidentServices.createIncidentWithKoi(
-        koiId,
+        Id,
         koiIncident
       );
       if (!resp.isSuccess)
@@ -261,14 +221,14 @@ export function useCreateIncidentWithPond() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      pondId,
+      Id,
       pondIncident,
     }: {
-      pondId: number;
+      Id: number;
       pondIncident: Omit<PondIncident, 'id'>;
     }) => {
       const resp = await incidentServices.createIncidentWithPond(
-        pondId,
+        Id,
         pondIncident
       );
       if (!resp.isSuccess)
@@ -301,8 +261,17 @@ export function useCreateIncidentWithPond() {
 export function useUpdateIncidentStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const resp = await incidentServices.updateIncidentStatus(id, status);
+    mutationFn: async ({
+      id,
+      IncidentResolutionRequest,
+    }: {
+      id: number;
+      IncidentResolutionRequest: IncidentResolutionRequest;
+    }) => {
+      const resp = await incidentServices.updateIncidentStatus(
+        id,
+        IncidentResolutionRequest
+      );
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể cập nhật trạng thái sự cố');
       return resp.result;

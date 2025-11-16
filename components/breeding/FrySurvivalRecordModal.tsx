@@ -4,7 +4,9 @@ import {
   useCreateFrySurvivalRecord,
   useGetFrySurvivalRecords,
 } from '@/hooks/useFrySurvivalRecord';
-import { Pond } from '@/lib/api/services/fetchPond';
+import { useGetPonds } from '@/hooks/usePond';
+import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -35,16 +37,14 @@ interface FrySurvivalRecordModalProps {
   visible: boolean;
   onClose: () => void;
   breedingId: number | null;
-  emptyPonds: Pond[];
-  onRefetchPonds: () => void;
+  pondTypeEnum?: TypeOfPond;
 }
 
 export function FrySurvivalRecordModal({
   visible,
   onClose,
   breedingId,
-  emptyPonds,
-  onRefetchPonds,
+  pondTypeEnum,
 }: FrySurvivalRecordModalProps) {
   const queryClient = useQueryClient();
 
@@ -188,6 +188,13 @@ export function FrySurvivalRecordModal({
       mounted = false;
     };
   }, [visible, breedingId, fryFishQuery, frySurvivalRecordsQuery]);
+
+  // internal ponds: modal fetches empty ponds itself
+  const internalPondsQuery = useGetPonds(
+    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY, pondTypeEnum },
+    !!visible
+  );
+  const internalPondsList = internalPondsQuery.data?.data ?? [];
 
   return (
     <>
@@ -374,7 +381,7 @@ export function FrySurvivalRecordModal({
 
               {/* Transfer Stage */}
               <View className="mb-4">
-                <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
                   Chuyển giai đoạn
                 </Text>
                 <View className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -383,7 +390,7 @@ export function FrySurvivalRecordModal({
                       <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-purple-100">
                         <ArrowRight size={18} color="#a855f7" />
                       </View>
-                      <Text className="flex-1 text-sm font-medium text-gray-700">
+                      <Text className="flex-1 text-base font-medium text-gray-700">
                         Chuyển sang tuyển chọn
                       </Text>
                     </View>
@@ -404,7 +411,7 @@ export function FrySurvivalRecordModal({
                         <ContextMenuField
                           label="Hồ tuyển chọn *"
                           value={fryPondLabel}
-                          options={(emptyPonds ?? []).map((p) => ({
+                          options={internalPondsList.map((p) => ({
                             label: `${p.id}: ${p.pondName ?? p.id}`,
                             value: `${p.id}: ${p.pondName ?? p.id}`,
                             meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
@@ -416,7 +423,7 @@ export function FrySurvivalRecordModal({
                             if (fryErrors.pond)
                               setFryErrors((p) => ({ ...p, pond: undefined }));
                           }}
-                          onPress={onRefetchPonds}
+                          onPress={internalPondsQuery.refetch}
                           placeholder="Chọn hồ"
                         />
                         {fryErrors.pond ? (

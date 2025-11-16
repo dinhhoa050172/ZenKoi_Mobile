@@ -18,7 +18,6 @@ import { useUpdateClassificationStage } from '@/hooks/useClassificationStage';
 import { useUpdateFryFish } from '@/hooks/useFryFish';
 import { useDeleteFrySurvivalRecord } from '@/hooks/useFrySurvivalRecord';
 import { useDeleteIncubationDailyRecord } from '@/hooks/useIncubationDailyRecord';
-import { useGetPonds } from '@/hooks/usePond';
 import { useGetPondPacketFishes } from '@/hooks/usePondPacketFish';
 import {
   BreedingStatus,
@@ -28,7 +27,7 @@ import {
 } from '@/lib/api/services/fetchBreedingProcess';
 import { EggBatchStatus } from '@/lib/api/services/fetchEggBatch';
 import { FryFishStatus } from '@/lib/api/services/fetchFryFish';
-import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { formatDate } from '@/lib/utils/formatDate';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -122,11 +121,6 @@ export default function BreedingDetailScreen() {
   const markAsSpawnedMutation = useMarkBreedingProcessAsSpawned();
   const updateFryFishMutation = useUpdateFryFish();
   const updateClassificationStageMutation = useUpdateClassificationStage();
-
-  const { data: emptyPondPage, refetch: refetchEmptyPonds } = useGetPonds(
-    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY },
-    true
-  );
 
   const pondPacketQuery = useGetPondPacketFishes(
     { breedingProcessId: breedingId, pageIndex: 1, pageSize: 1 },
@@ -306,25 +300,11 @@ export default function BreedingDetailScreen() {
   const breedingDetail = breedingDetailQuery.data;
   const incubationRecords = breedingDetail.batch?.incubationDailyRecords ?? [];
 
-  const pondOptions = (() => {
-    const emptyPonds = emptyPondPage?.data ?? [];
-    const currentPondId = breedingDetail.pondId;
-    const currentPondExists = emptyPonds.some((p) => p.id === currentPondId);
-
-    if (!currentPondExists) {
-      return [
-        { id: currentPondId, pondName: breedingDetail.pondName } as any,
-        ...emptyPonds,
-      ];
-    }
-    return emptyPonds;
-  })();
-
   const statusColor = getStatusColor(breedingDetail.status);
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header với gradient */}
+      {/* Header */}
       <View className="rounded-t-2xl bg-primary pb-6">
         <View className="px-4 pt-3">
           <View className="mb-4 flex-row items-center">
@@ -334,6 +314,7 @@ export default function BreedingDetailScreen() {
             >
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
+
             <View className="flex-1">
               <Text className="text-base font-medium uppercase tracking-wide text-white/80">
                 Chi tiết
@@ -344,6 +325,22 @@ export default function BreedingDetailScreen() {
                   : `Quy trình #${breedingDetail.id}`}
               </Text>
             </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                const redirect = `/breeding/${breedingId}`;
+                router.push(
+                  `/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent(
+                    redirect
+                  )}`
+                );
+              }}
+              className="ml-3 rounded-2xl bg-white/10 px-3 py-2"
+            >
+              <Text className="text-sm font-semibold text-white">
+                Định danh cá
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Status Badge */}
@@ -1347,7 +1344,6 @@ export default function BreedingDetailScreen() {
         visible={showCreatePacketModal}
         onClose={() => setShowCreatePacketModal(false)}
         breedingId={breedingId}
-        ponds={pondOptions}
         currentPondId={breedingDetail.pondId}
         packetFishId={editPacketFishId ?? undefined}
         onSuccess={() => breedingDetailQuery.refetch()}
@@ -1360,8 +1356,7 @@ export default function BreedingDetailScreen() {
           breedingDetailQuery.refetch();
         }}
         breedingId={breedingId}
-        emptyPonds={emptyPondPage?.data ?? []}
-        onRefetchPonds={refetchEmptyPonds}
+        pondTypeEnum={TypeOfPond.FRY_FISH}
       />
 
       <CountEggModal
@@ -1371,34 +1366,7 @@ export default function BreedingDetailScreen() {
           breedingDetailQuery.refetch();
         }}
         breedingId={breedingId}
-        emptyPonds={emptyPondPage?.data ?? []}
-        onRefetchPonds={refetchEmptyPonds}
-        allPonds={
-          breedingDetail.status === BreedingStatus.EGG_BATCH
-            ? (() => {
-                const emptyPonds = emptyPondPage?.data ?? [];
-                if (breedingDetail.batch) {
-                  const currentPondId = breedingDetail.pondId;
-                  const currentPondExists = emptyPonds.some(
-                    (p) => p.id === currentPondId
-                  );
-
-                  if (!currentPondExists) {
-                    return [
-                      {
-                        id: currentPondId,
-                        pondName: breedingDetail.pondName,
-                        status: PondStatus.EMPTY,
-                      } as any,
-                      ...emptyPonds,
-                    ];
-                  }
-                }
-                return emptyPonds;
-              })()
-            : undefined
-        }
-        onRefetchAllPonds={refetchEmptyPonds}
+        pondTypeEnum={TypeOfPond.EGG_BATCH}
         eggBatchData={
           breedingDetail.status === BreedingStatus.EGG_BATCH &&
           breedingDetail.batch
@@ -1430,26 +1398,7 @@ export default function BreedingDetailScreen() {
         }}
         currentPondId={breedingDetail.pondId}
         currentPondName={breedingDetail.pondName}
-        allPonds={(() => {
-          const emptyPonds = emptyPondPage?.data ?? [];
-          const currentPondId = breedingDetail.pondId;
-          const currentPondExists = emptyPonds.some(
-            (p) => p.id === currentPondId
-          );
-
-          if (!currentPondExists) {
-            return [
-              {
-                id: currentPondId,
-                pondName: breedingDetail.pondName,
-                status: PondStatus.EMPTY,
-              } as any,
-              ...emptyPonds,
-            ];
-          }
-          return emptyPonds;
-        })()}
-        onRefetchPonds={refetchEmptyPonds}
+        breedingStatus={breedingDetail.status}
         title="Chọn hồ nuôi cá bột"
         onSave={async (newPondId: number) => {
           const fryFishId = breedingDetail.fryFish?.id;
@@ -1474,8 +1423,7 @@ export default function BreedingDetailScreen() {
           breedingDetailQuery.refetch();
         }}
         breedingId={breedingId}
-        emptyPonds={emptyPondPage?.data ?? []}
-        onRefetchPonds={refetchEmptyPonds}
+        pondTypeEnum={TypeOfPond.CLASSIFICATION}
       />
 
       <EditFrySurvivalRecordModal
@@ -1517,26 +1465,7 @@ export default function BreedingDetailScreen() {
         }}
         currentPondId={breedingDetail.pondId}
         currentPondName={breedingDetail.pondName}
-        allPonds={(() => {
-          const emptyPonds = emptyPondPage?.data ?? [];
-          const currentPondId = breedingDetail.pondId;
-          const currentPondExists = emptyPonds.some(
-            (p) => p.id === currentPondId
-          );
-
-          if (!currentPondExists) {
-            return [
-              {
-                id: currentPondId,
-                pondName: breedingDetail.pondName,
-                status: PondStatus.EMPTY,
-              } as any,
-              ...emptyPonds,
-            ];
-          }
-          return emptyPonds;
-        })()}
-        onRefetchPonds={refetchEmptyPonds}
+        breedingStatus={breedingDetail.status}
         title="Chọn hồ tuyển chọn"
         onSave={async (newPondId: number) => {
           const classificationStageId = breedingDetail.classificationStage?.id;

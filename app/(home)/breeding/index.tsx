@@ -23,6 +23,7 @@ import {
   BreedingStatus,
 } from '@/lib/api/services/fetchBreedingProcess';
 import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   Check,
@@ -134,12 +135,10 @@ export default function BreedingScreen() {
     refetch: refetchPonds,
   } = useGetPonds({ pageIndex: 1, pageSize: 200 }, true);
 
-  const { data: emptyPondPage, refetch: refetchEmptyPonds } = useGetPonds(
-    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY },
-    true
+  const pondOptions = (pondPage?.data ?? []).filter(
+    (p) =>
+      p.pondStatus === PondStatus.EMPTY || p.pondStatus === PondStatus.ACTIVE
   );
-
-  const pondOptions = pondPage?.data ?? [];
 
   useFocusEffect(
     useCallback(() => {
@@ -367,7 +366,7 @@ export default function BreedingScreen() {
         <FlatList
           data={breedingListToRender}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + 10,
+            paddingBottom: insets.bottom + 30,
             paddingHorizontal: 16,
             paddingTop: 16,
           }}
@@ -1003,8 +1002,7 @@ export default function BreedingScreen() {
           setCurrentBreedingId(null);
         }}
         breedingId={currentBreedingId}
-        emptyPonds={emptyPondPage?.data ?? []}
-        onRefetchPonds={refetchEmptyPonds}
+        pondTypeEnum={TypeOfPond.EGG_BATCH}
       />
 
       {/* Update Egg Batch Modals */}
@@ -1015,8 +1013,7 @@ export default function BreedingScreen() {
           setCurrentBreedingId(null);
         }}
         breedingId={currentBreedingId}
-        emptyPonds={emptyPondPage?.data ?? []}
-        onRefetchPonds={refetchEmptyPonds}
+        pondTypeEnum={TypeOfPond.FRY_FISH}
       />
 
       {/* Fry Survival Record Modals */}
@@ -1027,8 +1024,7 @@ export default function BreedingScreen() {
           setCurrentBreedingId(null);
         }}
         breedingId={currentBreedingId}
-        emptyPonds={emptyPondPage?.data ?? []}
-        onRefetchPonds={refetchEmptyPonds}
+        pondTypeEnum={TypeOfPond.CLASSIFICATION}
       />
 
       {/* Selection Modals */}
@@ -1048,26 +1044,10 @@ export default function BreedingScreen() {
           setShowCreatePacketModal(false);
         }}
         breedingId={currentBreedingId ?? 0}
-        ponds={(() => {
-          const emptyPonds = emptyPondPage?.data ?? [];
-          const current = breedingListToRender.find(
-            (x) => x.id === currentBreedingId
-          );
-          const currentPondId = current?.pondId;
-          const currentPondName = current?.pondName;
-          if (!currentPondId) return emptyPonds;
-          const exists = emptyPonds.some((p) => p.id === currentPondId);
-          if (!exists) {
-            return [
-              { id: currentPondId, pondName: currentPondName ?? '' },
-              ...emptyPonds,
-            ];
-          }
-          return emptyPonds;
-        })()}
-        currentPondId={(() =>
+        currentPondId={
           breedingListToRender.find((x) => x.id === currentBreedingId)
-            ?.pondId ?? undefined)()}
+            ?.pondId ?? undefined
+        }
         packetFishId={editPacketFishId ?? undefined}
         onSuccess={() => refetchBreeding()}
       />

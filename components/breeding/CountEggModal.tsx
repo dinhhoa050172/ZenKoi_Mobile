@@ -1,5 +1,7 @@
 import { useCreateEggBatch, useUpdateEggBatch } from '@/hooks/useEggBatch';
-import { Pond } from '@/lib/api/services/fetchPond';
+import { useGetPonds } from '@/hooks/usePond';
+import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { useQueryClient } from '@tanstack/react-query';
 import { Calculator, Droplet, Egg, Save, Scale, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -26,32 +28,29 @@ interface CountEggModalProps {
   visible: boolean;
   onClose: () => void;
   breedingId: number | null;
-  emptyPonds: Pond[];
-  onRefetchPonds: () => void;
+  pondTypeEnum?: TypeOfPond;
   eggBatchData?: EggBatchData | null;
-  allPonds?: Pond[];
-  onRefetchAllPonds?: () => void;
 }
 
 export function CountEggModal({
   visible,
   onClose,
   breedingId,
-  emptyPonds,
-  onRefetchPonds,
+  pondTypeEnum,
   eggBatchData,
-  allPonds,
-  onRefetchAllPonds,
 }: CountEggModalProps) {
   const queryClient = useQueryClient();
   const createEggBatch = useCreateEggBatch();
   const updateEggBatch = useUpdateEggBatch();
 
   const isEditMode = !!eggBatchData;
-  const availablePonds = isEditMode ? (allPonds ?? []) : emptyPonds;
-  const refetchPonds = isEditMode
-    ? (onRefetchAllPonds ?? onRefetchPonds)
-    : onRefetchPonds;
+
+  const internalPondsQuery = useGetPonds(
+    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY, pondTypeEnum },
+    !!visible
+  );
+  const internalPondsList = internalPondsQuery.data?.data ?? [];
+  const refetchPonds = internalPondsQuery.refetch;
 
   const [countMethod, setCountMethod] = useState('Đếm theo mẫu');
   const [currentPondId, setCurrentPondId] = useState<number | null>(null);
@@ -469,7 +468,7 @@ export function CountEggModal({
                       <ContextMenuField
                         label="Hồ *"
                         value={currentPondLabel}
-                        options={availablePonds.map((p) => ({
+                        options={internalPondsList.map((p) => ({
                           label: `${p.id}: ${p.pondName ?? p.id}`,
                           value: `${p.id}: ${p.pondName ?? p.id}`,
                           meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,

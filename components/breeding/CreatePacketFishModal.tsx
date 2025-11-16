@@ -1,4 +1,5 @@
 import ContextMenuField from '@/components/ContextMenuField';
+import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
 import { CustomAlert } from '@/components/CustomAlert';
 import { useGetBreedingProcessDetailById } from '@/hooks/useBreedingProcess';
 import {
@@ -7,13 +8,17 @@ import {
   useGetPacketFishById,
   useUpdatePacketFish,
 } from '@/hooks/usePacketFish';
+import { useGetPonds } from '@/hooks/usePond';
 import { useCreatePondPacketFish } from '@/hooks/usePondPacketFish';
 import { useUploadImage } from '@/hooks/useUpload';
-import { FishSize } from '@/lib/api/services/fetchKoiFish';
+// FishSize is no longer used; packet requests use minSize/maxSize
+import { useGetVarieties } from '@/hooks/useVariety';
 import {
   PacketFish,
   PacketFishRequest,
 } from '@/lib/api/services/fetchPacketFish';
+import { Pond, PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Camera,
@@ -27,7 +32,7 @@ import {
   Save,
   X,
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -47,7 +52,6 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   breedingId: number;
-  ponds?: { id: number; pondName: string }[];
   currentPondId?: number;
   onSuccess?: () => void;
   packetFishId?: number;
@@ -57,7 +61,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
   visible,
   onClose,
   breedingId,
-  ponds,
   currentPondId,
   onSuccess,
   packetFishId,
@@ -66,7 +69,9 @@ export const CreatePacketFishModal: React.FC<Props> = ({
   const [description, setDescription] = useState('');
   const [fishPerPacket, setFishPerPacket] = useState<string>('10');
   const [pricePerPacket, setPricePerPacket] = useState<string>('0');
-  const [size, setSize] = useState<FishSize>(FishSize.FROM21TO25CM);
+  const [minSize, setMinSize] = useState<string>('21');
+  const [maxSize, setMaxSize] = useState<string>('25');
+  const [selectedVarietyIds, setSelectedVarietyIds] = useState<number[]>([]);
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
 
   const createPacketMutation = useCreatePacketFish();
@@ -84,7 +89,31 @@ export const CreatePacketFishModal: React.FC<Props> = ({
   const [images, setImages] = useState<string[]>([]);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const defaultPondId = currentPondId ?? ponds?.[0]?.id ?? null;
+  const pondsQuery = useGetPonds(
+    { pageIndex: 1, pageSize: 200, pondTypeEnum: TypeOfPond.BROOD_STOCK },
+    !!visible
+  );
+
+  const varietiesQuery = useGetVarieties(
+    { pageIndex: 1, pageSize: 200 },
+    !!visible
+  );
+  const varietyOptions = useMemo(() => {
+    const list = varietiesQuery.data?.data ?? [];
+    return list.map((v: any) => ({
+      label: v.varietyName ?? v.name ?? `Giống ${v.id}`,
+      value: String(v.id),
+    }));
+  }, [varietiesQuery.data]);
+
+  const allPonds = useMemo(() => {
+    const list: Pond[] = pondsQuery.data?.data ?? [];
+    return list.filter(
+      (p) =>
+        p.pondStatus === PondStatus.EMPTY || p.pondStatus === PondStatus.ACTIVE
+    );
+  }, [pondsQuery.data]);
+  const defaultPondId = currentPondId ?? allPonds?.[0]?.id ?? null;
   const [selectedPondId, setSelectedPondId] = useState<number | null>(
     defaultPondId
   );
@@ -106,9 +135,9 @@ export const CreatePacketFishModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (visible) {
-      setSelectedPondId(currentPondId ?? ponds?.[0]?.id ?? null);
+      setSelectedPondId(currentPondId ?? allPonds?.[0]?.id ?? null);
     }
-  }, [visible, ponds, currentPondId]);
+  }, [visible, allPonds, currentPondId]);
 
   useEffect(() => {
     if (packetQuery.data) {
@@ -117,7 +146,19 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       setDescription(p.description ?? '');
       setFishPerPacket(String(p.fishPerPacket ?? 1));
       setPricePerPacket(String(p.pricePerPacket ?? 0));
-      setSize((p.size as FishSize) ?? FishSize.FROM21TO25CM);
+      if (p.size) {
+        const m = String(p.size).match(/(\d+)\s*-\s*(\d+)/);
+        if (m) {
+          setMinSize(m[1]);
+          setMaxSize(m[2]);
+        }
+      }
+      if (p.varietyPacketFishes && p.varietyPacketFishes.length > 0) {
+        const ids = p.varietyPacketFishes
+          .map((vp: any) => Number(vp.varietyId ?? vp.id ?? vp.varietyId))
+          .filter((n: number) => !Number.isNaN(n));
+        setSelectedVarietyIds(ids);
+      }
       setIsAvailable(!!p.isAvailable);
       setImages(p.images ?? []);
     }
@@ -247,7 +288,8 @@ export const CreatePacketFishModal: React.FC<Props> = ({
     setDescription('');
     setFishPerPacket('1');
     setPricePerPacket('0');
-    setSize(FishSize.FROM21TO25CM);
+    setMinSize('21');
+    setMaxSize('25');
     setIsAvailable(true);
     setImages([]);
   };
@@ -270,10 +312,15 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       const packetReq: PacketFishRequest = {
         name: name.trim(),
         description: description.trim(),
+        minSize: Number(minSize) || 0,
+        maxSize: Number(maxSize) || 0,
         fishPerPacket: fishCount,
         pricePerPacket: Number(pricePerPacket) || 0,
-        size: size as FishSize,
         birthDate,
+        varietyIds:
+          selectedVarietyIds && selectedVarietyIds.length
+            ? selectedVarietyIds
+            : [],
         images: images,
         videos: [],
         isAvailable,
@@ -329,19 +376,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
     }
   };
 
-  const getSizeLabel = (s: FishSize) => {
-    const labels: Record<FishSize, string> = {
-      [FishSize.UNDER10CM]: '< 10 cm',
-      [FishSize.FROM10TO20CM]: '10-20 cm',
-      [FishSize.FROM21TO25CM]: '21-25 cm',
-      [FishSize.FROM26TO30CM]: '26-30 cm',
-      [FishSize.FROM31TO40CM]: '31-40 cm',
-      [FishSize.FROM41TO45CM]: '41-45 cm',
-      [FishSize.FROM46TO50CM]: '46-50 cm',
-      [FishSize.OVER50CM]: '> 50 cm',
-    };
-    return labels[s] || s;
-  };
+  // size label mapping removed
 
   return (
     <Modal
@@ -398,11 +433,12 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                     label="Chọn hồ *"
                     value={selectedPondId ? String(selectedPondId) : undefined}
                     placeholder="Chọn hồ"
-                    options={(ponds ?? []).map((p) => ({
+                    options={(allPonds ?? []).map((p: Pond) => ({
                       label: p.pondName,
                       value: String(p.id),
                     }))}
                     onSelect={(v) => setSelectedPondId(Number(v))}
+                    onPress={() => pondsQuery.refetch()}
                   />
                 </View>
               </View>
@@ -514,43 +550,80 @@ export const CreatePacketFishModal: React.FC<Props> = ({
             </Text>
 
             <View className="rounded-2xl border border-gray-200 bg-white p-4">
-              {/* Size & Price Row */}
+              {/* Variety/Price */}
+              <View className="mb-3">
+                <View className="mt-3 flex-row">
+                  <View className="mr-2 flex-1">
+                    <View className="mb-2 flex-row items-center">
+                      <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-cyan-100">
+                        <Ruler size={22} color="#06b6d4" />
+                      </View>
+                      <Text className="text-base font-medium text-gray-600">
+                        Giống
+                      </Text>
+                    </View>
+
+                    <ContextMenuMultiSelect
+                      label=""
+                      values={selectedVarietyIds.map(String)}
+                      options={
+                        varietyOptions.length
+                          ? varietyOptions
+                          : [{ label: 'Đang tải...', value: '' }]
+                      }
+                      onChange={(vals) =>
+                        setSelectedVarietyIds(vals.map(Number))
+                      }
+                      placeholder="Chọn giống"
+                      onPress={() => varietiesQuery.refetch()}
+                    />
+                  </View>
+
+                  <View className="flex-1">
+                    <View className="mb-2 flex-row items-center">
+                      <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                        <DollarSign size={22} color="#22c55e" />
+                      </View>
+                      <Text className="text-base font-medium text-gray-600">
+                        Giá (VNĐ)
+                      </Text>
+                    </View>
+                    <TextInput
+                      value={pricePerPacket}
+                      onChangeText={setPricePerPacket}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Min/Max size row */}
               <View className="mb-4 flex-row">
                 <View className="mr-2 flex-1">
-                  <View className="mb-2 flex-row items-center">
-                    <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-cyan-100">
-                      <Ruler size={22} color="#06b6d4" />
-                    </View>
-                    <Text className="text-base font-medium text-gray-600">
-                      Kích thước
-                    </Text>
-                  </View>
-                  <ContextMenuField
-                    label=""
-                    value={String(size)}
-                    options={Object.values(FishSize).map((v) => ({
-                      label: getSizeLabel(v),
-                      value: String(v),
-                    }))}
-                    onSelect={(v) => setSize(v as FishSize)}
-                    placeholder="Chọn kích thước"
+                  <Text className="mb-2 text-base font-medium text-gray-600">
+                    Size nhỏ nhất (cm)
+                  </Text>
+                  <TextInput
+                    value={minSize}
+                    onChangeText={setMinSize}
+                    keyboardType="numeric"
+                    placeholder="e.g. 21"
+                    placeholderTextColor="#9ca3af"
+                    className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                   />
                 </View>
-
-                <View className="ml-2 flex-1">
-                  <View className="mb-2 flex-row items-center">
-                    <View className="mr-2 h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                      <DollarSign size={22} color="#22c55e" />
-                    </View>
-                    <Text className="text-base font-medium text-gray-600">
-                      Giá (VNĐ)
-                    </Text>
-                  </View>
+                <View className="flex-1">
+                  <Text className="mb-2 text-base font-medium text-gray-600">
+                    Size lớn nhất (cm)
+                  </Text>
                   <TextInput
-                    value={pricePerPacket}
-                    onChangeText={setPricePerPacket}
+                    value={maxSize}
+                    onChangeText={setMaxSize}
                     keyboardType="numeric"
-                    placeholder="0"
+                    placeholder="e.g. 25"
                     placeholderTextColor="#9ca3af"
                     className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                   />
@@ -622,7 +695,11 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                 </>
               ) : (
                 <>
-                  <Save size={20} color="white" />
+                  {packetFishId ? (
+                    <Save size={20} color="white" />
+                  ) : (
+                    <Plus size={20} color="white" />
+                  )}
                   <Text className="ml-2 text-base font-semibold text-white">
                     {packetFishId ? 'Cập nhật' : 'Tạo lô'}
                   </Text>

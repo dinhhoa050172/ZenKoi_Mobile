@@ -1,8 +1,14 @@
 import { useGetFishOfPond } from '@/hooks/usePond';
 import { router } from 'expo-router';
-import { ChevronDown, ChevronUp, Eye, Minus, Plus } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Eye } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface FishManagementProps {
   pondId: number;
@@ -16,8 +22,8 @@ export default function FishManagement({
   onToggle,
 }: FishManagementProps) {
   const [showAllFish, setShowAllFish] = useState(false);
-  const [, setShowAddFishForm] = useState(false);
-  const [, setShowRemoveFishForm] = useState(false);
+  // const [, setShowAddFishForm] = useState(false);
+  // const [, setShowRemoveFishForm] = useState(false);
 
   // Fetch fish list for this pond
   const { data: fishData, isLoading } = useGetFishOfPond(pondId, !!pondId);
@@ -80,7 +86,7 @@ export default function FishManagement({
       {isExpanded && (
         <View className="px-4 pb-4">
           {/* Action Buttons */}
-          <View className="mb-4 flex-row">
+          {/* <View className="mb-4 flex-row">
             <TouchableOpacity
               className="mr-4 flex-1 flex-row items-center justify-center rounded-2xl bg-green-500 py-3"
               onPress={() => setShowAddFishForm(true)}
@@ -95,7 +101,7 @@ export default function FishManagement({
               <Minus size={16} color="white" />
               <Text className="ml-1 font-medium text-white">Loại bỏ cá</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* Fish List */}
           <View className="space-y-2">
@@ -122,22 +128,41 @@ export default function FishManagement({
                   fish.healthStatus as unknown as string
                 );
 
+                const firstImage =
+                  fish.images && fish.images.length > 0
+                    ? fish.images[0]
+                    : undefined;
+
+                const imageSource = firstImage
+                  ? { uri: firstImage }
+                  : require('@/assets/images/Logo_ZenKoi.png');
+
                 return (
                   <View
                     key={String(fish.id)}
                     className="mb-2 flex-row items-center justify-between rounded-2xl bg-gray-50 p-3"
                   >
+                    <View className="mr-3">
+                      <Image
+                        source={imageSource}
+                        className="h-12 w-12 rounded-full bg-gray-200"
+                        accessibilityLabel={`Ảnh cá ${title}`}
+                      />
+                    </View>
+
                     <View className="flex-1">
                       <Text className="font-medium text-gray-900">{title}</Text>
                       <Text className="text-sm text-gray-600">
                         {species} • {age}
                       </Text>
                     </View>
+
                     <View
                       className={`rounded-full px-2 py-1 ${health.wrapper} mr-2`}
                     >
                       <Text className="text-xs font-medium">{health.text}</Text>
                     </View>
+
                     <TouchableOpacity
                       onPress={() =>
                         router.push(`/koi/${fish.id}?redirect=water/${pondId}`)

@@ -86,7 +86,7 @@ export interface KoiFish {
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
-  patternType: string | null;
+  pattern: string | null;
   saleStatus: SaleStatus;
   images: string[];
   videos: string[];
@@ -132,7 +132,7 @@ export interface KoiFishRequest {
   rfid: string;
   size: number;
   type: KoiType;
-  patternType: string | null;
+  pattern: string | null;
   birthDate: string;
   gender: Gender;
   healthStatus: HealthStatus;
@@ -261,7 +261,7 @@ export const koiFishServices = {
     koiFishId: number
   ): Promise<KoiFishHealthResponse> => {
     const response = await apiService.get<KoiFishHealthResponse>(
-      `/api/koiincident/koi/${koiFishId}/history`
+      `/api/incident/koi/${koiFishId}/history`
     );
     return response.data;
   },

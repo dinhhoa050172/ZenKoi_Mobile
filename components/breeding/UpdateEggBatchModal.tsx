@@ -1,3 +1,4 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import { useGetEggBatchByBreedingProcessId } from '@/hooks/useEggBatch';
 import { useCreateFryFish } from '@/hooks/useFryFish';
 import {
@@ -6,7 +7,9 @@ import {
   useGetIncubationDailyRecords,
   useGetIncubationDailyRecordSummaryByEggBatchId,
 } from '@/hooks/useIncubationDailyRecord';
-import { Pond } from '@/lib/api/services/fetchPond';
+import { useGetPonds } from '@/hooks/usePond';
+import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -36,16 +39,14 @@ interface UpdateEggBatchModalProps {
   visible: boolean;
   onClose: () => void;
   breedingId: number | null;
-  emptyPonds: Pond[];
-  onRefetchPonds: () => void;
+  pondTypeEnum?: TypeOfPond;
 }
 
 export function UpdateEggBatchModal({
   visible,
   onClose,
   breedingId,
-  emptyPonds,
-  onRefetchPonds,
+  pondTypeEnum,
 }: UpdateEggBatchModalProps) {
   const queryClient = useQueryClient();
 
@@ -92,6 +93,20 @@ export function UpdateEggBatchModal({
     setTransferPondLabel('Chọn hồ');
   };
 
+  // internal ponds: modal fetches empty ponds itself
+  const internalPondsQuery = useGetPonds(
+    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY, pondTypeEnum },
+    !!visible
+  );
+  const internalPondsList = internalPondsQuery.data?.data ?? [];
+
+  const [errorAlert, setErrorAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+  }>({ visible: false, title: '', message: '', type: 'danger' });
+
   const handleClose = () => {
     clearInputs();
     onClose();
@@ -104,6 +119,7 @@ export function UpdateEggBatchModal({
           await eggBatchQuery.refetch();
           await existingIncubationRecordsQuery.refetch();
           await incubationSummaryQuery.refetch();
+          if (pondTypeEnum) await internalPondsQuery.refetch();
         }, 200);
       };
       fetchData();
@@ -209,9 +225,11 @@ export function UpdateEggBatchModal({
       queryClient.invalidateQueries({ queryKey: ['incubationSummary'] });
       handleClose();
     } catch (err: any) {
-      Toast.show({
-        type: 'error',
-        text1: err?.message || 'Không thể cập nhật',
+      setErrorAlert({
+        visible: true,
+        title: 'Lỗi',
+        message: err?.message || 'Không thể cập nhật',
+        type: 'danger',
       });
     }
   };
@@ -510,7 +528,7 @@ export function UpdateEggBatchModal({
                       <ContextMenuField
                         label="Hồ nuôi cá bột *"
                         value={transferPondLabel}
-                        options={(emptyPonds ?? []).map((p) => ({
+                        options={internalPondsList.map((p) => ({
                           label: `${p.id}: ${p.pondName ?? p.id}`,
                           value: `${p.id}: ${p.pondName ?? p.id}`,
                           meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
@@ -522,7 +540,7 @@ export function UpdateEggBatchModal({
                           if (dailyErrors.pond)
                             setDailyErrors((p) => ({ ...p, pond: undefined }));
                         }}
-                        onPress={onRefetchPonds}
+                        onPress={internalPondsQuery.refetch}
                         placeholder="Chọn hồ"
                       />
                       {dailyErrors.pond ? (
@@ -584,6 +602,16 @@ export function UpdateEggBatchModal({
           </View>
         </View>
       </View>
+      <CustomAlert
+        visible={errorAlert.visible}
+        title={errorAlert.title}
+        message={errorAlert.message}
+        type={errorAlert.type}
+        cancelText="Đóng"
+        confirmText="OK"
+        onCancel={() => setErrorAlert((s) => ({ ...s, visible: false }))}
+        onConfirm={() => setErrorAlert((s) => ({ ...s, visible: false }))}
+      />
     </Modal>
   );
 }

@@ -1,17 +1,156 @@
-# Hướng dẫn Copilot cho Smart Koi Farm Management System
+# ZenKoi Mobile - Copilot Instructions
 
-## Vai trò: Expert Mobile App Engineer 📱
+## Project Overview 🐟
 
-Bạn là chuyên gia phát triển ứng dụng di động, có kinh nghiệm chuyên sâu về **React Native, Expo, TypeScript, NativeWind, và Expo Router**. Bạn sẽ chịu trách nhiệm phát triển và bảo trì các chức năng cho nhân viên trang trại cá Koi dựa trên cấu trúc thư mục được cung cấp.
+**SmartKoiBreeder** - Farm Staff Mobile Application for Koi farm breeding and management system
 
-## Tổng quan Dự án
+- **Framework:** React Native with Expo Router (file-based routing)
+- **Language:** TypeScript (strict mode)
+- **Styling:** NativeWind (Tailwind CSS for React Native)
+- **State:** Zustand + TanStack Query for server state
+- **Authentication:** JWT with refresh tokens, stored in Expo SecureStore
 
-- **Tên dự án:** Smart Koi Farm Breeding and Sales Management System
-- **Module:** Farm Staff Mobile Application
-- **Kiến trúc:** Ứng dụng di động (Expo) với **App Router** + Backend API riêng biệt.
-- **Tech Stack:** React Native, Expo, TypeScript, NativeWind, `@tanstack/react-query`, `zustand`, `axios`.
-- **Mục tiêu:** Xây dựng một ứng dụng di động trực quan và hiệu quả để hỗ trợ nhân viên trang trại thực hiện các công việc hàng ngày, từ quản lý cá Koi đến theo dõi môi trường và báo cáo công việc.
-- **Người dùng chính:** Nhân viên trang trại.
+## Architecture Patterns
+
+### File-Based Routing (Expo Router)
+
+```
+app/
+├── _layout.tsx              # Root provider setup (auth, query client, keyboard)
+├── (auth)/                  # Auth group - login/register flows
+│   ├── _layout.tsx         # Auth-specific layout
+│   ├── login/              # Login screens with nested routes
+│   └── register/           # Register screens
+└── (home)/                 # Main app group - bottom tabs navigation
+    ├── _layout.tsx         # Tab navigator with custom curved design
+    ├── index.tsx           # Home dashboard
+    ├── profile.tsx         # Profile screen
+    ├── koi/                # Koi management module
+    │   ├── index.tsx       # List view (visible tab)
+    │   ├── [id].tsx        # Detail view (hidden from tabs)
+    │   └── add/            # Create flow
+    ├── breeding/           # Breeding process management
+    ├── incidents/          # Incident reporting system
+    ├── water/              # Water parameter monitoring
+    └── tasks/              # Task management
+```
+
+**Route Visibility Pattern:** Use `href: null` in `_layout.tsx` to hide routes from tab navigation while keeping them accessible via navigation.
+
+### API Service Architecture
+
+**Core Pattern:** Service + Hook + Component
+
+```typescript
+// lib/api/services/fetchKoi.ts - Service layer
+export interface Koi { id: number; name: string; /* ... */ }
+export const koiServices = {
+  getKois: async (filters?: KoiSearchParams): Promise<KoiListResponse> => {...},
+  getKoiById: async (id: number): Promise<KoiResponse> => {...}
+}
+
+// hooks/useKoi.ts - Hook layer
+export const useGetKois = (filters?: KoiSearchParams) =>
+  useQuery({ queryKey: ['kois', filters], queryFn: () => koiServices.getKois(filters) })
+
+// Component usage
+const { data: kois, isLoading } = useGetKois({ search: 'keyword' })
+```
+
+**Service Response Pattern:** All API responses follow consistent structure:
+
+```typescript
+interface ApiResponse<T> {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: T;
+}
+```
+
+### Authentication Flow
+
+**Initialization:** `app/_layout.tsx` handles auth check on startup:
+
+1. Load token from SecureStore → Set in API client headers
+2. Fetch user profile via `userServices.getMe()`
+3. Navigate to `/(home)` or `/(auth)/login` based on auth state
+
+**Token Management:** Automatic refresh in `apiClient.ts` with request queuing:
+
+- 401 errors trigger `renewAccessToken()` from authStore
+- Failed requests queued and replayed with new token
+- Refresh failure = automatic logout + redirect
+
+### State Management Patterns
+
+**Global State (Zustand):**
+
+```typescript
+// lib/store/authStore.ts - Single auth store
+interface AuthState {
+  token: string | null;
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  login: (token: string | Token, user?: AuthUser) => Promise<void>;
+  logout: (refreshToken: string) => Promise<void>;
+}
+```
+
+**Server State (TanStack Query):** All data fetching through custom hooks
+
+```typescript
+// Pattern: useGetX for queries, useCreateX/useUpdateX for mutations
+export const useGetIncidents = (
+  enabled: boolean,
+  filters?: IncidentSearchParams
+) =>
+  useQuery({
+    queryKey: ['incidents', filters],
+    queryFn: () => incidentServices.getIncidents(filters),
+    enabled,
+  });
+```
+
+## UI/UX Conventions
+
+### Styling System
+
+- **NativeWind:** Use `className` syntax - `className="flex-1 bg-white p-4"`
+- **Custom Colors:** Primary `#0A3D62`, gradients with `expo-linear-gradient`
+- **Icons:** `lucide-react-native` for consistent iconography
+
+### Screen Layout Pattern
+
+```typescript
+export default function ScreenName() {
+  return (
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#1d4ed8" />
+      <SafeAreaView className="flex-1" style={{ backgroundColor: '#f8fafc' }}>
+        {/* Gradient Header */}
+        <LinearGradient colors={['#3b82f6', '#1d4ed8']} className="px-6 pb-8 pt-4">
+          <Text className="text-3xl font-bold text-white">Screen Title</Text>
+        </LinearGradient>
+
+        {/* Content */}
+        <FlatList
+          data={data}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        />
+      </SafeAreaView>
+    </>
+  )
+}
+```
+
+### Loading & Error Handling
+
+- **Loading:** Use `<Loading />` component from `components/Loading.tsx`
+- **Toast:** `react-native-toast-message` for user feedback
+- **Empty States:** Custom empty state with gradients and call-to-action buttons
 
 ---
 
@@ -178,4 +317,86 @@ export default function CreateKoiScreen() {
 
 ---
 
-**Ghi nhớ:** Mọi response phải bằng tiếng Việt và tuân thủ strict design specifications trong .github/ folder.
+## Critical Development Rules
+
+### TypeScript Patterns
+
+```typescript
+// Always export interfaces from service files
+export interface ItemSearchParams {
+  search?: string;
+  status?: ItemStatus;
+  pageIndex?: number;
+  pageSize?: number;
+}
+
+// Use proper enum definitions
+export enum ItemStatus {
+  Active = 'Active',
+  Inactive = 'Inactive',
+}
+
+// Convert filters for API calls
+const convertItemFilter = (filters?: ItemSearchParams): RequestParams => {
+  if (!filters) return {};
+  const params: RequestParams = {};
+  if (filters.search) params.search = filters.search;
+  return params;
+};
+```
+
+### Navigation Actions
+
+```typescript
+import { router } from 'expo-router';
+
+// Navigate to detail screen
+const handlePress = (item: Item) => {
+  router.push({
+    pathname: '/(home)/module/[id]',
+    params: { id: item.id.toString() },
+  });
+};
+
+// Go back
+router.back();
+
+// Replace (for auth flows)
+router.replace('/(home)');
+```
+
+## Development Workflows
+
+### Environment Setup
+
+```bash
+npm install              # Install dependencies
+npm run start           # Start Expo dev server
+npm run android         # Build for Android
+npm run ios            # Build for iOS
+npm run lint           # ESLint check
+npm run format         # Prettier formatting
+```
+
+### Key Dependencies
+
+- `@tanstack/react-query` - Server state management
+- `expo-router` - File-based routing system
+- `expo-secure-store` - Secure token storage
+- `react-hook-form` - Form validation
+- `nativewind` - Tailwind CSS styling
+- `zustand` - Global state management
+- `axios` - HTTP client with interceptors
+
+## Business Domain Context
+
+This is a **Koi farm management system** for farm staff. Key modules:
+
+- **Koi Management:** Fish profiles, RFID tracking, breeding history
+- **Breeding Process:** Multi-stage breeding workflow with classification records
+- **Water Quality:** Parameter monitoring for pond environments
+- **Incident Management:** Report and track farm incidents
+- **Task Management:** Daily work schedules and assignments
+
+**User Roles:** FarmStaff and Manager (validated via JWT role claims)  
+**Language:** All UI text and user communication in Vietnamese

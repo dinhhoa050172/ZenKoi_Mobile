@@ -16,29 +16,32 @@ export enum IncidentStatus {
 }
 
 export enum KoiAffectedStatus {
-  Exposed = 'Exposed',
-  Infected = 'Infected',
-  Recovered = 'Recovered',
-  Deceased = 'Deceased',
+  HEALTHY = 'Healthy',
+  WARNING = 'Warning',
+  WEAK = 'Weak',
+  SICK = 'Sick',
+  DEAD = 'Dead',
 }
 
 export interface KoiIncident {
-  id: number;
   koiFishId: number;
   koiFishRFID: string;
   affectedStatus: KoiAffectedStatus;
   specificSymptoms: string;
   requiresTreatment: boolean;
   isIsolated: boolean;
+  treatmentNotes: string;
+  affectedFrom: string;
 }
 
 export interface PondIncident {
-  id: number;
   pondId: number;
   pondName: string;
   environmentalChanges: string;
   requiresWaterChange: boolean;
   fishDiedCount: number;
+  correctiveActions: string;
+  notes: string;
 }
 
 export interface Incident {
@@ -53,9 +56,9 @@ export interface Incident {
   createdAt: string;
   updatedAt: string | null;
   resolvedAt: string | null;
-  reportedByUserId: number;
+  // reportedByUserId: number;
   reportedByUserName: string;
-  resolvedByUserId: number | null;
+  // resolvedByUserId: number | null;
   resolvedByUserName: string | null;
   resolutionNotes: string | null;
   koiIncidents: KoiIncident[];
@@ -67,8 +70,6 @@ export interface IncidentSearchParams {
   Status?: IncidentStatus;
   Severity?: IncidentSeverity;
   IncidentTypeId?: number;
-  ReportedByUserId?: number;
-  ResolvedByUserId?: number;
   PondId?: number;
   KoiId?: number;
   OccurredFrom?: string;
@@ -108,9 +109,12 @@ export interface RequestIncident {
   occurredAt: string;
   status?: string;
   resolutionNotes?: string;
+  affectedKoiFish?: KoiIncident[];
+  affectedPonds?: PondIncident[];
 }
 
 export interface IncidentResolutionRequest {
+  status: string;
   resolutionNotes: string;
 }
 
@@ -127,10 +131,6 @@ export const convertIncidentFilter = (
   if (filters.Status) params.status = filters.Status;
   if (filters.Severity) params.severity = filters.Severity;
   if (filters.IncidentTypeId) params.incidentTypeId = filters.IncidentTypeId;
-  if (filters.ReportedByUserId)
-    params.reportedByUserId = filters.ReportedByUserId;
-  if (filters.ResolvedByUserId)
-    params.resolvedByUserId = filters.ResolvedByUserId;
   if (filters.OccurredFrom) params.occurredFrom = filters.OccurredFrom;
   if (filters.OccurredTo) params.occurredTo = filters.OccurredTo;
   if (filters.pageIndex) params.pageIndex = filters.pageIndex;
@@ -180,7 +180,7 @@ export const incidentServices = {
     const response = await apiService.post<
       IncidentResponse,
       Omit<KoiIncident, 'id'>
-    >(`/api/Incident/koi/${id}`, koiIncident);
+    >(`/api/Incident/${id}/koi`, koiIncident);
     return response.data;
   },
 
@@ -192,7 +192,7 @@ export const incidentServices = {
     const response = await apiService.post<
       IncidentResponse,
       Omit<PondIncident, 'id'>
-    >(`/api/Incident/pond/${id}`, pondIncident);
+    >(`/api/Incident/${id}/pond`, pondIncident);
     return response.data;
   },
 
@@ -211,24 +211,12 @@ export const incidentServices = {
   //Update incident status
   updateIncidentStatus: async (
     id: number,
-    status: string
-  ): Promise<IncidentResponse> => {
-    const response = await apiService.patch<
-      IncidentResponse,
-      { status: string }
-    >(`/api/Incident/${id}/status`, { status });
-    return response.data;
-  },
-
-  // Resolve an incident
-  resolveIncident: async (
-    id: number,
-    resolution: IncidentResolutionRequest
+    IncidentResolutionRequest: IncidentResolutionRequest
   ): Promise<IncidentResponse> => {
     const response = await apiService.patch<
       IncidentResponse,
       IncidentResolutionRequest
-    >(`/api/Incident/${id}/resolve`, resolution);
+    >(`/api/Incident/${id}/status`, IncidentResolutionRequest);
     return response.data;
   },
 

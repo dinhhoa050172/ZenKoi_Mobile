@@ -217,7 +217,7 @@ export const workScheduleServices = {
     status: WorkScheduleStatus,
     notes?: string
   ): Promise<WorkScheduleResponse> => {
-    const response = await apiService.patch<
+    const response = await apiService.put<
       WorkScheduleResponse,
       { status: WorkScheduleStatus; notes?: string }
     >(`/api/WorkSchedule/${id}/status`, { status, notes });
