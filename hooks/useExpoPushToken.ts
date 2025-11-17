@@ -14,18 +14,44 @@ export function useSendExpoPushToken() {
     mutationFn: async (
       expoPushToken: string
     ): Promise<ExpoPushTokenResponse> => {
+      console.log('[EXPO_TOKEN] Sending token to backend...');
+      console.log(
+        '[EXPO_TOKEN] Token:',
+        expoPushToken.substring(0, 30) + '...'
+      );
+
       const res = await authServices.sendExpoPushToken(expoPushToken);
+
+      console.log('[EXPO_TOKEN] Backend response:', {
+        isSuccess: res.isSuccess,
+        message: res.message,
+      });
+
       return res;
     },
     onSuccess: (data: ExpoPushTokenResponse) => {
       if (data.isSuccess) {
-        console.log('Expo push token sent successfully');
+        console.log(
+          '[EXPO_TOKEN] ✅ Expo push token sent successfully to backend'
+        );
       } else {
-        console.warn('Failed to save expo push token', data.message);
+        console.warn(
+          '[EXPO_TOKEN] ⚠️ Failed to save expo push token:',
+          data.message
+        );
+        Toast.show({
+          type: 'error',
+          text1: 'Không thể lưu thông tin thông báo',
+          text2: data.message || 'Vui lòng thử lại sau',
+          position: 'top',
+        });
       }
     },
     onError: (error: Error) => {
-      console.warn('Error sending expo push token', error);
+      console.error('[EXPO_TOKEN] ❌ Error sending expo push token:', error);
+      if (error instanceof Error) {
+        console.error('[EXPO_TOKEN] Error message:', error.message);
+      }
       Toast.show({
         type: 'error',
         text1: 'Không thể gửi thông tin thông báo',
