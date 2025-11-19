@@ -1,4 +1,5 @@
 import ContextMenuField from '@/components/ContextMenuField';
+import { CustomAlert } from '@/components/CustomAlert';
 import { useCreateIncident } from '@/hooks/useIncident';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import {
@@ -8,7 +9,6 @@ import {
 import { AlertTriangle, Calendar, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -36,6 +36,15 @@ export default function CreateIncidentModal({
     occurredAt: new Date().toISOString(),
   });
 
+  // CustomAlert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }>({ visible: false, title: '', message: '' });
+
   const createMutation = useCreateIncident();
 
   // Get incident types
@@ -61,7 +70,12 @@ export default function CreateIncidentModal({
       !formData.incidentTitle?.trim() ||
       !formData.description?.trim()
     ) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin bắt buộc.');
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Vui lòng điền đầy đủ thông tin bắt buộc.',
+        type: 'danger',
+      });
       return;
     }
 
@@ -269,6 +283,18 @@ export default function CreateIncidentModal({
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onCancel={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        onConfirm={() => {
+          alertConfig.onConfirm?.();
+          setAlertConfig((prev) => ({ ...prev, visible: false }));
+        }}
+      />
     </Modal>
   );
 }

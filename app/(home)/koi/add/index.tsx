@@ -209,8 +209,6 @@ export default function AddKoiPage() {
         return 'Không bán';
       case SaleStatus.AVAILABLE:
         return 'Có sẵn';
-      case SaleStatus.RESERVED:
-        return 'Đã đặt trước';
       case SaleStatus.SOLD:
         return 'Đã bán';
       default:

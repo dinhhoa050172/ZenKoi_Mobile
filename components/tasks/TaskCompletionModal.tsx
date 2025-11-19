@@ -59,7 +59,7 @@ export default function TaskCompletionModal({
     } else {
       fadeAnim.setValue(0);
     }
-  }, [visible]);
+  }, [visible, fadeAnim]);
 
   const handleComplete = async () => {
     if (!task) return;

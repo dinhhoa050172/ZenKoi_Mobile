@@ -1,4 +1,5 @@
 import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
+import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
@@ -15,7 +16,7 @@ import {
   RequestIncident,
 } from '@/lib/api/services/fetchIncident';
 import { IncidentType } from '@/lib/api/services/fetchIncidentType';
-import { Gender, KoiFish } from '@/lib/api/services/fetchKoiFish';
+import { Gender, KoiFish, SaleStatus } from '@/lib/api/services/fetchKoiFish';
 import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -36,7 +37,6 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   KeyboardAvoidingView,
@@ -99,7 +99,9 @@ export default function EditIncidentScreen() {
   const { data: incidentTypes, isLoading: incidentTypesLoading } =
     useGetIncidentTypes();
   const { data: ponds, isLoading: pondsLoading } = useGetPonds();
-  const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish();
+  const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish({
+    saleStatus: SaleStatus.NOT_FOR_SALE,
+  });
 
   // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,6 +124,15 @@ export default function EditIncidentScreen() {
   const [showIncidentTypeModal, setShowIncidentTypeModal] = useState(false);
   const [showSeverityModal, setShowSeverityModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // CustomAlert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }>({ visible: false, title: '', message: '' });
 
   // Pre-populate form with incident data
   useEffect(() => {
@@ -204,7 +215,12 @@ export default function EditIncidentScreen() {
   // Handle form submission
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin cơ bản của sự cố.');
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Vui lòng điền đầy đủ thông tin cơ bản của sự cố.',
+        type: 'danger',
+      });
       return;
     }
 
@@ -248,15 +264,22 @@ export default function EditIncidentScreen() {
         data: incidentPayload,
       });
 
-      Alert.alert('Thành công', 'Đã cập nhật sự cố thành công!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      setAlertConfig({
+        visible: true,
+        title: 'Thành công',
+        message: 'Đã cập nhật sự cố thành công!',
+        type: 'info',
+        onConfirm: () => router.back(),
+      });
     } catch (error: any) {
       console.error('Error updating incident:', error);
-      Alert.alert(
-        'Lỗi',
-        error?.message || 'Không thể cập nhật sự cố. Vui lòng thử lại.'
-      );
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message:
+          error?.message || 'Không thể cập nhật sự cố. Vui lòng thử lại.',
+        type: 'danger',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -859,7 +882,12 @@ export default function EditIncidentScreen() {
               today.setHours(23, 59, 59, 999);
 
               if (selectedDate > today) {
-                Alert.alert('Lỗi', 'Không được chọn ngày trong tương lai');
+                setAlertConfig({
+                  visible: true,
+                  title: 'Lỗi',
+                  message: 'Không được chọn ngày trong tương lai',
+                  type: 'warning',
+                });
                 return;
               }
 
@@ -886,6 +914,18 @@ export default function EditIncidentScreen() {
       {/* Modals */}
       {renderIncidentTypeModal()}
       {renderSeverityModal()}
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onCancel={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        onConfirm={() => {
+          alertConfig.onConfirm?.();
+          setAlertConfig((prev) => ({ ...prev, visible: false }));
+        }}
+      />
     </SafeAreaView>
   );
 

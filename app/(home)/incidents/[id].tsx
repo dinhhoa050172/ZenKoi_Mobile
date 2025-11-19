@@ -1,3 +1,4 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import Loading from '@/components/Loading';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
@@ -37,7 +38,6 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Animated,
   ScrollView,
   StatusBar,
@@ -175,6 +175,15 @@ export default function IncidentDetailScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
+  // CustomAlert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }>({ visible: false, title: '', message: '' });
+
   const router = useRouter();
   const {
     data: incidentData,
@@ -230,7 +239,12 @@ export default function IncidentDetailScreen() {
       // Không cần router.back(), chỉ cần refetch để cập nhật UI
     } catch (error) {
       console.error('Error resolving incident:', error);
-      Alert.alert('Lỗi', 'Không thể giải quyết sự cố. Vui lòng thử lại.');
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Không thể giải quyết sự cố. Vui lòng thử lại.',
+        type: 'danger',
+      });
     } finally {
       setIsResolving(false);
     }
@@ -256,7 +270,12 @@ export default function IncidentDetailScreen() {
       refetch();
     } catch (error) {
       console.error('Error cancelling incident:', error);
-      Alert.alert('Lỗi', 'Không thể hủy sự cố. Vui lòng thử lại.');
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Không thể hủy sự cố. Vui lòng thử lại.',
+        type: 'danger',
+      });
     } finally {
       setIsCancelling(false);
     }
@@ -526,7 +545,7 @@ export default function IncidentDetailScreen() {
                     <View className="flex-row items-center justify-center">
                       <XCircle size={20} color="white" />
                       <Text className="ml-2 text-base font-bold text-white">
-                        {isCancelling ? 'Đang hủy...' : 'Hủy sự cố'}
+                        {isCancelling ? 'Đang hủy...' : 'Hủy'}
                       </Text>
                     </View>
                   </LinearGradient>
@@ -579,6 +598,20 @@ export default function IncidentDetailScreen() {
           onCancel={handleSubmitCancel}
           isSubmitting={isCancelling}
           incidentTitle={incidentData?.incidentTitle}
+        />
+
+        <CustomAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onCancel={() =>
+            setAlertConfig((prev) => ({ ...prev, visible: false }))
+          }
+          onConfirm={() => {
+            alertConfig.onConfirm?.();
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+          }}
         />
       </SafeAreaView>
     </>
