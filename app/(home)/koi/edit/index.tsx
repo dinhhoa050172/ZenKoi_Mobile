@@ -145,7 +145,7 @@ export default function EditKoiPage() {
           sellingPrice: koiData.sellingPrice ?? 0,
           description: koiData.description ?? '',
           isMutated: koiData.isMutated ?? false,
-          mutationType: koiData.mutationType,
+          mutationDescription: koiData.mutationDescription,
         });
         setSizeText(sizeVal > 0 ? String(sizeVal) : '');
         setErrors({});
@@ -220,6 +220,8 @@ export default function EditKoiPage() {
         return 'Khỏe mạnh';
       case HealthStatus.WARNING:
         return 'Cảnh báo';
+      case HealthStatus.WEAK:
+        return 'Yếu';
       case HealthStatus.SICK:
         return 'Bệnh';
       case HealthStatus.DEAD:
@@ -263,8 +265,6 @@ export default function EditKoiPage() {
     label: saleStatusToLabel(s),
     value: s,
   }));
-
-  const mutationTypeOptionsVN: { label: string; value: string }[] = [];
   const patternQuery = useGetPatternByVarietyId(
     formData?.varietyId ?? 0,
     !!formData?.varietyId
@@ -472,8 +472,8 @@ export default function EditKoiPage() {
       nextErrors.sellingPrice = 'Vui lòng nhập giá bán > 0';
     if (!formData.description.trim())
       nextErrors.description = 'Vui lòng nhập giới thiệu';
-    if (formData.isMutated && !formData.mutationType)
-      nextErrors.mutationType = 'Vui lòng chọn loại đột biến';
+    if (formData.isMutated && !formData.mutationDescription)
+      nextErrors.mutationDescription = 'Vui lòng chọn loại đột biến';
 
     setErrors(nextErrors);
     if (nextErrors.images) {
@@ -499,7 +499,7 @@ export default function EditKoiPage() {
       sellingPrice: Number(formData.sellingPrice ?? 0),
       description: String(formData.description ?? ''),
       isMutated: formData.isMutated ?? false,
-      mutationType: formData.mutationType as string | null,
+      mutationDescription: formData.mutationDescription as string | null,
     };
 
     updateKoi.mutate(
@@ -1066,7 +1066,7 @@ export default function EditKoiPage() {
                         setFormData({
                           ...formData,
                           isMutated: val,
-                          mutationType: val ? formData.mutationType : null,
+                          mutationDescription: val ? formData.mutationDescription : null,
                         })
                       }
                       trackColor={{ false: '#e5e7eb', true: '#bbf7d0' }}
@@ -1074,9 +1074,9 @@ export default function EditKoiPage() {
                       ios_backgroundColor="#e5e7eb"
                     />
                   </View>
-                  {errors.mutationType && (
+                  {errors.mutationDescription && (
                     <Text className="mt-1 text-sm text-red-500">
-                      {errors.mutationType}
+                      {errors.mutationDescription}
                     </Text>
                   )}
                 </View>
@@ -1087,27 +1087,28 @@ export default function EditKoiPage() {
             {formData.isMutated && (
               <View className="mb-4">
                 <View className="flex-row items-start">
-                  <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-amber-100">
-                    <Dna size={18} color="#d97706" />
-                  </View>
                   <View className="flex-1">
-                    <ContextMenuField
+                    <InputField
+                      icon={<Dna size={18} color="#d97706" />}
                       label="Loại đột biến *"
-                      value={formData.mutationType ?? undefined}
-                      options={mutationTypeOptionsVN}
-                      onSelect={(v: string) => {
+                      placeholder="Nhập loại đột biến"
+                      value={formData.mutationDescription || ''}
+                      onChangeText={(t) => {
                         setFormData({
                           ...formData,
-                          mutationType: v ? v : null,
+                          mutationDescription: t || null,
                         });
                         setErrors((prev) => {
                           const copy = { ...prev };
-                          delete copy.mutationType;
+                          delete copy.mutationDescription;
                           return copy;
                         });
                       }}
-                      placeholder="Chọn loại đột biến"
+                      iconBg="bg-amber-100"
                     />
+                    {errors.mutationDescription && (
+                      <Text className="mt-1 text-sm text-red-500">{errors.mutationDescription}</Text>
+                    )}
                   </View>
                 </View>
               </View>
