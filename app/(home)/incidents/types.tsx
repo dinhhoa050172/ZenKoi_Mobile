@@ -27,6 +27,7 @@ import React, { useState } from 'react';
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -318,100 +319,109 @@ export default function IncidentTypesScreen() {
           </View>
         </LinearGradient>
 
-        {/* Filter Tabs */}
-        <View className="border-b border-gray-100 bg-white px-6 py-3">
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={() => setSelectedFilter('all')}
-              className={`rounded-full px-4 py-2 ${
-                selectedFilter === 'all' ? 'bg-blue-100' : 'bg-gray-100'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  selectedFilter === 'all' ? 'text-blue-700' : 'text-gray-600'
+        {/* Filter Tabs - horizontally scrollable on small screens */}
+        <View className="border-b border-gray-100 bg-white">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+            }}
+          >
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => setSelectedFilter('all')}
+                className={`rounded-full px-4 py-2 ${
+                  selectedFilter === 'all' ? 'bg-blue-100' : 'bg-gray-100'
                 }`}
               >
-                Tất cả
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedFilter === 'all' ? 'text-blue-700' : 'text-gray-600'
+                  }`}
+                >
+                  Tất cả
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setSelectedFilter(IncidentSeverity.CRITICAL)}
-              className={`rounded-full px-4 py-2 ${
-                selectedFilter === IncidentSeverity.CRITICAL
-                  ? 'bg-red-100'
-                  : 'bg-gray-100'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
+              <TouchableOpacity
+                onPress={() => setSelectedFilter(IncidentSeverity.CRITICAL)}
+                className={`rounded-full px-4 py-2 ${
                   selectedFilter === IncidentSeverity.CRITICAL
-                    ? 'text-red-700'
-                    : 'text-gray-600'
+                    ? 'bg-red-100'
+                    : 'bg-gray-100'
                 }`}
               >
-                Nghiêm trọng
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedFilter === IncidentSeverity.CRITICAL
+                      ? 'text-red-700'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Nghiêm trọng
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setSelectedFilter(IncidentSeverity.HIGH)}
-              className={`rounded-full px-4 py-2 ${
-                selectedFilter === IncidentSeverity.HIGH
-                  ? 'bg-orange-100'
-                  : 'bg-gray-100'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
+              <TouchableOpacity
+                onPress={() => setSelectedFilter(IncidentSeverity.HIGH)}
+                className={`rounded-full px-4 py-2 ${
                   selectedFilter === IncidentSeverity.HIGH
-                    ? 'text-orange-700'
-                    : 'text-gray-600'
+                    ? 'bg-orange-100'
+                    : 'bg-gray-100'
                 }`}
               >
-                Cao
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedFilter === IncidentSeverity.HIGH
+                      ? 'text-orange-700'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Cao
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setSelectedFilter(IncidentSeverity.MEDIUM)}
-              className={`rounded-full px-4 py-2 ${
-                selectedFilter === IncidentSeverity.MEDIUM
-                  ? 'bg-amber-100'
-                  : 'bg-gray-100'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
+              <TouchableOpacity
+                onPress={() => setSelectedFilter(IncidentSeverity.MEDIUM)}
+                className={`rounded-full px-4 py-2 ${
                   selectedFilter === IncidentSeverity.MEDIUM
-                    ? 'text-amber-700'
-                    : 'text-gray-600'
+                    ? 'bg-amber-100'
+                    : 'bg-gray-100'
                 }`}
               >
-                Trung bình
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedFilter === IncidentSeverity.MEDIUM
+                      ? 'text-amber-700'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Trung bình
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setSelectedFilter(IncidentSeverity.LOW)}
-              className={`rounded-full px-4 py-2 ${
-                selectedFilter === IncidentSeverity.LOW
-                  ? 'bg-green-100'
-                  : 'bg-gray-100'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
+              <TouchableOpacity
+                onPress={() => setSelectedFilter(IncidentSeverity.LOW)}
+                className={`rounded-full px-4 py-2 ${
                   selectedFilter === IncidentSeverity.LOW
-                    ? 'text-green-700'
-                    : 'text-gray-600'
+                    ? 'bg-green-100'
+                    : 'bg-gray-100'
                 }`}
               >
-                Thấp
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedFilter === IncidentSeverity.LOW
+                      ? 'text-green-700'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Thấp
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
 

@@ -40,6 +40,14 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/Logo_ZenKoi.png",
+          "color": "#0A3D62",
+          "sounds": []
+        }
       ]
     ],
     "experiments": {

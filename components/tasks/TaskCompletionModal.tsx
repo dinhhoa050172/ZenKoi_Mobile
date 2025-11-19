@@ -64,30 +64,56 @@ export default function TaskCompletionModal({
   const handleComplete = async () => {
     if (!task) return;
 
-    // Check if current date/time is within the scheduled work period
+    // Parse scheduled date/time explicitly into local (device) timezone to avoid
+    // cross-timezone parsing issues (e.g., server uses UTC). This ensures users
+    // in UTC+7 see the correct scheduled day/time.
+    const parseLocalDate = (dateStr: string) => {
+      // Accept formats like "YYYY-MM-DD" or full ISO strings
+      if (dateStr.includes('T')) {
+        const d = new Date(dateStr);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+      const [y, m, d] = dateStr.split('-').map((s) => Number(s));
+      return new Date(y, (m || 1) - 1, d || 1);
+    };
+
+    const parseLocalDateTime = (dateStr: string, timeStr?: string) => {
+      const [y, m, d] = dateStr.split('-').map((s) => Number(s));
+      const [hh = 0, mm = 0] = (timeStr || '00:00')
+        .split(':')
+        .map((s) => Number(s));
+      return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0);
+    };
+
     const currentDate = new Date();
-    const scheduleDate = new Date(task.scheduledDate);
-    const startTime = new Date(`${task.scheduledDate}T${task.startTime}`);
-    const endTime = new Date(`${task.scheduledDate}T${task.endTime}`);
+    const scheduleDateLocal = parseLocalDate(task.scheduledDate);
+    const startTimeLocal = parseLocalDateTime(
+      task.scheduledDate,
+      task.startTime
+    );
+    const endTimeLocal = parseLocalDateTime(task.scheduledDate, task.endTime);
 
-    // Check if it's the scheduled date
+    // Check if it's the scheduled date (compare local date components)
     const isScheduledDate =
-      currentDate.getDate() === scheduleDate.getDate() &&
-      currentDate.getMonth() === scheduleDate.getMonth() &&
-      currentDate.getFullYear() === scheduleDate.getFullYear();
+      currentDate.getFullYear() === scheduleDateLocal.getFullYear() &&
+      currentDate.getMonth() === scheduleDateLocal.getMonth() &&
+      currentDate.getDate() === scheduleDateLocal.getDate();
 
-    // Check if current time is within the scheduled time range
+    // Check if current time is within the scheduled time range (local)
     const currentTime = currentDate.getTime();
     const isWithinTimeRange =
-      currentTime >= startTime.getTime() && currentTime <= endTime.getTime();
+      currentTime >= startTimeLocal.getTime() &&
+      currentTime <= endTimeLocal.getTime();
 
+    // If the date is different (task is scheduled on another day), allow the
+    // user to force-complete with a warning instead of blocking outright.
     if (!isScheduledDate) {
-      setCustomAlertTitle('Không thể hoàn thành');
+      setCustomAlertTitle('Ngoài ngày lịch');
       setCustomAlertMessage(
-        'Chỉ có thể hoàn thành công việc vào ngày được lên lịch.'
+        'Lịch công việc không trùng với ngày hiện tại. Bạn có chắc muốn hoàn thành công việc này không?'
       );
-      setCustomAlertType('danger');
-      setCustomAlertOnConfirm(() => null);
+      setCustomAlertType('warning');
+      setCustomAlertOnConfirm(() => proceedWithCompletion);
       setCustomAlertVisible(true);
       return;
     }

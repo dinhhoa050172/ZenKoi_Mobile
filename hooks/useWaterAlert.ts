@@ -6,7 +6,12 @@ import {
   WaterAlertSearchParams,
   waterAlertServices,
 } from '@/lib/api/services/fetchWaterAlert';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { pondKeys } from './usePond';
 
@@ -57,6 +62,41 @@ export function useGetWaterAlertById(id: number, enabled = true) {
       return resp.result;
     },
     enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * Get infinite list of water alerts with pagination
+ */
+export function useGetInfiniteWaterAlerts(
+  filters?: Omit<WaterAlertSearchParams, 'pageIndex'>,
+  enabled = true
+) {
+  return useInfiniteQuery({
+    queryKey: [...waterAlertKeys.lists(), 'infinite', filters ?? {}],
+    queryFn: async ({ pageParam = 1 }): Promise<WaterAlertPagination> => {
+      const resp: WaterAlertPaginationResponse =
+        await waterAlertServices.getAllWaterAlerts({
+          ...filters,
+          pageIndex: pageParam,
+          pageSize: filters?.pageSize || 10,
+        });
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải cảnh báo');
+
+      return resp.result;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.hasNextPage) {
+        return lastPage.pageIndex + 1;
+      }
+      return undefined;
+    },
+    enabled,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,

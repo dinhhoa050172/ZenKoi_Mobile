@@ -118,6 +118,13 @@ export interface SendOtpResponse {
   result: null;
 }
 
+export interface ExpoPushTokenResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: boolean;
+}
+
 export const authServices = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     const response = await apiService.post<LoginResponse, LoginCredentials>(
@@ -180,6 +187,17 @@ export const authServices = {
       '/api/Accounts/send-otp',
       request
     );
+    return response.data;
+  },
+
+  // Send expo push token to backend
+  sendExpoPushToken: async (
+    expoPushToken: string
+  ): Promise<ExpoPushTokenResponse> => {
+    const response = await apiService.post<
+      ExpoPushTokenResponse,
+      { expoPushToken: string }
+    >('/api/Accounts/update-push-token', { expoPushToken });
     return response.data;
   },
 };

@@ -190,7 +190,7 @@ const ContextMenuMultiSelect: React.FC<Props> = ({
 
               {/* Search Bar - Only show if more than 5 options */}
               {options.length > 5 && !isLoading && (
-                <View className="mt-4 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <View className="mt-4 flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-1">
                   <Search size={18} color="#9ca3af" />
                   <TextInput
                     className="ml-3 flex-1 text-base text-gray-900"
