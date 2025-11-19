@@ -101,6 +101,7 @@ export async function getExpoPushToken(): Promise<NotificationToken | null> {
   }
 
   try {
+    console.log('[NOTIFICATION] Requesting push token from Expo...');
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: 'aabc20fa-376a-48f1-bb96-56f98f6f9630',
     });
@@ -110,10 +111,29 @@ export async function getExpoPushToken(): Promise<NotificationToken | null> {
       platform: Platform.OS,
     };
 
-    console.log('[NOTIFICATION] Push token obtained:', token.token);
+    console.log('[NOTIFICATION] ✅ Push token obtained successfully');
+    console.log(
+      '[NOTIFICATION] Token format:',
+      token.token.substring(0, 30) + '...'
+    );
+    console.log('[NOTIFICATION] Platform:', token.platform);
+
+    // Validate token format
+    if (!token.token.startsWith('ExponentPushToken[')) {
+      console.error(
+        '[NOTIFICATION] ⚠️ WARNING: Token does not have expected format!'
+      );
+      console.error('[NOTIFICATION] Expected: ExponentPushToken[...]');
+      console.error('[NOTIFICATION] Got:', token.token);
+    }
+
     return token;
   } catch (error) {
-    console.error('[NOTIFICATION] Error getting push token:', error);
+    console.error('[NOTIFICATION] ❌ Error getting push token:', error);
+    if (error instanceof Error) {
+      console.error('[NOTIFICATION] Error message:', error.message);
+      console.error('[NOTIFICATION] Error stack:', error.stack);
+    }
     return null;
   }
 }

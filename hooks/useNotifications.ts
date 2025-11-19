@@ -30,23 +30,6 @@ export function useNotifications() {
   const cleanupFnsRef = useRef<(() => void)[]>([]);
 
   /**
-   * Register token với backend
-   */
-  const registerToken = useCallback(
-    async (token: string) => {
-      try {
-        console.log('[NOTIFICATIONS] Registering token with backend...');
-        await sendTokenMutation.mutateAsync(token);
-        setCurrentToken(token);
-        console.log('[NOTIFICATIONS] Token registered successfully');
-      } catch (error) {
-        console.error('[NOTIFICATIONS] Failed to register token:', error);
-      }
-    },
-    [sendTokenMutation]
-  );
-
-  /**
    * Handle notification received (foreground)
    */
   const handleNotificationReceived = useCallback(
@@ -121,8 +104,21 @@ export function useNotifications() {
       return;
     }
 
+    console.log('[NOTIFICATIONS] Token obtained:', tokenData.token);
+
     // Step 3: Register token với backend
-    await registerToken(tokenData.token);
+    try {
+      console.log('[NOTIFICATIONS] Registering token with backend...');
+      await sendTokenMutation.mutateAsync(tokenData.token);
+      setCurrentToken(tokenData.token);
+      console.log('[NOTIFICATIONS] Token registered successfully with backend');
+    } catch (error) {
+      console.error(
+        '[NOTIFICATIONS] Failed to register token with backend:',
+        error
+      );
+      // Don't block initialization if backend fails
+    }
 
     // Step 4: Setup notification listeners
     const cleanupListeners = registerNotificationListeners(
@@ -134,13 +130,25 @@ export function useNotifications() {
     // Step 5: Listen for token updates (rare)
     const cleanupTokenListener = registerPushTokenListener((newToken) => {
       console.log('[NOTIFICATIONS] Token updated, re-registering...');
-      registerToken(newToken);
+      // Register new token directly
+      sendTokenMutation
+        .mutateAsync(newToken)
+        .then(() => {
+          setCurrentToken(newToken);
+          console.log('[NOTIFICATIONS] Updated token registered with backend');
+        })
+        .catch((err) => {
+          console.error(
+            '[NOTIFICATIONS] Failed to register updated token:',
+            err
+          );
+        });
     });
     cleanupFnsRef.current.push(cleanupTokenListener);
 
     hasRegisteredRef.current = true;
     console.log('[NOTIFICATIONS] Initialization complete');
-  }, [registerToken, handleNotificationReceived, handleNotificationTapped]);
+  }, [sendTokenMutation, handleNotificationReceived, handleNotificationTapped]);
 
   /**
    * Cleanup notifications
@@ -167,7 +175,8 @@ export function useNotifications() {
     return () => {
       cleanupNotifications();
     };
-  }, [isAuthenticated, initializeNotifications, cleanupNotifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]); // Only depend on isAuthenticated to avoid re-render loops
 
   return {
     permissionGranted,

@@ -94,7 +94,7 @@ export interface KoiFish {
   description: string;
   origin: string | null;
   isMutated: boolean;
-  mutationType: string | null;
+  mutationDescription: string | null;
   mutationRate: number;
   createdAt: string;
   updatedAt: string | null;
@@ -143,7 +143,7 @@ export interface KoiFishRequest {
   sellingPrice: number;
   description: string;
   isMutated: boolean;
-  mutationType: string | null;
+  mutationDescription: string | null;
 }
 
 export interface KoiFishPagination {

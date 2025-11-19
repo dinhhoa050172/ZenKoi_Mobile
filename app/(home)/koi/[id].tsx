@@ -7,8 +7,7 @@ import {
 import {
   Gender,
   HealthStatus,
-  KoiFish,
-  SaleStatus,
+  SaleStatus
 } from '@/lib/api/services/fetchKoiFish';
 import { formatDate } from '@/lib/utils/formatDate';
 import { useFocusEffect } from '@react-navigation/native';
@@ -140,31 +139,6 @@ export default function KoiDetailScreen() {
         return 'Đã bán';
       default:
         return String(s ?? '-');
-    }
-  };
-
-  const mutationTypeToLabel = (m?: string | null) => String(m ?? '-');
-
-  const getSizeLabel = (size?: KoiFish['size']) => {
-    switch (size) {
-      case 'Under10cm':
-        return '< 10 cm';
-      case 'From10To20cm':
-        return '10 - 20 cm';
-      case 'From21To25cm':
-        return '21 - 25 cm';
-      case 'From26To30cm':
-        return '26 - 30 cm';
-      case 'From31To40cm':
-        return '31 - 40 cm';
-      case 'From41To45cm':
-        return '41 - 45 cm';
-      case 'From46To50cm':
-        return '46 - 50 cm';
-      case 'Over50cm':
-        return '> 50 cm';
-      default:
-        return String(size ?? '—');
     }
   };
 
@@ -355,7 +329,7 @@ export default function KoiDetailScreen() {
                     icon={<Ruler size={18} color="#06b6d4" />}
                     iconBg="bg-cyan-100"
                     label="Kích cỡ"
-                    value={getSizeLabel(koi?.size) ?? '-'}
+                    value={koi?.size ?? '-'}
                   />
                   <View style={{ height: 12 }} />
 
@@ -388,7 +362,7 @@ export default function KoiDetailScreen() {
                         icon={<Dna size={18} color="#64748b" />}
                         iconBg="bg-gray-100"
                         label="Loại đột biến"
-                        value={mutationTypeToLabel(koi?.mutationType)}
+                        value={koi?.mutationDescription ?? '-'}
                       />
                       <View style={{ height: 12 }} />
                       <InfoRow
