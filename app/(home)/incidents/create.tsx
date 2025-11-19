@@ -1,4 +1,5 @@
 import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
+import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
@@ -34,7 +35,6 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   KeyboardAvoidingView,
@@ -121,6 +121,15 @@ export default function CreateIncidentScreen() {
   const [showSeverityModal, setShowSeverityModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // CustomAlert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }>({ visible: false, title: '', message: '' });
+
   // Form validation
   const isFormValid = () => {
     const basicFormValid =
@@ -152,7 +161,12 @@ export default function CreateIncidentScreen() {
   // Handle form submission
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin cơ bản của sự cố.');
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Vui lòng điền đầy đủ thông tin cơ bản của sự cố.',
+        type: 'danger',
+      });
       return;
     }
 
@@ -193,15 +207,21 @@ export default function CreateIncidentScreen() {
 
       await createIncidentMutation.mutateAsync(incidentPayload);
 
-      Alert.alert('Thành công', 'Đã tạo sự cố thành công!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      setAlertConfig({
+        visible: true,
+        title: 'Thành công',
+        message: 'Đã tạo sự cố thành công!',
+        type: 'info',
+        onConfirm: () => router.back(),
+      });
     } catch (error: any) {
       console.error('Error creating incident:', error);
-      Alert.alert(
-        'Lỗi',
-        error?.message || 'Không thể tạo sự cố. Vui lòng thử lại.'
-      );
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: error?.message || 'Không thể tạo sự cố. Vui lòng thử lại.',
+        type: 'danger',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -769,7 +789,12 @@ export default function CreateIncidentScreen() {
               today.setHours(23, 59, 59, 999);
 
               if (selectedDate > today) {
-                Alert.alert('Lỗi', 'Không được chọn ngày trong tương lai');
+                setAlertConfig({
+                  visible: true,
+                  title: 'Lỗi',
+                  message: 'Không được chọn ngày trong tương lai',
+                  type: 'warning',
+                });
                 return;
               }
 
@@ -796,6 +821,23 @@ export default function CreateIncidentScreen() {
       {/* Modals */}
       {renderIncidentTypeModal()}
       {renderSeverityModal()}
+
+      {/* CustomAlert */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onCancel={() =>
+          setAlertConfig({ visible: false, title: '', message: '' })
+        }
+        onConfirm={() => {
+          alertConfig.onConfirm?.();
+          setAlertConfig({ visible: false, title: '', message: '' });
+        }}
+        cancelText="Đóng"
+        confirmText="OK"
+      />
     </SafeAreaView>
   );
 
