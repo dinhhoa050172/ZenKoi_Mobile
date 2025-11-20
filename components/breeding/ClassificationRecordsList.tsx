@@ -204,17 +204,17 @@ export default function ClassificationRecordsList({
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-purple-700">
-                {totals.show}
+                {records[3]?.showQualifiedCount ?? 0}
               </Text>
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-blue-700">
-                {totals.high}
+                {records[3]?.highQualifiedCount ?? 0}
               </Text>
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-green-700">
-                {totals.pond}
+                {records[2]?.pondQualifiedCount ?? 0}
               </Text>
             </View>
             <View className="flex-1">
