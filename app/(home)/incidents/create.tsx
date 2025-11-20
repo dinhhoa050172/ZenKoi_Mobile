@@ -771,52 +771,102 @@ export default function CreateIncidentScreen() {
       </KeyboardAvoidingView>
 
       {/* Date Picker Modal */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={
-            formData.occurredAt ? new Date(formData.occurredAt) : new Date()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-          maximumDate={new Date()}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') {
-              setShowDatePicker(false);
+      {showDatePicker &&
+        (Platform.OS === 'ios' ? (
+          <Modal
+            visible
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View className="flex-1 justify-end bg-black/40">
+              <View className="w-full rounded-t-2xl bg-white p-4">
+                <DateTimePicker
+                  value={
+                    formData.occurredAt
+                      ? new Date(formData.occurredAt)
+                      : new Date()
+                  }
+                  mode="date"
+                  display="spinner"
+                  maximumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    if (!selectedDate) return;
+                    const today = new Date();
+                    today.setHours(23, 59, 59, 999);
+
+                    if (selectedDate > today) {
+                      setAlertConfig({
+                        visible: true,
+                        title: 'Lỗi',
+                        message: 'Không được chọn ngày trong tương lai',
+                        type: 'warning',
+                      });
+                      return;
+                    }
+
+                    const dateOnly = new Date(selectedDate);
+                    dateOnly.setHours(0, 0, 0, 0);
+
+                    setFormData({
+                      ...formData,
+                      occurredAt: dateOnly.toISOString(),
+                    });
+                  }}
+                  style={{ height: 200 }}
+                  textColor="#1E293B"
+                />
+                <View className="mt-2 flex-row justify-end">
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(false)}
+                    className="rounded-2xl px-4 py-2"
+                    accessibilityLabel="Done"
+                  >
+                    <Text className="font-medium text-primary">Xong</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={
+              formData.occurredAt ? new Date(formData.occurredAt) : new Date()
             }
+            mode="date"
+            display="calendar"
+            maximumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === 'android') {
+                setShowDatePicker(false);
+              }
 
-            if (selectedDate) {
-              const today = new Date();
-              today.setHours(23, 59, 59, 999);
+              if (selectedDate) {
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
 
-              if (selectedDate > today) {
-                setAlertConfig({
-                  visible: true,
-                  title: 'Lỗi',
-                  message: 'Không được chọn ngày trong tương lai',
-                  type: 'warning',
+                if (selectedDate > today) {
+                  setAlertConfig({
+                    visible: true,
+                    title: 'Lỗi',
+                    message: 'Không được chọn ngày trong tương lai',
+                    type: 'warning',
+                  });
+                  return;
+                }
+
+                const dateOnly = new Date(selectedDate);
+                dateOnly.setHours(0, 0, 0, 0);
+
+                setFormData({
+                  ...formData,
+                  occurredAt: dateOnly.toISOString(),
                 });
-                return;
               }
-
-              const dateOnly = new Date(selectedDate);
-              dateOnly.setHours(0, 0, 0, 0);
-
-              setFormData({
-                ...formData,
-                occurredAt: dateOnly.toISOString(),
-              });
-
-              if (Platform.OS === 'ios') {
-                setTimeout(() => setShowDatePicker(false), 300);
-              }
-            }
-          }}
-          style={
-            Platform.OS === 'ios' ? { height: 200 } : { alignSelf: 'center' }
-          }
-          textColor="#1E293B"
-        />
-      )}
+            }}
+            style={{ alignSelf: 'center' }}
+          />
+        ))}
 
       {/* Modals */}
       {renderIncidentTypeModal()}

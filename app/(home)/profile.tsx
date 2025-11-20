@@ -670,25 +670,61 @@ export default function ProfileScreen() {
         </View>
 
         {/* Date Picker Modal */}
-        {showDatePicker && Platform.OS === 'ios' && (
-          <View className="absolute bottom-0 left-0 right-0 bg-white">
-            <View className="flex-row items-center justify-between border-b border-gray-200 px-4 py-2">
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text className="text-base font-medium text-primary">Xong</Text>
-              </TouchableOpacity>
-              <Text className="font-semibold text-gray-900">
-                Chọn ngày sinh
-              </Text>
-              <View style={{ width: 50 }} />
-            </View>
+        {showDatePicker &&
+          (Platform.OS === 'ios' ? (
+            <Modal
+              visible
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowDatePicker(false)}
+            >
+              <View className="flex-1 justify-end bg-black/40">
+                <View className="w-full rounded-t-2xl bg-white p-4">
+                  <View className="flex-row items-center justify-between border-b border-gray-200 px-4 py-2">
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <Text className="text-base font-medium text-primary">
+                        Xong
+                      </Text>
+                    </TouchableOpacity>
+                    <Text className="font-semibold text-gray-900">
+                      Chọn ngày sinh
+                    </Text>
+                    <View style={{ width: 50 }} />
+                  </View>
+                  <DateTimePicker
+                    value={
+                      editForm.birthday
+                        ? new Date(editForm.birthday)
+                        : new Date()
+                    }
+                    mode="date"
+                    display="spinner"
+                    maximumDate={new Date()}
+                    onChange={(e: any, selected?: Date) => {
+                      if (!selected) return;
+                      const y = selected.getFullYear();
+                      const m = String(selected.getMonth() + 1).padStart(
+                        2,
+                        '0'
+                      );
+                      const d = String(selected.getDate()).padStart(2, '0');
+                      setEditForm({ ...editForm, birthday: `${y}-${m}-${d}` });
+                    }}
+                    style={{ height: 200 }}
+                  />
+                </View>
+              </View>
+            </Modal>
+          ) : (
             <DateTimePicker
               value={
                 editForm.birthday ? new Date(editForm.birthday) : new Date()
               }
               mode="date"
-              display="spinner"
+              display="default"
               maximumDate={new Date()}
               onChange={(e: any, selected?: Date) => {
+                setShowDatePicker(false);
                 if (!selected) return;
                 const y = selected.getFullYear();
                 const m = String(selected.getMonth() + 1).padStart(2, '0');
@@ -696,24 +732,7 @@ export default function ProfileScreen() {
                 setEditForm({ ...editForm, birthday: `${y}-${m}-${d}` });
               }}
             />
-          </View>
-        )}
-        {showDatePicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={editForm.birthday ? new Date(editForm.birthday) : new Date()}
-            mode="date"
-            display="default"
-            maximumDate={new Date()}
-            onChange={(e: any, selected?: Date) => {
-              setShowDatePicker(false);
-              if (!selected) return;
-              const y = selected.getFullYear();
-              const m = String(selected.getMonth() + 1).padStart(2, '0');
-              const d = String(selected.getDate()).padStart(2, '0');
-              setEditForm({ ...editForm, birthday: `${y}-${m}-${d}` });
-            }}
-          />
-        )}
+          ))}
       </Modal>
 
       {/* Success Alert */}

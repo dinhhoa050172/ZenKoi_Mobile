@@ -435,37 +435,109 @@ export default function IncidentFilterModal({
         </KeyboardAvoidingView>
 
         {/* Date Pickers */}
-        {showFromDatePicker && (
-          <DateTimePicker
-            value={
-              filters.OccurredFrom ? new Date(filters.OccurredFrom) : new Date()
-            }
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              setShowFromDatePicker(false);
-              if (selectedDate) {
-                updateFilter('OccurredFrom', selectedDate.toISOString());
+        {showFromDatePicker &&
+          (Platform.OS === 'ios' ? (
+            <Modal
+              visible
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowFromDatePicker(false)}
+            >
+              <View className="flex-1 justify-end bg-black/40">
+                <View className="w-full rounded-t-2xl bg-white p-4">
+                  <DateTimePicker
+                    value={
+                      filters.OccurredFrom
+                        ? new Date(filters.OccurredFrom)
+                        : new Date()
+                    }
+                    mode="date"
+                    display="spinner"
+                    onChange={(event, selectedDate) => {
+                      if (!selectedDate) return;
+                      updateFilter('OccurredFrom', selectedDate.toISOString());
+                    }}
+                    style={{ height: 200 }}
+                  />
+                  <View className="mt-2 flex-row justify-end">
+                    <TouchableOpacity
+                      onPress={() => setShowFromDatePicker(false)}
+                      className="rounded-2xl px-4 py-2"
+                    >
+                      <Text className="font-medium text-primary">Xong</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          ) : (
+            <DateTimePicker
+              value={
+                filters.OccurredFrom
+                  ? new Date(filters.OccurredFrom)
+                  : new Date()
               }
-            }}
-          />
-        )}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowFromDatePicker(false);
+                if (selectedDate) {
+                  updateFilter('OccurredFrom', selectedDate.toISOString());
+                }
+              }}
+            />
+          ))}
 
-        {showToDatePicker && (
-          <DateTimePicker
-            value={
-              filters.OccurredTo ? new Date(filters.OccurredTo) : new Date()
-            }
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              setShowToDatePicker(false);
-              if (selectedDate) {
-                updateFilter('OccurredTo', selectedDate.toISOString());
+        {showToDatePicker &&
+          (Platform.OS === 'ios' ? (
+            <Modal
+              visible
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowToDatePicker(false)}
+            >
+              <View className="flex-1 justify-end bg-black/40">
+                <View className="w-full rounded-t-2xl bg-white p-4">
+                  <DateTimePicker
+                    value={
+                      filters.OccurredTo
+                        ? new Date(filters.OccurredTo)
+                        : new Date()
+                    }
+                    mode="date"
+                    display="spinner"
+                    onChange={(event, selectedDate) => {
+                      if (!selectedDate) return;
+                      updateFilter('OccurredTo', selectedDate.toISOString());
+                    }}
+                    style={{ height: 200 }}
+                  />
+                  <View className="mt-2 flex-row justify-end">
+                    <TouchableOpacity
+                      onPress={() => setShowToDatePicker(false)}
+                      className="rounded-2xl px-4 py-2"
+                    >
+                      <Text className="font-medium text-primary">Xong</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          ) : (
+            <DateTimePicker
+              value={
+                filters.OccurredTo ? new Date(filters.OccurredTo) : new Date()
               }
-            }}
-          />
-        )}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowToDatePicker(false);
+                if (selectedDate) {
+                  updateFilter('OccurredTo', selectedDate.toISOString());
+                }
+              }}
+            />
+          ))}
       </SafeAreaView>
     </Modal>
   );
