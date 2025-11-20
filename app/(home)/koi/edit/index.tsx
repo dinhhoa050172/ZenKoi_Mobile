@@ -237,8 +237,6 @@ export default function EditKoiPage() {
         return 'Không bán';
       case SaleStatus.AVAILABLE:
         return 'Có sẵn';
-      case SaleStatus.RESERVED:
-        return 'Đã đặt trước';
       case SaleStatus.SOLD:
         return 'Đã bán';
       default:
@@ -1066,7 +1064,9 @@ export default function EditKoiPage() {
                         setFormData({
                           ...formData,
                           isMutated: val,
-                          mutationDescription: val ? formData.mutationDescription : null,
+                          mutationDescription: val
+                            ? formData.mutationDescription
+                            : null,
                         })
                       }
                       trackColor={{ false: '#e5e7eb', true: '#bbf7d0' }}
@@ -1107,7 +1107,9 @@ export default function EditKoiPage() {
                       iconBg="bg-amber-100"
                     />
                     {errors.mutationDescription && (
-                      <Text className="mt-1 text-sm text-red-500">{errors.mutationDescription}</Text>
+                      <Text className="mt-1 text-sm text-red-500">
+                        {errors.mutationDescription}
+                      </Text>
                     )}
                   </View>
                 </View>
@@ -1138,55 +1140,129 @@ export default function EditKoiPage() {
                         'Chọn ngày'}
                     </Text>
                   </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={
-                        formData.birthDate
-                          ? new Date(formData.birthDate)
-                          : new Date()
-                      }
-                      mode={datePickerMode}
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      maximumDate={new Date()}
-                      onChange={(e: any, selected?: Date) => {
-                        setShowDatePicker(Platform.OS === 'ios');
-                        if (!selected) return;
-                        const now = new Date();
-                        const sel = new Date(
-                          selected.getFullYear(),
-                          selected.getMonth(),
-                          selected.getDate()
-                        );
-                        const today = new Date(
-                          now.getFullYear(),
-                          now.getMonth(),
-                          now.getDate()
-                        );
-                        if (sel > today) {
-                          setErrors((prev) => ({
-                            ...prev,
-                            birthDate: 'Không được chọn ngày trong tương lai',
-                          }));
-                          return;
+                  {showDatePicker &&
+                    (Platform.OS === 'ios' ? (
+                      <Modal
+                        visible
+                        transparent
+                        animationType="slide"
+                        onRequestClose={() => setShowDatePicker(false)}
+                      >
+                        <View className="flex-1 justify-end bg-black/40">
+                          <View className="w-full rounded-t-2xl bg-white p-4">
+                            <DateTimePicker
+                              value={
+                                formData.birthDate
+                                  ? new Date(formData.birthDate)
+                                  : new Date()
+                              }
+                              mode={datePickerMode}
+                              display="spinner"
+                              maximumDate={new Date()}
+                              onChange={(e: any, selected?: Date) => {
+                                setShowDatePicker(Platform.OS === 'ios');
+                                if (!selected) return;
+                                const now = new Date();
+                                const sel = new Date(
+                                  selected.getFullYear(),
+                                  selected.getMonth(),
+                                  selected.getDate()
+                                );
+                                const today = new Date(
+                                  now.getFullYear(),
+                                  now.getMonth(),
+                                  now.getDate()
+                                );
+                                if (sel > today) {
+                                  setErrors((prev) => ({
+                                    ...prev,
+                                    birthDate:
+                                      'Không được chọn ngày trong tương lai',
+                                  }));
+                                  return;
+                                }
+                                setErrors((prev) => {
+                                  const copy = { ...prev };
+                                  delete copy.birthDate;
+                                  return copy;
+                                });
+                                const y = selected.getFullYear();
+                                const m = String(
+                                  selected.getMonth() + 1
+                                ).padStart(2, '0');
+                                const d = String(selected.getDate()).padStart(
+                                  2,
+                                  '0'
+                                );
+                                setFormData({
+                                  ...formData,
+                                  birthDate: `${y}-${m}-${d}`,
+                                });
+                              }}
+                            />
+                            <View className="mt-2 flex-row justify-end">
+                              <TouchableOpacity
+                                onPress={() => setShowDatePicker(false)}
+                                className="rounded-2xl px-4 py-2"
+                                accessibilityLabel="Done"
+                              >
+                                <Text className="font-medium text-primary">
+                                  Xong
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        </View>
+                      </Modal>
+                    ) : (
+                      <DateTimePicker
+                        value={
+                          formData.birthDate
+                            ? new Date(formData.birthDate)
+                            : new Date()
                         }
-                        setErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.birthDate;
-                          return copy;
-                        });
-                        const y = selected.getFullYear();
-                        const m = String(selected.getMonth() + 1).padStart(
-                          2,
-                          '0'
-                        );
-                        const d = String(selected.getDate()).padStart(2, '0');
-                        setFormData({
-                          ...formData,
-                          birthDate: `${y}-${m}-${d}`,
-                        });
-                      }}
-                    />
-                  )}
+                        mode={datePickerMode}
+                        display="default"
+                        maximumDate={new Date()}
+                        onChange={(e: any, selected?: Date) => {
+                          setShowDatePicker(false);
+                          if (!selected) return;
+                          const now = new Date();
+                          const sel = new Date(
+                            selected.getFullYear(),
+                            selected.getMonth(),
+                            selected.getDate()
+                          );
+                          const today = new Date(
+                            now.getFullYear(),
+                            now.getMonth(),
+                            now.getDate()
+                          );
+                          if (sel > today) {
+                            setErrors((prev) => ({
+                              ...prev,
+                              birthDate: 'Không được chọn ngày trong tương lai',
+                            }));
+                            return;
+                          }
+                          setErrors((prev) => {
+                            const copy = { ...prev };
+                            delete copy.birthDate;
+                            return copy;
+                          });
+                          const y = selected.getFullYear();
+                          const m = String(selected.getMonth() + 1).padStart(
+                            2,
+                            '0'
+                          );
+                          const d = String(selected.getDate()).padStart(2, '0');
+                          setFormData({
+                            ...formData,
+                            birthDate: `${y}-${m}-${d}`,
+                          });
+                        }}
+                      />
+                    ))}
                   {errors.birthDate && (
                     <Text className="mt-1 text-sm text-red-500">
                       {errors.birthDate}

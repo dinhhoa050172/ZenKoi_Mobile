@@ -1,4 +1,5 @@
 import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
+import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
@@ -34,7 +35,6 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   KeyboardAvoidingView,
@@ -121,6 +121,15 @@ export default function CreateIncidentScreen() {
   const [showSeverityModal, setShowSeverityModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // CustomAlert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm?: () => void;
+  }>({ visible: false, title: '', message: '' });
+
   // Form validation
   const isFormValid = () => {
     const basicFormValid =
@@ -152,7 +161,12 @@ export default function CreateIncidentScreen() {
   // Handle form submission
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin cơ bản của sự cố.');
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Vui lòng điền đầy đủ thông tin cơ bản của sự cố.',
+        type: 'danger',
+      });
       return;
     }
 
@@ -193,15 +207,21 @@ export default function CreateIncidentScreen() {
 
       await createIncidentMutation.mutateAsync(incidentPayload);
 
-      Alert.alert('Thành công', 'Đã tạo sự cố thành công!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      setAlertConfig({
+        visible: true,
+        title: 'Thành công',
+        message: 'Đã tạo sự cố thành công!',
+        type: 'info',
+        onConfirm: () => router.back(),
+      });
     } catch (error: any) {
       console.error('Error creating incident:', error);
-      Alert.alert(
-        'Lỗi',
-        error?.message || 'Không thể tạo sự cố. Vui lòng thử lại.'
-      );
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: error?.message || 'Không thể tạo sự cố. Vui lòng thử lại.',
+        type: 'danger',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -751,51 +771,123 @@ export default function CreateIncidentScreen() {
       </KeyboardAvoidingView>
 
       {/* Date Picker Modal */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={
-            formData.occurredAt ? new Date(formData.occurredAt) : new Date()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-          maximumDate={new Date()}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') {
-              setShowDatePicker(false);
+      {showDatePicker &&
+        (Platform.OS === 'ios' ? (
+          <Modal
+            visible
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View className="flex-1 justify-end bg-black/40">
+              <View className="w-full rounded-t-2xl bg-white p-4">
+                <DateTimePicker
+                  value={
+                    formData.occurredAt
+                      ? new Date(formData.occurredAt)
+                      : new Date()
+                  }
+                  mode="date"
+                  display="spinner"
+                  maximumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    if (!selectedDate) return;
+                    const today = new Date();
+                    today.setHours(23, 59, 59, 999);
+
+                    if (selectedDate > today) {
+                      setAlertConfig({
+                        visible: true,
+                        title: 'Lỗi',
+                        message: 'Không được chọn ngày trong tương lai',
+                        type: 'warning',
+                      });
+                      return;
+                    }
+
+                    const dateOnly = new Date(selectedDate);
+                    dateOnly.setHours(0, 0, 0, 0);
+
+                    setFormData({
+                      ...formData,
+                      occurredAt: dateOnly.toISOString(),
+                    });
+                  }}
+                  style={{ height: 200 }}
+                  textColor="#1E293B"
+                />
+                <View className="mt-2 flex-row justify-end">
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(false)}
+                    className="rounded-2xl px-4 py-2"
+                    accessibilityLabel="Done"
+                  >
+                    <Text className="font-medium text-primary">Xong</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={
+              formData.occurredAt ? new Date(formData.occurredAt) : new Date()
             }
-
-            if (selectedDate) {
-              const today = new Date();
-              today.setHours(23, 59, 59, 999);
-
-              if (selectedDate > today) {
-                Alert.alert('Lỗi', 'Không được chọn ngày trong tương lai');
-                return;
+            mode="date"
+            display="calendar"
+            maximumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === 'android') {
+                setShowDatePicker(false);
               }
 
-              const dateOnly = new Date(selectedDate);
-              dateOnly.setHours(0, 0, 0, 0);
+              if (selectedDate) {
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
 
-              setFormData({
-                ...formData,
-                occurredAt: dateOnly.toISOString(),
-              });
+                if (selectedDate > today) {
+                  setAlertConfig({
+                    visible: true,
+                    title: 'Lỗi',
+                    message: 'Không được chọn ngày trong tương lai',
+                    type: 'warning',
+                  });
+                  return;
+                }
 
-              if (Platform.OS === 'ios') {
-                setTimeout(() => setShowDatePicker(false), 300);
+                const dateOnly = new Date(selectedDate);
+                dateOnly.setHours(0, 0, 0, 0);
+
+                setFormData({
+                  ...formData,
+                  occurredAt: dateOnly.toISOString(),
+                });
               }
-            }
-          }}
-          style={
-            Platform.OS === 'ios' ? { height: 200 } : { alignSelf: 'center' }
-          }
-          textColor="#1E293B"
-        />
-      )}
+            }}
+            style={{ alignSelf: 'center' }}
+          />
+        ))}
 
       {/* Modals */}
       {renderIncidentTypeModal()}
       {renderSeverityModal()}
+
+      {/* CustomAlert */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onCancel={() =>
+          setAlertConfig({ visible: false, title: '', message: '' })
+        }
+        onConfirm={() => {
+          alertConfig.onConfirm?.();
+          setAlertConfig({ visible: false, title: '', message: '' });
+        }}
+        cancelText="Đóng"
+        confirmText="OK"
+      />
     </SafeAreaView>
   );
 

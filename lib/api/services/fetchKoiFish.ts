@@ -45,7 +45,6 @@ export enum KoiType {
 export enum SaleStatus {
   NOT_FOR_SALE = 'NotForSale', // Không bán
   AVAILABLE = 'Available', // Có sẵn
-  RESERVED = 'Reserved', // Đã đặt trước
   SOLD = 'Sold', // Đã bán
 }
 
