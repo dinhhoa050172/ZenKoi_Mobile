@@ -1,5 +1,5 @@
-import React from "react";
-import Svg, { G, Path } from "react-native-svg";
+import React from 'react';
+import Svg, { G, Path } from 'react-native-svg';
 
 interface PondSvgProps {
   size?: number;
@@ -8,7 +8,7 @@ interface PondSvgProps {
 
 export default function PondSvg({
   size = 16,
-  color = "#000000",
+  color = '#000000',
 }: PondSvgProps) {
   return (
     <Svg

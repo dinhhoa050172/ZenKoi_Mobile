@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, Dimensions, Easing, View } from "react-native";
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Dimensions, Easing, View } from 'react-native';
 
-const { width, height } = Dimensions.get("window");
+const { width, height } = Dimensions.get('window');
 
 const KoiFish = ({
   delay = 0,
@@ -10,7 +10,7 @@ const KoiFish = ({
   endX = width + 100,
   yPosition = height / 2,
   size = 60,
-  color = "#FF6B6B",
+  color = '#FF6B6B',
   verticalShift = 0,
 }: {
   delay?: number;
@@ -32,16 +32,19 @@ const KoiFish = ({
   useEffect(() => {
     // Initialize swim Y position. Use provided yPosition as swim start if available,
     // otherwise start slightly off-screen at bottom.
-  // start from off-screen bottom so fishes swim bottom -> top
-  const swimStartY = height + 100;
-  // keep deltaX == deltaY for ~45deg but clamp so fish don't go offscreen
-  const rawEndY = swimStartY - (endX - startX);
-  // apply verticalShift to move the swim endpoint upward if requested
-  const swimEndY = Math.max(40, Math.min(height - 40, rawEndY - verticalShift));
+    // start from off-screen bottom so fishes swim bottom -> top
+    const swimStartY = height + 100;
+    // keep deltaX == deltaY for ~45deg but clamp so fish don't go offscreen
+    const rawEndY = swimStartY - (endX - startX);
+    // apply verticalShift to move the swim endpoint upward if requested
+    const swimEndY = Math.max(
+      40,
+      Math.min(height - 40, rawEndY - verticalShift)
+    );
     animatedSwimY.setValue(swimStartY);
 
     // Swim animation (bottom-left -> top-right -> back)
-     
+
     const swimAnimation = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
@@ -123,7 +126,7 @@ const KoiFish = ({
       ])
     );
 
-  swimAnimation.start();
+    swimAnimation.start();
     wagTail.start();
     floatAnimation.start();
 
@@ -136,19 +139,19 @@ const KoiFish = ({
 
   const rotate = animatedRotate.interpolate({
     inputRange: [-1, 1],
-    outputRange: ["-5deg", "5deg"],
+    outputRange: ['-5deg', '5deg'],
   });
 
   // rotate the GIF based on swim direction (animatedScale = 1 -> forward/up-right, -1 -> return)
   const gifRotate = animatedScale.interpolate({
     inputRange: [-1, 1],
-    outputRange: ["180deg", "90deg"],
+    outputRange: ['180deg', '90deg'],
   });
 
   return (
     <Animated.View
       style={{
-        position: "absolute",
+        position: 'absolute',
         top: 0,
         transform: [
           { translateX: animatedX },
@@ -162,8 +165,12 @@ const KoiFish = ({
     >
       {/* Use koi-fish.gif from assets as the fish sprite; rotate according to swim direction */}
       <Animated.Image
-        source={require("@/assets/videos/koi-fish-nobg.gif")}
-        style={{ width: size, height: size * 0.6, transform: [{ rotate: gifRotate }] }}
+        source={require('@/assets/videos/koi-fish-nobg.gif')}
+        style={{
+          width: size,
+          height: size * 0.6,
+          transform: [{ rotate: gifRotate }],
+        }}
         resizeMode="contain"
       />
     </Animated.View>
@@ -232,7 +239,7 @@ const Bubble = ({ delay = 0 }: { delay?: number }) => {
   return (
     <Animated.View
       style={{
-        position: "absolute",
+        position: 'absolute',
         left: randomX,
         transform: [{ translateY: animatedY }, { translateX: animatedX }],
         opacity: animatedOpacity,
@@ -243,9 +250,9 @@ const Bubble = ({ delay = 0 }: { delay?: number }) => {
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: "#E3F2FD",
+          backgroundColor: '#E3F2FD',
           borderWidth: 1,
-          borderColor: "#90CAF9",
+          borderColor: '#90CAF9',
         }}
       />
     </Animated.View>
@@ -254,12 +261,12 @@ const Bubble = ({ delay = 0 }: { delay?: number }) => {
 
 export default function AnimatedBackground() {
   return (
-    <View style={{ position: "absolute", inset: 0 }}>
+    <View style={{ position: 'absolute', inset: 0 }}>
       <View
         style={{
-          position: "absolute",
+          position: 'absolute',
           inset: 0,
-          backgroundColor: "rgba(59,130,246,0.06)",
+          backgroundColor: 'rgba(59,130,246,0.06)',
         }}
       />
       <KoiFish

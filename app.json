@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Ứng dụng cần truy cập camera để chụp ảnh cá Koi.",
+        "NSPhotoLibraryUsageDescription": "Ứng dụng cần truy cập thư viện ảnh để chọn ảnh cá Koi.",
+        "NSPhotoLibraryAddUsageDescription": "Ứng dụng cần quyền lưu ảnh vào thư viện."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -47,6 +52,13 @@
           "icon": "./assets/images/Logo_ZenKoi.png",
           "color": "#0A3D62",
           "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng cần truy cập thư viện ảnh để chọn ảnh cá Koi.",
+          "cameraPermission": "Ứng dụng cần truy cập camera để chụp ảnh cá Koi."
         }
       ]
     ],

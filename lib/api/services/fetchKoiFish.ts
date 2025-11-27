@@ -191,6 +191,33 @@ export interface KoiFishHealthResponse {
   result: KoiFishHealth[];
 }
 
+export interface KoiReID {
+  fishId: string;
+  numFramesExtracted: number;
+  numValidEmbeddings: number;
+  frameUrls: string[];
+  totalFishInGallery: number;
+  videoUrl: string;
+  extractedPublicId: string;
+  enrollmentId: number;
+  koiFishId: number;
+  enrolledAt: string;
+  enrolledBy: string;
+}
+
+export interface KoiReIDRequest {
+  koiFishId: number;
+  videoUrl: string;
+  override: boolean;
+}
+
+export interface KoiReIDResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiReID;
+}
+
 // Convert KoiFishSearchParams to RequestParams
 export const convertKoiFishFilter = (
   filters?: KoiFishSearchParams
@@ -301,6 +328,15 @@ export const koiFishServices = {
   ): Promise<KoiFishResponse> => {
     const response = await apiService.put<KoiFishResponse>(
       `/api/koifish/${id}/transfer/${pondId}`
+    );
+    return response.data;
+  },
+
+  // Enroll Koi Re-ID
+  enrollKoiReID: async (data: KoiReIDRequest): Promise<KoiReIDResponse> => {
+    const response = await apiService.post<KoiReIDResponse, KoiReIDRequest>(
+      '/api/koireid/enroll-from-video',
+      data
     );
     return response.data;
   },
