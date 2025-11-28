@@ -144,7 +144,7 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
             </Text>
           </View>
           <Text className="text-base text-gray-500">
-            {formatDate(item.createdAt, 'dd/MM/yyyy HH:mm')}
+            {formatDate(item.createdAt, 'HH:mm dd/MM/yyyy')}
           </Text>
         </View>
 

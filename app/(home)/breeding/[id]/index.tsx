@@ -38,7 +38,6 @@ import {
   ChevronRight,
   Edit,
   Egg,
-  Fish,
   Package,
   Plus,
   Trash2,
@@ -1248,10 +1247,10 @@ export default function BreedingDetailScreen() {
               >
                 <View className="mt-2 rounded-2xl bg-teal-50 p-3">
                   <View className="mb-3 flex-row items-center justify-between">
-                    <Text className="text-sm font-medium text-gray-900">
+                    <Text className="text-base font-medium text-gray-900">
                       Kết quả tổng quan
                     </Text>
-                    <View className="flex-row gap-2">
+                    <View className="flex-row gap-1">
                       <TouchableOpacity
                         onPress={async () => {
                           try {
@@ -1269,19 +1268,19 @@ export default function BreedingDetailScreen() {
                           }
                           setShowCreatePacketModal(true);
                         }}
-                        className="flex-row items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5"
+                        className="flex-row items-center gap-1 rounded-2xl bg-blue-500 px-3 py-1.5"
                       >
                         {hasPondPacket ? (
                           <>
-                            <Edit size={14} color="#fff" />
-                            <Text className="text-xs font-semibold text-white">
+                            <Edit size={16} color="#fff" />
+                            <Text className="text-sm font-semibold text-white">
                               Sửa lô
                             </Text>
                           </>
                         ) : (
                           <>
-                            <Plus size={14} color="#fff" />
-                            <Text className="text-xs font-semibold text-white">
+                            <Plus size={16} color="#fff" />
+                            <Text className="text-sm font-semibold text-white">
                               Tạo lô
                             </Text>
                           </>
@@ -1293,10 +1292,10 @@ export default function BreedingDetailScreen() {
                             `/breeding/${breedingId}/fish-list?redirect=/breeding/${breedingId}`
                           )
                         }
-                        className="flex-row items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5"
+                        className="flex-row items-center gap-1 rounded-2xl bg-green-600 px-3 py-1.5"
                       >
-                        <Fish size={14} color="#fff" />
-                        <Text className="text-xs font-semibold text-white">
+                        <FishSvg size={16} color="#fff" />
+                        <Text className="text-sm font-semibold text-white">
                           Danh sách
                         </Text>
                       </TouchableOpacity>
