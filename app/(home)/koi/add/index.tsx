@@ -3,10 +3,10 @@ import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
-import { useCreateKoiFish } from '@/hooks/useKoiFish';
+import { useCreateKoiFish, useEnrollKoiReID } from '@/hooks/useKoiFish';
 import { useGetPatternByVarietyId } from '@/hooks/usePattern';
 import { useGetPonds } from '@/hooks/usePond';
-import { useUploadImage } from '@/hooks/useUpload';
+import { useUploadImage, useUploadVideo } from '@/hooks/useUpload';
 import { useGetVarieties } from '@/hooks/useVariety';
 import type { KoiFishRequest } from '@/lib/api/services/fetchKoiFish';
 import {
@@ -20,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import {
   Biohazard,
   Blend,
@@ -89,9 +90,11 @@ export default function AddKoiPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
   const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showVideoOptions, setShowVideoOptions] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sizeText, setSizeText] = useState('');
+  const [videoThumbnails, setVideoThumbnails] = useState<string[]>([]);
 
   const [customAlertVisible, setCustomAlertVisible] = useState(false);
   const [customAlertTitle, setCustomAlertTitle] = useState('');
@@ -260,9 +263,25 @@ export default function AddKoiPage() {
   })();
 
   const createKoi = useCreateKoiFish();
-  const isSaving =
-    (createKoi as any).isLoading || (createKoi as any).isMutating || false;
+  const enrollKoiReID = useEnrollKoiReID();
+  const isSaving = createKoi.isPending || enrollKoiReID.isPending;
   const uploadImage = useUploadImage();
+  const uploadVideo = useUploadVideo();
+
+  const generateVideoThumbnail = async (
+    videoUri: string
+  ): Promise<string | null> => {
+    try {
+      const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+        time: 1000, // Get thumbnail at 1 second
+        quality: 0.5, // Medium quality
+      });
+      return uri;
+    } catch (error) {
+      console.warn('Failed to generate video thumbnail:', error);
+      return null;
+    }
+  };
 
   const pickImageFromLibrary = async () => {
     if ((formData.images ?? []).length >= 6) {
@@ -342,6 +361,172 @@ export default function AddKoiPage() {
       showCustomAlert({
         title: 'Lỗi',
         message: 'Không thể chọn ảnh. Thử lại sau.',
+        type: 'danger',
+      });
+    }
+  };
+
+  const pickVideoFromLibrary = async () => {
+    if ((formData.videos ?? []).length >= 1) {
+      showCustomAlert({
+        title: 'Giới hạn',
+        message: 'Bạn chỉ có thể tải lên tối đa 1 video.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showCustomAlert({
+        title: 'Quyền truy cập bị từ chối',
+        message: 'Vui lòng cho phép truy cập thư viện để chọn video',
+        type: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+      });
+      if ((result as any).canceled) return;
+      const uri = (result as any).assets?.[0]?.uri;
+      if (!uri) return;
+
+      const filename = uri.split('/').pop() || `video.mp4`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `video/${match[1]}` : 'video';
+      const fileForUpload: any = { uri, name: filename, type };
+
+      setIsUploading(true);
+      try {
+        const res = await uploadVideo.mutateAsync({ file: fileForUpload });
+        const remoteUrl = res?.result?.url;
+        if (!remoteUrl) throw new Error('Không nhận được URL từ server');
+
+        const existing = formData.videos ?? [];
+        // ensure only one video is kept
+        if (existing.length < 1) {
+          setFormData({ ...formData, videos: [...existing, remoteUrl] });
+        } else {
+          setFormData({ ...formData, videos: [remoteUrl] });
+        }
+        setErrors((prev) => {
+          const copy = { ...prev };
+          delete copy.videos;
+          return copy;
+        });
+
+        // Generate thumbnail for the uploaded video
+        try {
+          const thumbnailUri = await generateVideoThumbnail(remoteUrl);
+          if (thumbnailUri) {
+            setVideoThumbnails([thumbnailUri]);
+          }
+        } catch (thumbErr) {
+          console.warn('Failed to generate video thumbnail', thumbErr);
+          // Still allow the video to be added without thumbnail
+        }
+      } catch (err) {
+        console.warn('upload video error', err);
+        showCustomAlert({
+          title: 'Lỗi',
+          message: 'Không thể tải video lên. Vui lòng thử lại.',
+          type: 'danger',
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    } catch (err) {
+      console.warn('pickVideoFromLibrary error', err);
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không thể chọn video. Thử lại sau.',
+        type: 'danger',
+      });
+    }
+  };
+
+  const recordVideo = async () => {
+    if ((formData.videos ?? []).length >= 1) {
+      showCustomAlert({
+        title: 'Giới hạn',
+        message: 'Bạn chỉ có thể tải lên tối đa 1 video.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const { status: camStatus } =
+      await ImagePicker.requestCameraPermissionsAsync();
+    if (camStatus !== 'granted') {
+      showCustomAlert({
+        title: 'Quyền truy cập bị từ chối',
+        message: 'Vui lòng cho phép truy cập camera để quay video',
+        type: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      });
+      if ((result as any).canceled) return;
+      const uri = (result as any).assets?.[0]?.uri;
+      if (!uri) return;
+
+      const filename = uri.split('/').pop() || `video.mp4`;
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `video/${match[1]}` : 'video';
+      const fileForUpload: any = { uri, name: filename, type };
+
+      setIsUploading(true);
+      try {
+        const res = await uploadVideo.mutateAsync({ file: fileForUpload });
+        const remoteUrl = res?.result?.url;
+        if (!remoteUrl) throw new Error('Không nhận được URL từ server');
+
+        const existing = formData.videos ?? [];
+        // ensure only one video is kept
+        if (existing.length < 1) {
+          setFormData({ ...formData, videos: [...existing, remoteUrl] });
+        } else {
+          setFormData({ ...formData, videos: [remoteUrl] });
+        }
+        setErrors((prev) => {
+          const copy = { ...prev };
+          delete copy.videos;
+          return copy;
+        });
+
+        // Generate thumbnail for the uploaded video
+        try {
+          const thumbnailUri = await generateVideoThumbnail(remoteUrl);
+          if (thumbnailUri) {
+            setVideoThumbnails([thumbnailUri]);
+          }
+        } catch (thumbErr) {
+          console.warn('Failed to generate video thumbnail', thumbErr);
+          // Still allow the video to be added without thumbnail
+        }
+      } catch (err) {
+        console.warn('record video upload error', err);
+        showCustomAlert({
+          title: 'Lỗi',
+          message: 'Không thể tải video lên. Vui lòng thử lại.',
+          type: 'danger',
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    } catch (err) {
+      console.warn('recordVideo error', err);
+      showCustomAlert({
+        title: 'Lỗi',
+        message: 'Không thể quay video. Thử lại sau.',
         type: 'danger',
       });
     }
@@ -444,6 +629,8 @@ export default function AddKoiPage() {
       nextErrors.healthStatus = 'Vui lòng chọn tình trạng sức khỏe';
     if (!formData.images || formData.images.length === 0)
       nextErrors.images = 'Vui lòng thêm ít nhất 1 ảnh';
+    if (!formData.videos || formData.videos.length === 0)
+      nextErrors.videos = 'Vui lòng thêm ít nhất 1 video';
     if (!formData.sellingPrice || Number(formData.sellingPrice) <= 0)
       nextErrors.sellingPrice = 'Vui lòng nhập giá bán > 0';
     if (!formData.description.trim())
@@ -455,6 +642,9 @@ export default function AddKoiPage() {
     setErrors(nextErrors);
     if (nextErrors.images) {
       Toast.show({ type: 'error', text1: nextErrors.images, position: 'top' });
+    }
+    if (nextErrors.videos) {
+      Toast.show({ type: 'error', text1: nextErrors.videos, position: 'top' });
     }
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -480,8 +670,26 @@ export default function AddKoiPage() {
     };
 
     createKoi.mutate(payload, {
-      onSuccess: () => {
-        router.replace({ pathname: redirect ?? '/koi' } as any);
+      onSuccess: (createdKoi) => {
+        if (formData.videos && formData.videos.length > 0) {
+          enrollKoiReID.mutate(
+            {
+              koiFishId: createdKoi.id,
+              videoUrl: formData.videos[0],
+              override: true,
+            },
+            {
+              onSuccess: () => {
+                router.replace({ pathname: redirect ?? '/koi' } as any);
+              },
+              onError: (err) => {
+                console.error('Failed to enroll Koi ReID video: ', err);
+              },
+            }
+          );
+        } else {
+          router.replace({ pathname: redirect ?? '/koi' } as any);
+        }
       },
     });
   };
@@ -623,7 +831,8 @@ export default function AddKoiPage() {
                       className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
                       onPress={() => {
                         setShowImageOptions(false);
-                        pickImageFromLibrary();
+                        // Delay picker until modal is hidden to avoid iOS animation/permission conflicts
+                        setTimeout(() => pickImageFromLibrary(), 250);
                       }}
                     >
                       <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
@@ -638,7 +847,8 @@ export default function AddKoiPage() {
                       className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
                       onPress={() => {
                         setShowImageOptions(false);
-                        takePhoto();
+                        // Delay camera until modal is hidden to avoid iOS animation/permission conflicts
+                        setTimeout(() => takePhoto(), 250);
                       }}
                     >
                       <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-purple-100">
@@ -664,6 +874,149 @@ export default function AddKoiPage() {
           </View>
         </View>
 
+        {/* Videos Section */}
+        <View className="mb-4">
+          <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
+            Video cá Koi
+          </Text>
+
+          <View className="rounded-2xl border border-gray-200 bg-white p-4">
+            <View className="-m-2 flex-row flex-wrap">
+              {/* Videos list */}
+              {(formData.videos || []).map((url, idx) => (
+                <View key={`v-${idx}`} className="p-2" style={{ width: '50%' }}>
+                  <View className="relative">
+                    {videoThumbnails[idx] ? (
+                      <Image
+                        source={{ uri: videoThumbnails[idx] }}
+                        className="h-40 w-full rounded-2xl"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="h-40 w-full items-center justify-center rounded-2xl border border-gray-200 bg-gray-100">
+                        <Text className="text-sm text-gray-700">
+                          Video {idx + 1}
+                        </Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => {
+                        const newVideos = (formData.videos || []).filter(
+                          (_, i) => i !== idx
+                        );
+                        const newThumbnails = videoThumbnails.filter(
+                          (_, i) => i !== idx
+                        );
+                        setFormData({
+                          ...formData,
+                          videos: newVideos,
+                        });
+                        setVideoThumbnails(newThumbnails);
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.videos;
+                          return copy;
+                        });
+                      }}
+                      className="absolute right-2 top-2 rounded-full bg-white p-1.5"
+                      style={{ elevation: 2 }}
+                    >
+                      <X size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+              {/* Add video button */}
+              {(formData.videos ?? []).length < 1 && (
+                <View className="p-2" style={{ width: '50%' }}>
+                  <TouchableOpacity
+                    className="h-40 w-full items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50"
+                    onPress={() => {
+                      if ((formData.videos ?? []).length >= 1) {
+                        showCustomAlert({
+                          title: 'Giới hạn',
+                          message: 'Bạn chỉ có thể tải lên tối đa 1 video.',
+                          type: 'warning',
+                        });
+                        return;
+                      }
+                      setShowVideoOptions(true);
+                    }}
+                  >
+                    <ImageIcon size={24} color="#9ca3af" />
+                    <Text className="mt-2 text-sm font-medium text-gray-600">
+                      Thêm video
+                    </Text>
+                    <Text className="mt-0.5 text-xs text-gray-400">
+                      {(formData.videos ?? []).length}/1
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            {errors.videos && (
+              <Text className="mt-2 text-sm text-red-500">{errors.videos}</Text>
+            )}
+            <Modal
+              visible={showVideoOptions}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowVideoOptions(false)}
+            >
+              <View className="flex-1 items-center justify-center bg-black/50 px-4">
+                <View className="w-full max-w-sm overflow-hidden rounded-2xl bg-white">
+                  <View className="border-b border-gray-200 p-4">
+                    <Text className="text-center text-lg font-semibold text-gray-900">
+                      Chọn video
+                    </Text>
+                  </View>
+
+                  <View className="p-4">
+                    <TouchableOpacity
+                      className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
+                      onPress={() => {
+                        setShowVideoOptions(false);
+                        setTimeout(() => pickVideoFromLibrary(), 250);
+                      }}
+                    >
+                      <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                        <ImageIcon size={20} color="#3b82f6" />
+                      </View>
+                      <Text className="text-base font-medium text-gray-900">
+                        Chọn từ thư viện
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="mb-3 flex-row items-center rounded-2xl border border-gray-200 bg-white p-4"
+                      onPress={() => {
+                        setShowVideoOptions(false);
+                        setTimeout(() => recordVideo(), 250);
+                      }}
+                    >
+                      <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-purple-100">
+                        <Camera size={20} color="#a855f7" />
+                      </View>
+                      <Text className="text-base font-medium text-gray-900">
+                        Quay video
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="rounded-2xl bg-gray-100 py-3"
+                      onPress={() => setShowVideoOptions(false)}
+                    >
+                      <Text className="text-center text-base font-medium text-gray-700">
+                        Hủy
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          </View>
+        </View>
         {/* Basic Info Section */}
         <View className="mb-4">
           <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
@@ -1334,20 +1687,10 @@ export default function AddKoiPage() {
                 onPress={() => {
                   if (!isSaving) handleSave();
                 }}
-                accessibilityState={{ busy: isSaving }}
+                disabled={isSaving}
+                accessibilityState={{ busy: isSaving, disabled: isSaving }}
               >
-                {isSaving ? (
-                  <View className="flex-row items-center justify-center">
-                    <ActivityIndicator size="small" color="#ffffff" />
-                    <Text className="ml-2 text-center font-medium text-white">
-                      Đang lưu...
-                    </Text>
-                  </View>
-                ) : (
-                  <Text className="text-center font-medium text-white">
-                    Lưu
-                  </Text>
-                )}
+                <Text className="text-center font-medium text-white">Lưu</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1359,10 +1702,20 @@ export default function AddKoiPage() {
         <View className="absolute inset-0 items-center justify-center bg-black/40">
           <View className="items-center rounded-lg bg-white p-4">
             <ActivityIndicator size="large" color="#0A3D62" />
-            <Text className="mt-2 font-medium">Đang tải ảnh lên...</Text>
+            <Text className="mt-2 font-medium">Đang tải lên...</Text>
           </View>
         </View>
       )}
+
+      {isSaving && (
+        <View className="absolute inset-0 items-center justify-center bg-black/40">
+          <View className="items-center rounded-lg bg-white p-4">
+            <ActivityIndicator size="large" color="#0A3D62" />
+            <Text className="mt-2 font-medium">Đang lưu...</Text>
+          </View>
+        </View>
+      )}
+
       <CustomAlert
         visible={customAlertVisible}
         title={customAlertTitle}

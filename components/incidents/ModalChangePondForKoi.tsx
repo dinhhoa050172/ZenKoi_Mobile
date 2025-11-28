@@ -48,17 +48,10 @@ export default function ModalChangePondForKoi({
 
   // API hooks
   const { data: ponds, isLoading: pondsLoading } = useGetPonds(
-    { status: PondStatus.ACTIVE },
+    { available: true, pageIndex: 1, pageSize: 100 },
     visible
   );
   const changeKoiFishPondMutation = useChangeKoiFishPond();
-
-  // Filter out current pond and only show active ponds
-  const availablePonds =
-    ponds?.data?.filter(
-      (pond: Pond) =>
-        pond.id !== koi?.pond?.id && pond.pondStatus === PondStatus.ACTIVE
-    ) || [];
 
   const handleChangePond = async () => {
     if (!koi || !selectedPondId) return;
@@ -173,7 +166,7 @@ export default function ModalChangePondForKoi({
         {/* Pond List */}
         <View className="mx-6 mt-4 flex-1">
           <Text className="mb-4 text-lg font-bold text-gray-900">
-            Chọn ao mới ({availablePonds.length} ao khả dụng)
+            Chọn ao mới ({ponds?.data?.length || 0} ao khả dụng)
           </Text>
 
           <ScrollView
@@ -184,7 +177,7 @@ export default function ModalChangePondForKoi({
               <View className="py-20">
                 <Loading />
               </View>
-            ) : availablePonds.length === 0 ? (
+            ) : ponds?.data?.length === 0 ? (
               <View className="items-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-12">
                 <PondSvg size={48} color="#9ca3af" />
                 <Text className="mt-3 text-base font-medium text-gray-500">
@@ -196,7 +189,7 @@ export default function ModalChangePondForKoi({
               </View>
             ) : (
               <View className="gap-3 pb-4">
-                {availablePonds.map((pond: Pond) => {
+                {ponds?.data?.map((pond: Pond) => {
                   const statusInfo = getPondStatusInfo(pond.pondStatus);
                   const isSelected = selectedPondId === pond.id;
 

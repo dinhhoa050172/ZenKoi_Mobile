@@ -97,6 +97,7 @@ export interface KoiFish {
   mutationRate: number;
   createdAt: string;
   updatedAt: string | null;
+  isFavorited: boolean;
   pond: {
     id: number;
     pondName: string;
@@ -218,6 +219,33 @@ export interface KoiReIDResponse {
   result: KoiReID;
 }
 
+export interface TopPrediction {
+  fishId: string;
+  distance: number;
+  similarity: number;
+  koiFish: KoiFish;
+}
+
+export interface KoiReIDIdentifyResult {
+  id: number;
+  koiFish: KoiFish;
+  imageUrl: string;
+  identifiedAs: string;
+  confidence: number;
+  distance: number;
+  isUnknown: boolean;
+  topPredictions: TopPrediction[];
+  createdAt: string;
+  createdByName: string;
+}
+
+export interface KoiReIDIdentifyResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiReIDIdentifyResult;
+}
+
 // Convert KoiFishSearchParams to RequestParams
 export const convertKoiFishFilter = (
   filters?: KoiFishSearchParams
@@ -337,6 +365,19 @@ export const koiFishServices = {
     const response = await apiService.post<KoiReIDResponse, KoiReIDRequest>(
       '/api/koireid/enroll-from-video',
       data
+    );
+    return response.data;
+  },
+
+  // Identify Koi Re-ID
+  identifyKoiReID: async (
+    imageUrl: string
+  ): Promise<KoiReIDIdentifyResponse> => {
+    const response = await apiService.post<KoiReIDIdentifyResponse>(
+      '/api/koireid/identify',
+      {
+        imageUrl,
+      }
     );
     return response.data;
   },

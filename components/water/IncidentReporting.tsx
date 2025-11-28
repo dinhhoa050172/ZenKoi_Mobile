@@ -1,11 +1,9 @@
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Plus,
-} from 'lucide-react-native';
+import { useGetIncidents } from '@/hooks/useIncident';
+import { formatDate } from '@/lib/utils/formatDate';
+import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   ScrollView,
   Text,
@@ -15,15 +13,6 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import ContextMenuField from '../ContextMenuField';
-
-interface Incident {
-  id: string;
-  type: string;
-  description: string;
-  fishCount?: number;
-  time: string;
-  severity: 'low' | 'medium' | 'high';
-}
 
 interface IncidentReportingProps {
   pondId: number;
@@ -42,6 +31,9 @@ export default function IncidentReporting({
   const [fishCount, setFishCount] = useState('');
   const [showAll, setShowAll] = useState(false);
 
+  const incidentsQuery = useGetIncidents(true, { PondId: pondId });
+  const incidents = incidentsQuery.data?.data ?? [];
+
   const incidentTypeOptions = [
     { label: 'Cá chết', value: 'Cá chết' },
     { label: 'Cá bệnh', value: 'Cá bệnh' },
@@ -50,46 +42,7 @@ export default function IncidentReporting({
     { label: 'Khác', value: 'Khác' },
   ];
 
-  // Mock data for incident history
-  const incidentHistory: Incident[] = [
-    {
-      id: '1',
-      type: 'Cá chết',
-      description: '2 cá Koi chết, nghi do nhiễm bệnh',
-      fishCount: 2,
-      time: '3 giờ trước',
-      severity: 'high',
-    },
-    {
-      id: '2',
-      type: 'Chất lượng nước xấu',
-      description: 'Ammonia vượt ngưỡng cho phép',
-      time: '1 ngày trước',
-      severity: 'medium',
-    },
-    {
-      id: '3',
-      type: 'Thiết bị hỏng',
-      description: 'Máy bơm nước bị hỏng, cần thay mới',
-      time: '2 ngày trước',
-      severity: 'medium',
-    },
-    {
-      id: '4',
-      type: 'Cá bệnh',
-      description: '5 cá có dấu hiệu bệnh nấm trắng',
-      fishCount: 5,
-      time: '3 ngày trước',
-      severity: 'high',
-    },
-    {
-      id: '5',
-      type: 'Chất lượng nước xấu',
-      description: 'pH giảm xuống 6.0, đã xử lý',
-      time: '5 ngày trước',
-      severity: 'low',
-    },
-  ];
+  // Use incidents from API (fetched via useGetIncidents)
 
   const handleSubmitIncident = () => {
     if (!incidentDescription.trim()) {
@@ -161,9 +114,7 @@ export default function IncidentReporting({
     }
   };
 
-  const displayedIncidents = showAll
-    ? incidentHistory
-    : incidentHistory.slice(0, 3);
+  const displayedIncidents = showAll ? incidents : incidents.slice(0, 3);
 
   return (
     <View className="mb-4 rounded-2xl bg-white shadow-sm">
@@ -172,7 +123,7 @@ export default function IncidentReporting({
         className="flex-row items-center justify-between p-4"
       >
         <Text className="text-lg font-semibold text-gray-900">
-          Báo cáo sự cố
+          Sự cố gần đây
         </Text>
         {isExpanded ? (
           <ChevronUp size={20} color="#6b7280" />
@@ -183,69 +134,101 @@ export default function IncidentReporting({
 
       {isExpanded && (
         <View className="px-4 pb-4">
-          <TouchableOpacity
-            onPress={() => setIsModalVisible(true)}
-            className="flex-row items-center justify-center rounded-2xl bg-red-500 py-3"
-          >
-            <Plus size={16} color="white" />
-            <Text className="ml-2 font-medium text-white">
-              Báo cáo sự cố mới
-            </Text>
-          </TouchableOpacity>
+          {/* New incident button removed - using API data instead */}
 
           {/* Recent Incidents */}
           <View className="mt-3">
-            <Text className="mb-3 font-medium text-gray-900">
-              Sự cố gần đây
-            </Text>
-            {displayedIncidents.map((incident) => {
-              const colors = getSeverityColor(incident.severity);
-              return (
-                <View
-                  key={incident.id}
-                  className={`mb-3 flex-row items-start rounded-2xl border ${colors.border} ${colors.bg} p-3`}
-                >
-                  <AlertTriangle
-                    size={16}
-                    color={colors.icon}
-                    className="mr-2 mt-1"
-                  />
-                  <View className="ml-2 flex-1">
-                    <Text className={`font-medium ${colors.text}`}>
-                      {incident.type}
-                      {incident.fishCount && ` (${incident.fishCount} con)`}
-                    </Text>
-                    <Text className={`text-sm ${colors.subtext}`}>
-                      {incident.description}
-                    </Text>
-                  </View>
-                  <Text className={`mt-1 text-xs ${colors.subtext}`}>
-                    {incident.time}
-                  </Text>
-                </View>
-              );
-            })}
-
-            {!showAll && incidentHistory.length > 3 && (
-              <TouchableOpacity
-                onPress={() => setShowAll(true)}
-                className="py-2"
-              >
-                <Text className="text-center font-medium text-blue-500">
-                  Xem tất cả sự cố
+            {incidentsQuery.isFetching ? (
+              <View className="h-40 items-center justify-center">
+                <ActivityIndicator size="small" color="#0A3D62" />
+                <Text className="mt-2 text-sm text-gray-500">
+                  Đang tải sự cố...
                 </Text>
-              </TouchableOpacity>
-            )}
-
-            {showAll && (
-              <TouchableOpacity
-                onPress={() => setShowAll(false)}
-                className="py-2"
-              >
-                <Text className="text-center font-medium text-blue-500">
-                  Thu gọn
+              </View>
+            ) : incidentsQuery.isError ? (
+              <View className="h-40 items-center justify-center">
+                <Text className="text-sm text-red-600">
+                  Không thể tải dữ liệu sự cố.
                 </Text>
-              </TouchableOpacity>
+                <Text className="mt-1 text-xs text-gray-500">
+                  {String((incidentsQuery.error as any)?.message ?? '')}
+                </Text>
+              </View>
+            ) : incidents.length === 0 ? (
+              <View className="h-40 items-center justify-center">
+                <AlertTriangle size={36} color="#9ca3af" />
+                <Text className="mt-2 text-sm text-gray-500">
+                  Hiện chưa có sự cố
+                </Text>
+              </View>
+            ) : (
+              <>
+                {displayedIncidents.map((incident: any) => {
+                  const rawSeverity = String(
+                    incident.severity ?? ''
+                  ).toLowerCase();
+                  const severityKey =
+                    rawSeverity === 'urgent' ? 'high' : rawSeverity;
+                  const colors = getSeverityColor(severityKey);
+
+                  const incidentType =
+                    incident.incidentTypeName ||
+                    incident.incidentTitle ||
+                    'Sự cố';
+                  const description = incident.description || '-';
+                  const fishCount = incident.koiIncidents
+                    ? incident.koiIncidents.length
+                    : 0;
+                  const time = incident.occurredAt || incident.createdAt || '';
+
+                  return (
+                    <View
+                      key={String(incident.id)}
+                      className={`mb-3 flex-row items-start rounded-2xl border ${colors.border} ${colors.bg} p-3`}
+                    >
+                      <AlertTriangle
+                        size={16}
+                        color={colors.icon}
+                        className="mr-2 mt-1"
+                      />
+                      <View className="ml-2 flex-1">
+                        <Text className={`font-medium ${colors.text}`}>
+                          {incidentType}
+                          {fishCount > 0 && ` (${fishCount} con)`}
+                        </Text>
+                        <Text className={`text-sm ${colors.subtext}`}>
+                          {description}
+                        </Text>
+                      </View>
+                      <Text className={`mt-1 text-xs ${colors.subtext}`}>
+                        {formatDate(time, 'HH:mm dd/MM/yyyy')}
+                      </Text>
+                    </View>
+                  );
+                })}
+
+                {!showAll && incidents.length > 3 && (
+                  <TouchableOpacity
+                    onPress={() => setShowAll(true)}
+                    className="py-2"
+                  >
+                    <Text className="text-center font-medium text-blue-500">
+                      Xem tất cả sự cố
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {showAll && (
+                  <TouchableOpacity
+                    onPress={() => setShowAll(false)}
+                    className="py-2"
+                  >
+                    <Text className="text-center font-medium text-blue-500">
+                      Thu gọn
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         </View>

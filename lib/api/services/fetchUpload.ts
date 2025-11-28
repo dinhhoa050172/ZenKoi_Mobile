@@ -14,8 +14,15 @@ export interface Video {
   originalFilename: string;
 }
 
+// React Native file format for upload
+export interface RNFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
 export interface UploadRequest {
-  file: File;
+  file: File | RNFile;
 }
 
 export interface ImageResponse {
@@ -35,12 +42,11 @@ export interface VideoResponse {
 export const uploadServices = {
   // Upload a image
   uploadImage: async (request: UploadRequest): Promise<ImageResponse> => {
-    const formdata = new FormData();
-    formdata.append('file', request.file);
-
-    const response = await apiClient.post<ImageResponse, FormData>(
+    // Use the upload method which is designed for file uploads in React Native
+    const response = await apiClient.upload<ImageResponse>(
       '/api/upload/upload-image',
-      formdata
+      request.file as RNFile,
+      'file'
     );
 
     // Convert HTTP to HTTPS for Cloudinary URLs
@@ -56,12 +62,12 @@ export const uploadServices = {
 
   // Upload a video
   uploadVideo: async (request: UploadRequest): Promise<VideoResponse> => {
-    const formdata = new FormData();
-    formdata.append('file', request.file);
-
-    const response = await apiClient.post<VideoResponse, FormData>(
-      '/api/upload/upload-video',
-      formdata
+    // Use the upload method which is designed for file uploads in React Native
+    // This handles FormData properly and supports progress tracking
+    const response = await apiClient.upload<VideoResponse>(
+      '/api/upload/upload-file',
+      request.file as RNFile,
+      'file'
     );
 
     return response.data;

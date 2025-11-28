@@ -6,6 +6,7 @@ import {
   KoiFishRequest,
   KoiFishSearchParams,
   KoiReID,
+  KoiReIDIdentifyResult,
   KoiReIDRequest,
   koiFishServices,
 } from '@/lib/api/services/fetchKoiFish';
@@ -340,6 +341,35 @@ export function useEnrollKoiReID() {
       Toast.show({
         type: 'error',
         text1: 'Đăng ký Re-ID thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to identify Koi Re-ID
+ */
+export function useIdentifyKoiReID() {
+  return useMutation({
+    mutationFn: async (imageUrl: string): Promise<KoiReIDIdentifyResult> => {
+      const resp = await koiFishServices.identifyKoiReID(imageUrl);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể nhận diện cá');
+      return resp.result;
+    },
+    onSuccess: () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Nhận diện thành công',
+        position: 'top',
+      });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Nhận diện thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });
