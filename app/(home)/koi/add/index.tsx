@@ -637,7 +637,7 @@ export default function AddKoiPage() {
       nextErrors.description = 'Vui lòng nhập giới thiệu';
 
     if (formData.isMutated && !formData.mutationDescription)
-      nextErrors.mutationDescription = 'Vui lòng chọn loại đột biến';
+      nextErrors.mutationDescription = 'Vui lòng nhập loại đột biến';
 
     setErrors(nextErrors);
     if (nextErrors.images) {
@@ -1399,11 +1399,6 @@ export default function AddKoiPage() {
                       ios_backgroundColor="#e5e7eb"
                     />
                   </View>
-                  {errors.mutationDescription && (
-                    <Text className="mt-1 text-sm text-red-500">
-                      {errors.mutationDescription}
-                    </Text>
-                  )}
                 </View>
               </View>
             </View>
