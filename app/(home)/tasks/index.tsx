@@ -204,10 +204,10 @@ export default function TasksScreen() {
     } else {
       setCustomAlertTitle('Thông báo');
       setCustomAlertMessage(
-        `Nhiệm vụ này đã ${
+        `Nhiệm vụ này ${
           task.status === WorkScheduleStatus.COMPLETED
-            ? 'hoàn thành'
-            : 'được xử lý'
+            ? 'đã hoàn thành'
+            : 'chưa hoàn thành'
         }.`
       );
       setCustomAlertType('info');
