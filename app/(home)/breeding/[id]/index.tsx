@@ -11,6 +11,7 @@ import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import {
   useGetBreedingProcessDetailById,
+  useGetKoiFishByBreedingProcessId,
   useMarkBreedingProcessAsSpawned,
 } from '@/hooks/useBreedingProcess';
 import { useDeleteClassificationRecord } from '@/hooks/useClassificationRecord';
@@ -125,8 +126,14 @@ export default function BreedingDetailScreen() {
     { breedingProcessId: breedingId, pageIndex: 1, pageSize: 1 },
     !!breedingId
   );
-
   const hasPondPacket = (pondPacketQuery.data?.data ?? []).length > 0;
+  const koiFishQuery = useGetKoiFishByBreedingProcessId(
+    breedingId,
+    !!breedingId
+  );
+  const hasKoiFish = koiFishQuery.data && koiFishQuery.data.length > 0;
+
+  const canEditClassification = !hasKoiFish;
 
   useFocusEffect(
     useCallback(() => {
@@ -970,7 +977,8 @@ export default function BreedingDetailScreen() {
                     />
                   }
                   actionButton={
-                    breedingDetail.status === BreedingStatus.CLASSIFICATION ? (
+                    breedingDetail.status === BreedingStatus.CLASSIFICATION &&
+                    canEditClassification ? (
                       <TouchableOpacity
                         onPress={() => {
                           if (
@@ -1092,11 +1100,12 @@ export default function BreedingDetailScreen() {
                                 Cull
                               </Text>
                               {breedingDetail.status ===
-                                BreedingStatus.CLASSIFICATION && (
-                                <Text className="w-16 text-center text-sm font-semibold text-gray-700">
-                                  Thao tác
-                                </Text>
-                              )}
+                                BreedingStatus.CLASSIFICATION &&
+                                canEditClassification && (
+                                  <Text className="w-16 text-center text-sm font-semibold text-gray-700">
+                                    Thao tác
+                                  </Text>
+                                )}
                             </View>
 
                             {breedingDetail.classificationStage.classificationRecords.map(
@@ -1127,60 +1136,64 @@ export default function BreedingDetailScreen() {
                                   <Text className="flex-1 text-center text-sm text-gray-900">
                                     {record.cullQualifiedCount || 0}
                                   </Text>
-                                  {idx ===
-                                    (breedingDetail.classificationStage
-                                      ?.classificationRecords?.length ?? 0) -
-                                      1 &&
-                                  breedingDetail.status ===
-                                    BreedingStatus.CLASSIFICATION ? (
-                                    <View className="w-16 flex-row items-center justify-center gap-1">
-                                      <TouchableOpacity
-                                        onPress={() => {
-                                          setEditingClassificationRecord(
-                                            record
-                                          );
-                                          setEditingClassificationRecordIndex(
-                                            idx
-                                          );
-                                          setShowEditClassificationModal(true);
-                                        }}
-                                        className="p-1"
-                                      >
-                                        <Edit size={18} color="#3b82f6" />
-                                      </TouchableOpacity>
-                                      <TouchableOpacity
-                                        onPress={() => {
-                                          setDeleteAlert({
-                                            visible: true,
-                                            type: 'classification',
-                                            recordId: record.id,
-                                            message:
-                                              'Bạn có chắc chắn muốn xóa bản ghi tuyển chọn này?',
-                                          });
-                                        }}
-                                        className="p-1"
-                                        disabled={
-                                          deleteClassificationMutation.status ===
-                                          'pending'
-                                        }
-                                      >
-                                        <Trash2
-                                          size={18}
-                                          color={
+                                  {breedingDetail.status ===
+                                    BreedingStatus.CLASSIFICATION &&
+                                    canEditClassification && (
+                                      <View className="w-16 flex-row items-center justify-center gap-1">
+                                        <TouchableOpacity
+                                          onPress={() => {
+                                            setEditingClassificationRecord(
+                                              record
+                                            );
+                                            setEditingClassificationRecordIndex(
+                                              idx
+                                            );
+                                            setShowEditClassificationModal(
+                                              true
+                                            );
+                                          }}
+                                          className="p-1"
+                                          disabled={hasPondPacket && idx <= 2}
+                                        >
+                                          <Edit
+                                            size={18}
+                                            color={
+                                              hasPondPacket && idx <= 2
+                                                ? '#9ca3af'
+                                                : '#3b82f6'
+                                            }
+                                          />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                          onPress={() => {
+                                            setDeleteAlert({
+                                              visible: true,
+                                              type: 'classification',
+                                              recordId: record.id,
+                                              message:
+                                                'Bạn có chắc chắn muốn xóa bản ghi tuyển chọn này?',
+                                            });
+                                          }}
+                                          className="p-1"
+                                          disabled={
                                             deleteClassificationMutation.status ===
-                                            'pending'
-                                              ? '#9ca3af'
-                                              : '#ef4444'
+                                              'pending' ||
+                                            (hasPondPacket && idx <= 2)
                                           }
-                                        />
-                                      </TouchableOpacity>
-                                    </View>
-                                  ) : (
-                                    breedingDetail.status ===
-                                      BreedingStatus.CLASSIFICATION && (
-                                      <View className="w-16" />
-                                    )
-                                  )}
+                                        >
+                                          <Trash2
+                                            size={18}
+                                            color={
+                                              deleteClassificationMutation.status ===
+                                                'pending' ||
+                                              (hasPondPacket && idx <= 2)
+                                                ? '#9ca3af'
+                                                : '#ef4444'
+                                            }
+                                          />
+                                        </TouchableOpacity>
+                                      </View>
+                                    )}
                                 </View>
                               )
                             )}
