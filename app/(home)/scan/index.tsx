@@ -1,6 +1,7 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import { useGetKoiFishByRFID, useIdentifyKoiReID } from '@/hooks/useKoiFish';
 import { useUploadImage } from '@/hooks/useUpload';
+import { KoiFish } from '@/lib/api/services/fetchKoiFish';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -471,60 +472,118 @@ export default function ScanScreen() {
               </View>
 
               {/* Identification Result */}
-              {identifyMutation.data && (
-                <View className="mb-4 px-6">
-                  <View className="rounded-2xl border border-green-200 bg-green-50 p-4">
-                    <View className="flex-row items-start">
-                      <View className="mr-3 mt-0.5 h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                        <CheckCircle size={14} color="white" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="mb-2 font-medium text-green-800">
-                          Nhận diện thành công!
-                        </Text>
-                        <Text className="mb-3 text-sm text-green-700">
-                          {identifyMutation.data.identifiedAs} - Độ tin cậy:{' '}
-                          {identifyMutation.data.confidence.toFixed(2)}%
-                        </Text>
+              {identifyMutation.data &&
+                (() => {
+                  const res = identifyMutation.data;
+                  const koi = res.koiFish as KoiFish;
+                  const imageUri =
+                    koi?.images && koi.images.length > 0
+                      ? koi.images[0]
+                      : res.imageUrl || null;
 
-                        {/* Fish Info */}
-                        <View className="mb-3 rounded-2xl bg-white p-3">
-                          <Text className="mb-2 font-medium text-gray-900">
-                            Thông tin cá Koi:
-                          </Text>
-                          <Text className="text-sm text-gray-600">
-                            RFID: {identifyMutation.data.koiFish.rfid}
-                          </Text>
-                          <Text className="text-sm text-gray-600">
-                            Giống:{' '}
-                            {identifyMutation.data.koiFish.variety.varietyName}
-                          </Text>
-                          <Text className="text-sm text-gray-600">
-                            Bể: {identifyMutation.data.koiFish.pond.pondName}
-                          </Text>
+                  return (
+                    <View className="mb-4 px-6">
+                      <View className="overflow-hidden rounded-3xl border border-green-200 bg-white shadow-lg">
+                        {/* Header Section */}
+                        <View className="bg-gradient-to-r from-green-50 to-emerald-50 px-5 py-4">
+                          <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center">
+                              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-green-500">
+                                <CheckCircle size={20} color="white" />
+                              </View>
+                              <View>
+                                <Text className="text-base font-bold text-gray-900">
+                                  Kết quả nhận diện
+                                </Text>
+                                <Text className="text-sm text-gray-500">
+                                  Tìm thấy kết quả phù hợp
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View className="items-end">
+                              <View className="rounded-full bg-green-500 px-3 py-1.5">
+                                <Text className="text-sm font-bold text-white">
+                                  {res.confidence.toFixed(1)}%
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
                         </View>
 
-                        <TouchableOpacity
-                          onPress={() =>
-                            router.push({
-                              pathname: '/koi/[id]',
-                              params: {
-                                id: String(identifyMutation.data!.koiFish.id),
-                                redirect: '/scan',
-                              },
-                            })
-                          }
-                          className="rounded-2xl bg-primary px-4 py-2"
-                        >
-                          <Text className="text-center font-medium text-white">
-                            Xem chi tiết
-                          </Text>
-                        </TouchableOpacity>
+                        {/* Content Section */}
+                        <View className="p-5">
+                          <View className="flex-row">
+                            {/* Image */}
+                            <View className="mr-2">
+                              {imageUri ? (
+                                <Image
+                                  source={{ uri: imageUri }}
+                                  className="h-32 w-32 rounded-2xl bg-gray-100"
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <View className="h-32 w-32 items-center justify-center rounded-2xl bg-gray-100">
+                                  <ImageIcon size={40} color="#9ca3af" />
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Details */}
+                            <View className="flex-1">
+                              <View className="rounded-2xl bg-blue-50 px-2 py-1 text-center">
+                                <Text className="text-sm font-medium text-blue-700">
+                                  RFID: {koi?.rfid ?? 'N/A'}
+                                </Text>
+                              </View>
+
+                              {/* Info Cards */}
+                              <View className="gap-2">
+                                <View className="flex-row items-center gap-2 rounded-2xl bg-gray-50 px-3 py-2">
+                                  <Text className="text-sm text-gray-500">
+                                    Giống cá
+                                  </Text>
+                                  <Text className="mt-0.5 text-sm font-semibold text-gray-900">
+                                    {koi?.variety?.varietyName ?? '-'}
+                                  </Text>
+                                </View>
+
+                                <View className="flex-row items-center gap-2 rounded-2xl bg-gray-50 px-3 py-2">
+                                  <Text className="text-sm text-gray-500">
+                                    Bể nuôi
+                                  </Text>
+                                  <Text className="mt-0.5 text-sm font-semibold text-gray-900">
+                                    {koi?.pond?.pondName ?? '-'}
+                                  </Text>
+                                </View>
+                              </View>
+                            </View>
+                          </View>
+
+                          {/* Action Buttons */}
+                          <View className="mt-5 flex-row space-x-3">
+                            <TouchableOpacity
+                              onPress={() =>
+                                router.push({
+                                  pathname: '/koi/[id]',
+                                  params: {
+                                    id: String(koi?.id ?? ''),
+                                    redirect: '/scan',
+                                  },
+                                })
+                              }
+                              className="flex-1 items-center justify-center rounded-2xl bg-primary px-4 py-3.5 shadow-sm"
+                            >
+                              <Text className="font-semibold text-white">
+                                Xem chi tiết
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </View>
-              )}
+                  );
+                })()}
 
               {/* Instructions */}
               <View className="px-6">
