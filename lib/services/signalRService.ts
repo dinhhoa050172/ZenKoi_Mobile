@@ -8,7 +8,7 @@ import { WaterAlert } from '../types/alert';
 // Get backend URL từ environment hoặc fallback
 const getBackendUrl = (): string => {
   // Đổi HTTPS sang WSS cho WebSocket
-  return 'wss://zenkoi-backend-n5r8.onrender.com/api/ws/alerts';
+  return 'ws://14.225.219.222:5000/api/ws/alerts';
 };
 
 type AlertHandler = (alert: WaterAlert) => void;

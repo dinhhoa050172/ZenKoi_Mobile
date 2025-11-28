@@ -3,7 +3,7 @@ import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
-import Loading from '@/components/Loading';
+// Loading component not needed here (used in other screens)
 import { useCreateIncident } from '@/hooks/useIncident';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import { useGetKoiFish } from '@/hooks/useKoiFish';
@@ -94,9 +94,12 @@ export default function CreateIncidentScreen() {
 
   // API Hooks
   const createIncidentMutation = useCreateIncident();
-  const { data: incidentTypes, isLoading: incidentTypesLoading } =
-    useGetIncidentTypes();
-  const { data: ponds, isLoading: pondsLoading } = useGetPonds();
+  const incidentTypesQuery = useGetIncidentTypes();
+  const incidentTypes = incidentTypesQuery.data;
+  const { data: ponds, isLoading: pondsLoading } = useGetPonds({
+    pageIndex: 1,
+    pageSize: 100,
+  });
   const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish();
 
   // Form State
@@ -117,7 +120,6 @@ export default function CreateIncidentScreen() {
   const [selectedKois, setSelectedKois] = useState<SelectedKoi[]>([]);
 
   // Modal States
-  const [showIncidentTypeModal, setShowIncidentTypeModal] = useState(false);
   const [showSeverityModal, setShowSeverityModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -531,23 +533,30 @@ export default function CreateIncidentScreen() {
 
                 {/* Form Fields */}
                 <View>
-                  <TouchableOpacity
-                    onPress={() => setShowIncidentTypeModal(true)}
-                    className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 p-3"
-                  >
-                    <Text
-                      className={`flex-1 text-base ${
-                        formData.incidentTypeId
-                          ? 'font-medium text-gray-900'
-                          : 'text-gray-400'
-                      }`}
-                    >
-                      {incidentTypes?.data?.find(
-                        (t: IncidentType) => t.id === formData.incidentTypeId
-                      )?.name || 'Chọn loại sự cố'}
-                    </Text>
-                    <ChevronRight size={20} color="#9ca3af" />
-                  </TouchableOpacity>
+                  <ContextMenuMultiSelect
+                    label="Loại sự cố"
+                    options={
+                      incidentTypes?.data?.map((t: IncidentType) => ({
+                        label: t.name,
+                        value: String(t.id),
+                        meta: t.description || undefined,
+                      })) || []
+                    }
+                    values={
+                      formData.incidentTypeId
+                        ? [String(formData.incidentTypeId)]
+                        : []
+                    }
+                    onPress={() => incidentTypesQuery.refetch()}
+                    onChange={(vals) => {
+                      const v = vals[0];
+                      setFormData({
+                        ...formData,
+                        incidentTypeId: v ? Number(v) : undefined,
+                      });
+                    }}
+                    placeholder="Chọn loại sự cố"
+                  />
                 </View>
 
                 <View>
@@ -869,7 +878,6 @@ export default function CreateIncidentScreen() {
         ))}
 
       {/* Modals */}
-      {renderIncidentTypeModal()}
       {renderSeverityModal()}
 
       {/* CustomAlert */}
@@ -901,72 +909,6 @@ export default function CreateIncidentScreen() {
   }
 
   // Modal render functions (kept parity with edit screen)
-  function renderIncidentTypeModal() {
-    return (
-      <Modal
-        visible={showIncidentTypeModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="border-b border-gray-200 px-6 py-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-black text-gray-900">
-                Chọn loại sự cố
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowIncidentTypeModal(false)}
-                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
-              >
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView
-            className="flex-1 p-6"
-            keyboardShouldPersistTaps="handled"
-          >
-            {incidentTypesLoading ? (
-              <View className="flex-1 items-center justify-center py-20">
-                <Loading />
-              </View>
-            ) : (
-              incidentTypes?.data?.map((type: IncidentType) => (
-                <TouchableOpacity
-                  key={type.id}
-                  onPress={() => {
-                    setFormData({ ...formData, incidentTypeId: type.id });
-                    setShowIncidentTypeModal(false);
-                  }}
-                  className={`mb-3 overflow-hidden rounded-2xl border-2 ${formData.incidentTypeId === type.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'} shadow-sm`}
-                  style={{ elevation: 2 }}
-                >
-                  <View className="flex-row items-center justify-between p-4">
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-gray-900">
-                        {type.name}
-                      </Text>
-                      {type.description && (
-                        <Text className="mt-1 text-sm text-gray-500">
-                          {type.description}
-                        </Text>
-                      )}
-                    </View>
-                    {formData.incidentTypeId === type.id && (
-                      <View className="ml-3 h-8 w-8 items-center justify-center rounded-full bg-blue-500">
-                        <Check size={18} color="white" />
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
 
   function renderSeverityModal() {
     const severityOptions = [

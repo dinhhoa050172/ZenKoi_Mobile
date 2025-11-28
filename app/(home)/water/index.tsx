@@ -11,7 +11,6 @@ import { PondSearchParams, PondStatus } from '@/lib/api/services/fetchPond';
 import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import {
   Droplet,
   Filter,
@@ -39,7 +38,6 @@ import {
 } from 'react-native-safe-area-context';
 
 export default function PondManagementScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -217,13 +215,13 @@ export default function PondManagementScreen() {
                 <Text className="text-2xl font-bold text-white">Hồ cá</Text>
               </View>
               <View className="flex-row items-center">
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   onPress={() => router.push('/pond')}
                   className="mr-2 h-12 w-12 items-center justify-center rounded-full bg-white/20"
                   accessibilityLabel="Loại hồ"
                 >
                   <Layers size={20} color="white" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 <TouchableOpacity
                   onPress={() => setShowAddModal(true)}
                   className="h-12 w-12 items-center justify-center rounded-full bg-white/20"

@@ -49,7 +49,7 @@ export class ApiService {
   private isRefreshing = false;
   private failedQueue: FailedRequestQueueItem[] = [];
 
-  constructor(baseURL: string, timeout = 10000, onAuthError?: () => void) {
+  constructor(baseURL: string, timeout = 120000, onAuthError?: () => void) {
     this.client = axios.create({
       baseURL,
       headers: {
@@ -345,6 +345,8 @@ export class ApiService {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      // Extended timeout for file uploads (5 minutes)
+      timeout: 300000,
       onUploadProgress: onProgress
         ? (progressEvent) => {
             const percentage = Math.round(
@@ -385,7 +387,7 @@ const handleAuthError = async () => {
 // Create and export the default API service instance
 const apiService = new ApiService(
   process.env.EXPO_PUBLIC_API_URL || '',
-  30000, // 30 second timeout for mobile
+  120000, // 2 minute timeout for mobile (increased for video processing)
   handleAuthError
 );
 
