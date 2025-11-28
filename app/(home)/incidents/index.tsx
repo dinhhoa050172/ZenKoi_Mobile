@@ -109,6 +109,9 @@ export default function IncidentsScreen() {
   const renderEmpty = () => {
     if (isLoading) return null;
 
+    const hasFilters =
+      getActiveFilterCount() > 0 || searchQuery.trim().length > 0;
+
     return (
       <View className="flex-1 items-center justify-center overflow-hidden rounded-2xl px-6 py-12">
         <LinearGradient
@@ -118,14 +121,14 @@ export default function IncidentsScreen() {
           <Shield size={48} color="#0ea5e9" />
         </LinearGradient>
         <Text className="mb-2 text-2xl font-bold text-gray-900">
-          {searchQuery ? 'Không tìm thấy sự cố' : 'Hệ thống ổn định'}
+          {hasFilters ? 'Không tìm thấy sự cố' : 'Hệ thống ổn định'}
         </Text>
         <Text className="mb-8 text-center text-base text-gray-500">
-          {searchQuery
-            ? `Không có sự cố nào phù hợp với "${searchQuery}"`
+          {hasFilters
+            ? 'Không có sự cố nào phù hợp với bộ lọc đã chọn'
             : 'Tuyệt vời! Hiện tại không có sự cố nào cần xử lý'}
         </Text>
-        {!searchQuery && (
+        {!hasFilters && (
           <TouchableOpacity
             onPress={() => router.push('/(home)/incidents/create')}
             activeOpacity={0.8}
@@ -141,6 +144,25 @@ export default function IncidentsScreen() {
               <Text className="ml-2 text-lg font-bold text-white">
                 Báo cáo sự cố đầu tiên
               </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+        {hasFilters && (
+          <TouchableOpacity
+            onPress={() => {
+              setFilters({});
+              setSearchQuery('');
+            }}
+            activeOpacity={0.8}
+            className="overflow-hidden rounded-2xl"
+          >
+            <LinearGradient
+              colors={['#ef4444', '#dc2626']}
+              className="flex-row items-center rounded-2xl px-8 py-4"
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text className="text-lg font-bold text-white">Xóa bộ lọc</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -303,7 +325,7 @@ export default function IncidentsScreen() {
         )}
 
         {/* Enhanced Floating Action Button */}
-        <View className="absolute bottom-6 right-6 overflow-hidden rounded-full">
+        <View className="absolute bottom-24 right-6 overflow-hidden rounded-full">
           <TouchableOpacity
             onPress={() => router.push('/(home)/incidents/create')}
             activeOpacity={0.8}

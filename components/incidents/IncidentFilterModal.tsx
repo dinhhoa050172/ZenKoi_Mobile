@@ -1,3 +1,4 @@
+import ContextMenuField from '@/components/ContextMenuField';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import {
   IncidentSearchParams,
@@ -63,8 +64,11 @@ export default function IncidentFilterModal({
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
   const [showToDatePicker, setShowToDatePicker] = useState(false);
 
-  const { data: incidentTypesData } = useGetIncidentTypes();
-  const incidentTypes = incidentTypesData?.data || [];
+  const incidentTypesQuery = useGetIncidentTypes(true, {
+    pageIndex: 1,
+    pageSize: 100,
+  });
+  const incidentTypes = incidentTypesQuery.data?.data || [];
 
   useEffect(() => {
     if (visible) {
@@ -285,38 +289,20 @@ export default function IncidentFilterModal({
                   <View className="h-px bg-slate-100" />
 
                   {/* Incident Type Filter */}
-                  <View className="py-4">
-                    <Text className="mb-3 text-base font-semibold text-slate-600">
-                      Loại sự cố
-                    </Text>
-                    <View className="flex-col gap-2">
-                      {incidentTypes.map((type) => (
-                        <TouchableOpacity
-                          key={type.id}
-                          onPress={() =>
-                            filters.IncidentTypeId === type.id
-                              ? removeFilter('IncidentTypeId')
-                              : updateFilter('IncidentTypeId', type.id)
-                          }
-                          className={`rounded-2xl border p-3 ${
-                            filters.IncidentTypeId === type.id
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-slate-200 bg-white'
-                          }`}
-                        >
-                          <Text
-                            className={`text-base font-medium ${
-                              filters.IncidentTypeId === type.id
-                                ? 'text-blue-700'
-                                : 'text-slate-700'
-                            }`}
-                          >
-                            {type.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
+                  <ContextMenuField
+                    label="Loại sự cố"
+                    value={filters.IncidentTypeId?.toString()}
+                    options={incidentTypes.map((type) => ({
+                      label: type.name,
+                      value: type.id.toString(),
+                      meta: type.description || '',
+                    }))}
+                    onSelect={(v) =>
+                      updateFilter('IncidentTypeId', parseInt(v))
+                    }
+                    placeholder="Chọn loại sự cố"
+                    onPress={() => incidentTypesQuery.refetch()}
+                  />
 
                   {/* Divider */}
                   <View className="h-px bg-slate-100" />
