@@ -32,7 +32,7 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const { login, isLoading } = useLogin();
-  const [rememberMe, setRememberMe] = useState(false);
+  // const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async () => {
     const creds: LoginCredentials = { userNameOrEmail: email.trim(), password };
@@ -104,7 +104,7 @@ export default function LoginPage() {
 
               {/* Password */}
               <Text className="mb-2 font-medium">Mật khẩu</Text>
-              <View className="relative mb-1">
+              <View className="relative mb-6">
                 <TextInput
                   className="rounded-lg border border-border bg-input px-4 py-3 pr-12"
                   placeholder="••••••••"
@@ -129,7 +129,7 @@ export default function LoginPage() {
               </View>
 
               {/* Remember me */}
-              <View className="mb-6 mt-2 flex-row items-center justify-between">
+              {/* <View className="mb-6 mt-2 flex-row items-center justify-between">
                 <TouchableOpacity
                   className="flex-row items-center"
                   onPress={() => setRememberMe(!rememberMe)}
@@ -143,10 +143,10 @@ export default function LoginPage() {
                   </View>
                   <Text className="ml-2 text-sm">Ghi nhớ đăng nhập</Text>
                 </TouchableOpacity>
-                {/* <TouchableOpacity>
+                <TouchableOpacity>
                   <Text className="text-sm text-primary">Quên mật khẩu?</Text>
-                </TouchableOpacity> */}
-              </View>
+                </TouchableOpacity>
+              </View> */}
 
               {/* Login button */}
               <TouchableOpacity

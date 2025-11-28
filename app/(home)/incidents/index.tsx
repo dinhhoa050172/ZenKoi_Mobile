@@ -12,9 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   BarChart3,
-  ChevronRight,
   Filter,
-  Layers,
   Plus,
   Shield,
   TrendingUp,
@@ -215,7 +213,7 @@ export default function IncidentsScreen() {
               </TouchableOpacity>
 
               {/* Types Button */}
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => router.push('/(home)/incidents/types')}
                 className="rounded-2xl bg-white/20 px-4 py-3"
                 activeOpacity={0.8}
@@ -224,7 +222,7 @@ export default function IncidentsScreen() {
                   <Layers size={20} color="white" />
                   <ChevronRight size={16} color="white" />
                 </View>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 

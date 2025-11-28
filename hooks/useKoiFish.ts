@@ -5,6 +5,9 @@ import {
   KoiFishPagination,
   KoiFishRequest,
   KoiFishSearchParams,
+  KoiReID,
+  KoiReIDIdentifyResult,
+  KoiReIDRequest,
   koiFishServices,
 } from '@/lib/api/services/fetchKoiFish';
 import {
@@ -309,4 +312,67 @@ export function usePrefetchKoiFish(filters?: KoiFishSearchParams) {
       },
       staleTime: 5 * 60 * 1000,
     });
+}
+
+/*
+ * Hook to enroll Koi Re-ID
+ */
+export function useEnrollKoiReID() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: KoiReIDRequest): Promise<KoiReID> => {
+      const resp = await koiFishServices.enrollKoiReID(data);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể đăng ký Re-ID cho cá');
+      return resp.result;
+    },
+    onSuccess: (_, vars) => {
+      Toast.show({
+        type: 'success',
+        text1: 'Đăng ký Re-ID thành công',
+        position: 'top',
+      });
+      // Invalidate detail of the koi fish
+      if (vars?.koiFishId) {
+        qc.invalidateQueries({ queryKey: koiFishKeys.detail(vars.koiFishId) });
+      }
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Đăng ký Re-ID thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
+}
+
+/*
+ * Hook to identify Koi Re-ID
+ */
+export function useIdentifyKoiReID() {
+  return useMutation({
+    mutationFn: async (imageUrl: string): Promise<KoiReIDIdentifyResult> => {
+      const resp = await koiFishServices.identifyKoiReID(imageUrl);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể nhận diện cá');
+      return resp.result;
+    },
+    onSuccess: () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Nhận diện thành công',
+        position: 'top',
+      });
+    },
+    onError: (err: any) => {
+      Toast.show({
+        type: 'error',
+        text1: 'Nhận diện thất bại',
+        text2: err?.message ?? String(err),
+        position: 'top',
+      });
+    },
+  });
 }

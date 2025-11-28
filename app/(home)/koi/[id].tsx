@@ -7,7 +7,7 @@ import {
 import {
   Gender,
   HealthStatus,
-  SaleStatus
+  SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
 import { formatDate } from '@/lib/utils/formatDate';
 import { useFocusEffect } from '@react-navigation/native';

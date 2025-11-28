@@ -89,17 +89,6 @@ export default function EditWaterParameterRecordScreen() {
     }
   }, [record]);
 
-  const validate = () => {
-    const pH = parseFloat(phLevel);
-    if (isNaN(pH) || pH < 0 || pH > 14) {
-      setAlertTitle('Giá trị không hợp lệ');
-      setAlertMessage('pH phải là số trong khoảng 0 - 14');
-      setAlertVisible(true);
-      return false;
-    }
-    return true;
-  };
-
   const submit = async () => {
     if (!parsedId) {
       setAlertTitle('Lỗi');
@@ -107,8 +96,6 @@ export default function EditWaterParameterRecordScreen() {
       setAlertVisible(true);
       return;
     }
-
-    if (!validate()) return;
 
     const payload = {
       pondId: record?.pondId ?? 0,
@@ -216,7 +203,7 @@ export default function EditWaterParameterRecordScreen() {
         showsVerticalScrollIndicator={false}
         bottomOffset={60}
         contentContainerStyle={{
-          paddingBottom: insets.bottom + 60,
+          paddingBottom: insets.bottom,
           paddingTop: 16,
         }}
       >

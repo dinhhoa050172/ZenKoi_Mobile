@@ -173,7 +173,7 @@ export default function CreateWaterParameterRecordScreen() {
         showsVerticalScrollIndicator={false}
         bottomOffset={60}
         contentContainerStyle={{
-          paddingBottom: insets.bottom + 60,
+          paddingBottom: insets.bottom,
           paddingTop: 16,
         }}
       >
