@@ -5,8 +5,9 @@ export enum TypeOfPond {
   EGG_BATCH = 'EggBatch',
   FRY_FISH = 'FryFish',
   CLASSIFICATION = 'Classification',
-  MARKET_POND = 'MarketPond',
-  BROOD_STOCK = 'BroodStock',
+  MARKET_POND = 'MarketPond', // Hồ nuôi cá bán
+  BROOD_STOCK = 'BroodStock', // Hồ nuôi cá bố mẹ
+  QUARANTINE = 'Quarantine', // Hồ cách ly
 }
 
 export interface PondType {

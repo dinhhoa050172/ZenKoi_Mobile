@@ -31,6 +31,7 @@ export interface Pond {
 export interface PondSearchParams {
   search?: string;
   status?: PondStatus;
+  isNotMaintenance?: boolean;
   areaId?: number;
   pondTypeId?: number;
   pondTypeEnum?: TypeOfPond;

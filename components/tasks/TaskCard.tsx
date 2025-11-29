@@ -247,7 +247,7 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
             {/* Notes Section */}
             {task.notes && (
               <View
-                className="mt-2 rounded-xl border p-3"
+                className="mt-2 rounded-2xl border p-3"
                 style={{
                   borderColor: statusInfo.accentColor + '40',
                   backgroundColor: statusInfo.accentColor + '08',
