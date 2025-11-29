@@ -390,7 +390,7 @@ export default function FishListScreen() {
                       className="flex-1 flex-row items-center justify-center py-3"
                       onPress={() => {
                         router.push(
-                          `/koi/edit?id=${fish.id}&breedingId=${breedingId}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+                          `/koi/edit?id=${fish.id}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
                         );
                       }}
                     >

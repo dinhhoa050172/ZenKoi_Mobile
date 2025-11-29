@@ -68,7 +68,7 @@ export default function EditKoiPage() {
   const redirect = (params?.redirect as string) || undefined;
   const idParam = params?.id as string | undefined;
   const koiId = idParam ? Number(idParam) : undefined;
-  const breedingId = params?.breedingId ? Number(params.breedingId) : null;
+  // const breedingId = params?.breedingId ? Number(params.breedingId) : null;
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<any>(null);
 
@@ -139,7 +139,7 @@ export default function EditKoiPage() {
           setFormData({
             pondId: koiData.pond?.id ?? 0,
             varietyId: koiData.variety?.id ?? 0,
-            breedingProcessId: breedingId,
+            breedingProcessId: koiData.breedingProcess?.id ?? null,
             rfid: koiData.rfid ?? '',
             origin: koiData.origin ?? '',
             size: sizeVal,
@@ -196,7 +196,7 @@ export default function EditKoiPage() {
         }
       }, 0);
       return undefined;
-    }, [koiData, breedingId])
+    }, [koiData])
   );
 
   const {
