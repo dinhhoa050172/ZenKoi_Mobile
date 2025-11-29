@@ -1,3 +1,4 @@
+import ContextMenuField from '@/components/ContextMenuField';
 import ContextMenuMultiSelect from '@/components/ContextMenuMultiSelect';
 import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
@@ -9,10 +10,9 @@ import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import { useGetKoiFish } from '@/hooks/useKoiFish';
 import { useGetPonds } from '@/hooks/usePond';
 import {
-  IncidentSeverity,
   KoiAffectedStatus,
-  KoiIncident,
-  PondIncident,
+  KoiIncidentRequest,
+  PondIncidentRequest,
   RequestIncident,
 } from '@/lib/api/services/fetchIncident';
 import { IncidentType } from '@/lib/api/services/fetchIncidentType';
@@ -24,14 +24,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   AlertCircle,
-  AlertTriangle,
   Check,
   ChevronLeft,
-  ChevronRight,
   Clock,
   FileText,
   Waves,
-  X,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
@@ -111,7 +108,6 @@ export default function CreateIncidentScreen() {
     incidentTypeId: undefined as number | undefined,
     incidentTitle: '',
     description: '',
-    severity: undefined as IncidentSeverity | undefined,
     occurredAt: undefined as string | undefined,
   });
 
@@ -120,7 +116,6 @@ export default function CreateIncidentScreen() {
   const [selectedKois, setSelectedKois] = useState<SelectedKoi[]>([]);
 
   // Modal States
-  const [showSeverityModal, setShowSeverityModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // CustomAlert state
@@ -138,7 +133,6 @@ export default function CreateIncidentScreen() {
       formData.incidentTypeId &&
       formData.incidentTitle.trim() &&
       formData.description.trim() &&
-      formData.severity &&
       formData.occurredAt;
 
     const pondsValid = selectedPonds.every((pond) => {
@@ -175,17 +169,19 @@ export default function CreateIncidentScreen() {
     setIsSubmitting(true);
 
     try {
-      const affectedPonds: PondIncident[] = selectedPonds.map((pond) => ({
-        pondId: pond.id,
-        pondName: pond.pondName,
-        environmentalChanges: pond.environmentalChanges || '',
-        requiresWaterChange: pond.requiresWaterChange || false,
-        fishDiedCount: pond.fishDiedCount || 0,
-        correctiveActions: pond.correctiveActions || '',
-        notes: pond.notes || '',
-      }));
+      const affectedPonds: PondIncidentRequest[] = selectedPonds.map(
+        (pond) => ({
+          pondId: pond.id,
+          pondName: pond.pondName,
+          environmentalChanges: pond.environmentalChanges || '',
+          requiresWaterChange: pond.requiresWaterChange || false,
+          fishDiedCount: pond.fishDiedCount || 0,
+          correctiveActions: pond.correctiveActions || '',
+          notes: pond.notes || '',
+        })
+      );
 
-      const affectedKoiFish: KoiIncident[] = selectedKois.map((koi) => ({
+      const affectedKoiFish: KoiIncidentRequest[] = selectedKois.map((koi) => ({
         koiFishId: koi.id,
         koiFishRFID: koi.rfid,
         affectedStatus: koi.affectedStatus || KoiAffectedStatus.HEALTHY,
@@ -200,7 +196,6 @@ export default function CreateIncidentScreen() {
         incidentTypeId: formData.incidentTypeId!,
         incidentTitle: formData.incidentTitle!,
         description: formData.description!,
-        severity: formData.severity!,
         occurredAt: formData.occurredAt!,
         affectedPonds: affectedPonds.length > 0 ? affectedPonds : undefined,
         affectedKoiFish:
@@ -316,60 +311,6 @@ export default function CreateIncidentScreen() {
     setSelectedKois(updatedKois);
   };
 
-  const getSeverityInfo = (severity: IncidentSeverity) => {
-    switch (severity) {
-      case IncidentSeverity.Low:
-        return {
-          text: 'Thấp',
-          gradient: ['#10b981', '#059669'],
-          icon: '🟢',
-          bg: 'bg-green-50',
-          border: 'border-green-200',
-          textColor: 'text-green-700',
-        };
-      case IncidentSeverity.Medium:
-        return {
-          text: 'Trung bình',
-          gradient: ['#f59e0b', '#d97706'],
-          icon: '🟡',
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-200',
-          textColor: 'text-yellow-700',
-        };
-      case IncidentSeverity.High:
-        return {
-          text: 'Cao',
-          gradient: ['#f97316', '#ea580c'],
-          icon: '🟠',
-          bg: 'bg-orange-50',
-          border: 'border-orange-200',
-          textColor: 'text-orange-700',
-        };
-      case IncidentSeverity.Urgent:
-        return {
-          text: 'Nghiêm trọng',
-          gradient: ['#ef4444', '#dc2626'],
-          icon: '🔴',
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          textColor: 'text-red-700',
-        };
-      default:
-        return {
-          text: 'Chưa đánh giá',
-          gradient: ['#6b7280', '#4b5563'],
-          icon: '⚪',
-          bg: 'bg-gray-50',
-          border: 'border-gray-200',
-          textColor: 'text-gray-700',
-        };
-    }
-  };
-
-  const severityInfo = formData.severity
-    ? getSeverityInfo(formData.severity)
-    : null;
-
   return (
     <SafeAreaView className="flex-1 gap-4 bg-gray-50">
       <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
@@ -475,34 +416,6 @@ export default function CreateIncidentScreen() {
             {/* Basic Information Section */}
             {activeSection === 'basic' && (
               <View className="flex-1 gap-4">
-                {/* Severity Badge */}
-                {severityInfo && (
-                  <View
-                    className="overflow-hidden rounded-2xl shadow-md"
-                    style={{ elevation: 3 }}
-                  >
-                    <LinearGradient
-                      colors={severityInfo.gradient as [string, string]}
-                      className="flex-row items-center justify-between px-5 py-4"
-                    >
-                      <View className="flex-row items-center">
-                        <Text className="mr-3 text-2xl">
-                          {severityInfo.icon}
-                        </Text>
-                        <View>
-                          <Text className="text-xs font-semibold uppercase tracking-wide text-white/80">
-                            Mức độ nghiêm trọng
-                          </Text>
-                          <Text className="text-lg font-black text-white">
-                            {severityInfo.text}
-                          </Text>
-                        </View>
-                      </View>
-                      <AlertTriangle size={24} color="white" />
-                    </LinearGradient>
-                  </View>
-                )}
-
                 <View>
                   <InputField
                     // icon={<FileText size={20} color="#6b7280" />}
@@ -533,7 +446,7 @@ export default function CreateIncidentScreen() {
 
                 {/* Form Fields */}
                 <View>
-                  <ContextMenuMultiSelect
+                  <ContextMenuField
                     label="Loại sự cố"
                     options={
                       incidentTypes?.data?.map((t: IncidentType) => ({
@@ -542,14 +455,13 @@ export default function CreateIncidentScreen() {
                         meta: t.description || undefined,
                       })) || []
                     }
-                    values={
+                    value={
                       formData.incidentTypeId
-                        ? [String(formData.incidentTypeId)]
-                        : []
+                        ? String(formData.incidentTypeId)
+                        : undefined
                     }
                     onPress={() => incidentTypesQuery.refetch()}
-                    onChange={(vals) => {
-                      const v = vals[0];
+                    onSelect={(v) => {
                       setFormData({
                         ...formData,
                         incidentTypeId: v ? Number(v) : undefined,
@@ -557,26 +469,6 @@ export default function CreateIncidentScreen() {
                     }}
                     placeholder="Chọn loại sự cố"
                   />
-                </View>
-
-                <View>
-                  <TouchableOpacity
-                    onPress={() => setShowSeverityModal(true)}
-                    className="flex-row items-center rounded-2xl border border-gray-200 bg-gray-50 p-3"
-                  >
-                    <Text
-                      className={`flex-1 text-base ${
-                        formData.severity
-                          ? 'font-medium text-gray-900'
-                          : 'text-gray-400'
-                      }`}
-                    >
-                      {formData.severity
-                        ? getSeverityInfo(formData.severity).text
-                        : 'Chọn mức độ'}
-                    </Text>
-                    <ChevronRight size={20} color="#9ca3af" />
-                  </TouchableOpacity>
                 </View>
 
                 <View>
@@ -878,7 +770,6 @@ export default function CreateIncidentScreen() {
         ))}
 
       {/* Modals */}
-      {renderSeverityModal()}
 
       {/* CustomAlert */}
       <CustomAlert
@@ -909,97 +800,4 @@ export default function CreateIncidentScreen() {
   }
 
   // Modal render functions (kept parity with edit screen)
-
-  function renderSeverityModal() {
-    const severityOptions = [
-      {
-        value: IncidentSeverity.Low,
-        label: 'Thấp',
-        description: 'Sự cố nhỏ, không ảnh hưởng nhiều',
-        gradient: ['#10b981', '#059669'],
-        icon: '🟢',
-      },
-      {
-        value: IncidentSeverity.Medium,
-        label: 'Trung bình',
-        description: 'Ảnh hưởng ở mức độ vừa',
-        gradient: ['#f59e0b', '#d97706'],
-        icon: '🟡',
-      },
-      {
-        value: IncidentSeverity.High,
-        label: 'Cao',
-        description: 'Sự cố nghiêm trọng, cần xử lý ngay',
-        gradient: ['#f97316', '#ea580c'],
-        icon: '🟠',
-      },
-      {
-        value: IncidentSeverity.Urgent,
-        label: 'Nghiêm trọng',
-        description: 'Khẩn cấp, cần xử lý tức thì',
-        gradient: ['#ef4444', '#dc2626'],
-        icon: '🔴',
-      },
-    ];
-
-    return (
-      <Modal
-        visible={showSeverityModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="border-b border-gray-200 px-6 py-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-black text-gray-900">
-                Mức độ nghiêm trọng
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowSeverityModal(false)}
-                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
-              >
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView className="flex-1 p-6">
-            {severityOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                onPress={() => {
-                  setFormData({ ...formData, severity: option.value });
-                  setShowSeverityModal(false);
-                }}
-                className={`mb-4 overflow-hidden rounded-2xl border-2 ${formData.severity === option.value ? 'border-blue-500' : 'border-gray-200'} shadow-md`}
-                style={{ elevation: 3 }}
-              >
-                <LinearGradient
-                  colors={option.gradient as [string, string]}
-                  className="p-5"
-                >
-                  <View className="flex-row items-center">
-                    <Text className="mr-4 text-3xl">{option.icon}</Text>
-                    <View className="flex-1">
-                      <Text className="text-xl font-black text-white">
-                        {option.label}
-                      </Text>
-                      <Text className="mt-1 text-sm text-white/90">
-                        {option.description}
-                      </Text>
-                    </View>
-                    {formData.severity === option.value && (
-                      <View className="ml-3 h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                        <Check size={24} color="white" />
-                      </View>
-                    )}
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
 }

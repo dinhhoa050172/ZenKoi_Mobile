@@ -62,6 +62,7 @@ export default function ClassificationStageSection({
       {/* Classification Records List */}
       <ClassificationRecordsList
         classificationStageId={classificationStageId}
+        breedingProcessId={breedingProcessId}
       />
 
       {/* Fish List Link (appears after 4 rounds) */}

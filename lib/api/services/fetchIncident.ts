@@ -24,6 +24,7 @@ export enum KoiAffectedStatus {
 }
 
 export interface KoiIncident {
+  id: number;
   koiFishId: number;
   koiFishRFID: string;
   affectedStatus: KoiAffectedStatus;
@@ -34,7 +35,18 @@ export interface KoiIncident {
   affectedFrom: string;
 }
 
+export interface KoiIncidentRequest {
+  koiFishId: number;
+  affectedStatus: KoiAffectedStatus;
+  specificSymptoms: string;
+  requiresTreatment: boolean;
+  isIsolated: boolean;
+  affectedFrom: string;
+  treatmentNotes: string;
+}
+
 export interface PondIncident {
+  id: number;
   pondId: number;
   pondName: string;
   environmentalChanges: string;
@@ -44,21 +56,37 @@ export interface PondIncident {
   notes: string;
 }
 
+export interface PondIncidentRequest {
+  pondId: number;
+  environmentalChanges: string;
+  requiresWaterChange: boolean;
+  fishDiedCount: number;
+  correctiveActions: string;
+  notes: string;
+}
+
+export interface IncidentType {
+  id: number;
+  name: string;
+  description: string;
+  defaultSeverity: IncidentSeverity;
+  affectsBreeding: boolean;
+}
+
 export interface Incident {
   id: number;
-  incidentTypeId: number;
-  incidentTypeName: string;
+  incidentType: IncidentType;
   incidentTitle: string;
   description: string;
-  severity: IncidentSeverity;
+  // severity: IncidentSeverity;
   status: IncidentStatus;
   occurredAt: string;
   createdAt: string;
   updatedAt: string | null;
   resolvedAt: string | null;
-  // reportedByUserId: number;
+  reportedByUserId: number;
   reportedByUserName: string;
-  // resolvedByUserId: number | null;
+  resolvedByUserId: number | null;
   resolvedByUserName: string | null;
   resolutionNotes: string | null;
   koiIncidents: KoiIncident[];
@@ -67,13 +95,13 @@ export interface Incident {
 
 export interface IncidentSearchParams {
   Search?: string;
-  Status?: IncidentStatus;
-  Severity?: IncidentSeverity;
   IncidentTypeId?: number;
-  PondId?: number;
-  KoiId?: number;
+  Status?: IncidentStatus;
   OccurredFrom?: string;
   OccurredTo?: string;
+  // Severity?: IncidentSeverity;
+  PondId?: number;
+  KoiFishId?: number;
   pageIndex?: number;
   pageSize?: number;
 }
@@ -105,12 +133,12 @@ export interface RequestIncident {
   incidentTypeId: number;
   incidentTitle: string;
   description: string;
-  severity: IncidentSeverity;
+  // severity: IncidentSeverity;
   occurredAt: string;
   status?: string;
   resolutionNotes?: string;
-  affectedKoiFish?: KoiIncident[];
-  affectedPonds?: PondIncident[];
+  affectedKoiFish?: KoiIncidentRequest[];
+  affectedPonds?: PondIncidentRequest[];
 }
 
 export interface IncidentResolutionRequest {
@@ -129,10 +157,12 @@ export const convertIncidentFilter = (
   // Basic parameters
   if (filters.Search) params.search = filters.Search;
   if (filters.Status) params.status = filters.Status;
-  if (filters.Severity) params.severity = filters.Severity;
   if (filters.IncidentTypeId) params.incidentTypeId = filters.IncidentTypeId;
+  // if (filters.Severity) params.severity = filters.Severity;
   if (filters.OccurredFrom) params.occurredFrom = filters.OccurredFrom;
   if (filters.OccurredTo) params.occurredTo = filters.OccurredTo;
+  if (filters.PondId) params.pondId = filters.PondId;
+  if (filters.KoiFishId) params.koiFishId = filters.KoiFishId;
   if (filters.pageIndex) params.pageIndex = filters.pageIndex;
   if (filters.pageSize) params.pageSize = filters.pageSize;
 

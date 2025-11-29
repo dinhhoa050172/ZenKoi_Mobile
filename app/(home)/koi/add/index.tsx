@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/services/fetchKoiFish';
 
 import { TypeOfPond } from '@/lib/api/services/fetchPondType';
+import { formatDate } from '@/lib/utils/formatDate';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -84,6 +85,7 @@ export default function AddKoiPage() {
   const params = useLocalSearchParams();
   const redirect = (params?.redirect as string) || undefined;
   const breedingId = params?.breedingId ? Number(params.breedingId) : null;
+  const hatchedTime = params?.hatchedTime as string | null;
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<any>(null);
 
@@ -127,6 +129,7 @@ export default function AddKoiPage() {
       setFormData({
         ...initialForm,
         breedingProcessId: breedingId,
+        birthDate: hatchedTime ? formatDate(hatchedTime, 'dd/MM/yyyy') : '',
       });
       setSizeText('');
       setErrors({});
@@ -138,7 +141,7 @@ export default function AddKoiPage() {
         }
       }, 0);
       return undefined;
-    }, [breedingId])
+    }, [breedingId, hatchedTime])
   );
 
   const {
