@@ -12,6 +12,7 @@
       "distribution": "internal"
     },
     "production": {
+      "repository": "https://github.com/dinhhoa050172/ZenKoi_Mobile.git",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
