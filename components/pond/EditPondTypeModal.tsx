@@ -86,6 +86,8 @@ export default function EditPondTypeModal({
         return 'Ao cá bán';
       case TypeOfPond.BROOD_STOCK:
         return 'Ao cá giống';
+      case TypeOfPond.QUARANTINE:
+        return 'Ao cách ly';
       default:
         return type;
     }

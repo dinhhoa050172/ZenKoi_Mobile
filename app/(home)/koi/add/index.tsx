@@ -15,7 +15,8 @@ import {
   KoiType,
   SaleStatus,
 } from '@/lib/api/services/fetchKoiFish';
-import { PondStatus } from '@/lib/api/services/fetchPond';
+
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -140,11 +141,29 @@ export default function AddKoiPage() {
     }, [breedingId])
   );
 
-  const { data: pondsPage, isLoading: pondsLoading } = useGetPonds(
+  const {
+    data: pondsMarket,
+    isLoading: pondsMarketLoading,
+    refetch: refetchMarket,
+  } = useGetPonds(
     {
       pageIndex: 1,
       pageSize: 100,
-      available: true,
+      isNotMaintenance: true,
+      pondTypeEnum: TypeOfPond.MARKET_POND,
+    },
+    true
+  );
+  const {
+    data: pondsBroodStock,
+    isLoading: pondsBroodLoading,
+    refetch: refetchBroodStock,
+  } = useGetPonds(
+    {
+      pageIndex: 1,
+      pageSize: 100,
+      isNotMaintenance: true,
+      pondTypeEnum: TypeOfPond.BROOD_STOCK,
     },
     true
   );
@@ -152,10 +171,11 @@ export default function AddKoiPage() {
     { pageIndex: 1, pageSize: 100 },
     true
   );
-  const pondOptions = (pondsPage?.data ?? []).filter(
-    (p) =>
-      p.pondStatus === PondStatus.EMPTY || p.pondStatus === PondStatus.ACTIVE
-  );
+  const pondsLoading = pondsMarketLoading || pondsBroodLoading;
+  const pondOptions = [
+    ...(pondsMarket?.data ?? []),
+    ...(pondsBroodStock?.data ?? []),
+  ];
   const varietyOptions = varietiesPage?.data ?? [];
 
   const pondSelectOptions = pondsLoading
@@ -1129,6 +1149,10 @@ export default function AddKoiPage() {
                   label="Bể *"
                   value={formData.pondId ? String(formData.pondId) : undefined}
                   options={pondSelectOptions}
+                  onPress={() => {
+                    refetchMarket();
+                    refetchBroodStock();
+                  }}
                   onSelect={(v: string) => {
                     if (v === '__none') {
                       setFormData({ ...formData, pondId: 0 });

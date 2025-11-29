@@ -88,7 +88,7 @@ export default function SeveritySelector({
               <TouchableOpacity
                 key={option.value}
                 onPress={() => handleSelect(option.value)}
-                className={`mb-3 rounded-xl border p-4 ${
+                className={`mb-3 rounded-2xl border p-4 ${
                   selectedSeverity === option.value
                     ? `${option.borderColor} ${option.bgColor} border-2`
                     : 'border-gray-200 bg-white'
