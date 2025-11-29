@@ -16,9 +16,12 @@ export interface ClassificationStage {
   totalCount: number;
   status: ClassificationStatus;
   highQualifiedCount: number;
-  qualifiedCount: number;
-  unqualifiedCount: number;
+  showQualifiedCount: number;
+  pondQualifiedCount: number;
+  cullQualifiedCount: number;
   notes: string;
+  startDate: string;
+  endDate: string;
   classificationRecords: ClassificationRecord[];
 }
 

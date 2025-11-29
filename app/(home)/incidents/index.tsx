@@ -7,6 +7,7 @@ import {
   Incident,
   IncidentSearchParams,
   IncidentSeverity,
+  IncidentStatus,
 } from '@/lib/api/services/fetchIncident';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -59,13 +60,15 @@ export default function IncidentsScreen() {
   const stats = useMemo(() => {
     const totalIncidents = incidents.length;
     const urgentCount = incidents.filter(
-      (i) => i.severity === IncidentSeverity.Urgent
+      (i) => i.incidentType.defaultSeverity === IncidentSeverity.Urgent
     ).length;
     const highCount = incidents.filter(
-      (i) => i.severity === IncidentSeverity.High
+      (i) => i.incidentType.defaultSeverity === IncidentSeverity.High
     ).length;
     const activeCount = incidents.filter(
-      (i) => i.status === 'Reported' || i.status === 'Investigating'
+      (i) =>
+        i.status === IncidentStatus.Reported ||
+        i.status === IncidentStatus.Investigating
     ).length;
 
     return {
@@ -94,7 +97,6 @@ export default function IncidentsScreen() {
   const getActiveFilterCount = () => {
     let count = 0;
     if (filters.Status) count++;
-    if (filters.Severity) count++;
     if (filters.IncidentTypeId) count++;
     if (filters.OccurredFrom) count++;
     if (filters.OccurredTo) count++;

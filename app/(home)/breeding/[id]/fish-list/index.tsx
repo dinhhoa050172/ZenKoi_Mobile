@@ -159,7 +159,7 @@ export default function FishListScreen() {
             className="items-center justify-center rounded-2xl bg-white px-4 py-2"
             onPress={() => {
               router.push(
-                `/koi/add?breedingId=${breedingId}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+                `/koi/add?breedingId=${breedingId}&hatchedTime=${breedingDetail?.hatchedTime ?? ''}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
               );
             }}
           >
@@ -277,7 +277,7 @@ export default function FishListScreen() {
                 className="rounded-2xl bg-primary px-6 py-3"
                 onPress={() => {
                   router.push(
-                    `/koi/add?breedingId=${breedingId}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
+                    `/koi/add?breedingId=${breedingId}&hatchedTime=${breedingDetail?.hatchedTime ?? ''}&redirect=${encodeURIComponent(`/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent((redirect as string) ?? '/breeding')}`)}`
                   );
                 }}
               >
