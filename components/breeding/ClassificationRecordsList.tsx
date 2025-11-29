@@ -1,4 +1,5 @@
 import { useGetClassificationRecords } from '@/hooks/useClassificationRecord';
+import { useGetClassificationStageByBreedingProcessId } from '@/hooks/useClassificationStage';
 import { Award, TrendingUp } from 'lucide-react-native';
 import React from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
@@ -6,10 +7,12 @@ import FishSvg from '../icons/FishSvg';
 
 interface ClassificationRecordsListProps {
   classificationStageId: number;
+  breedingProcessId: number;
 }
 
 export default function ClassificationRecordsList({
   classificationStageId,
+  breedingProcessId,
 }: ClassificationRecordsListProps) {
   const recordsQuery = useGetClassificationRecords(
     {
@@ -18,6 +21,11 @@ export default function ClassificationRecordsList({
       pageSize: 100,
     },
     !!classificationStageId
+  );
+
+  const stageQuery = useGetClassificationStageByBreedingProcessId(
+    breedingProcessId,
+    !!breedingProcessId
   );
 
   if (recordsQuery.isLoading) {
@@ -37,6 +45,8 @@ export default function ClassificationRecordsList({
   }
 
   const records = recordsQuery.data?.data ?? [];
+
+  const stage = stageQuery.data;
 
   if (records.length === 0) {
     return (
@@ -59,17 +69,6 @@ export default function ClassificationRecordsList({
     );
   }
 
-  // Calculate totals
-  const totals = records.reduce(
-    (acc, record) => ({
-      show: acc.show + (record.showQualifiedCount ?? 0),
-      high: acc.high + (record.highQualifiedCount ?? 0),
-      pond: acc.pond + (record.pondQualifiedCount ?? 0),
-      cull: acc.cull + (record.cullQualifiedCount ?? 0),
-    }),
-    { show: 0, high: 0, pond: 0, cull: 0 }
-  );
-
   return (
     <View className="mt-4">
       <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -86,7 +85,7 @@ export default function ClassificationRecordsList({
             </Text>
           </View>
           <Text className="text-xl font-bold text-purple-900">
-            {totals.show}
+            {stage?.showQualifiedCount ?? 0}
           </Text>
         </View>
 
@@ -95,7 +94,9 @@ export default function ClassificationRecordsList({
             <TrendingUp size={14} color="#3b82f6" />
             <Text className="ml-1 text-xs font-medium text-blue-700">High</Text>
           </View>
-          <Text className="text-xl font-bold text-blue-900">{totals.high}</Text>
+          <Text className="text-xl font-bold text-blue-900">
+            {stage?.highQualifiedCount ?? 0}
+          </Text>
         </View>
 
         <View className="ml-2 flex-1 rounded-2xl border border-green-200 bg-green-50 p-3">
@@ -106,7 +107,7 @@ export default function ClassificationRecordsList({
             </Text>
           </View>
           <Text className="text-xl font-bold text-green-900">
-            {totals.pond}
+            {stage?.pondQualifiedCount ?? 0}
           </Text>
         </View>
       </View>
@@ -204,22 +205,22 @@ export default function ClassificationRecordsList({
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-purple-700">
-                {records[3]?.showQualifiedCount ?? 0}
+                {stage?.showQualifiedCount ?? 0}
               </Text>
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-blue-700">
-                {records[3]?.highQualifiedCount ?? 0}
+                {stage?.highQualifiedCount ?? 0}
               </Text>
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-green-700">
-                {records[2]?.pondQualifiedCount ?? 0}
+                {stage?.pondQualifiedCount ?? 0}
               </Text>
             </View>
             <View className="flex-1">
               <Text className="text-center text-sm font-bold text-red-700">
-                {totals.cull}
+                {stage?.cullQualifiedCount ?? 0}
               </Text>
             </View>
           </View>

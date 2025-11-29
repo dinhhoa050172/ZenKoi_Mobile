@@ -6,7 +6,6 @@ import {
 import { formatDate } from '@/lib/utils/formatDate';
 import {
   AlertTriangle,
-  Calendar,
   CheckCircle,
   Clock,
   Lock,
@@ -26,7 +25,7 @@ interface IncidentCardProps {
 
 export default function IncidentCard({ incident, onPress }: IncidentCardProps) {
   const getSeverityInfo = () => {
-    switch (incident.severity) {
+    switch (incident.incidentType.defaultSeverity) {
       case IncidentSeverity.Urgent:
         return {
           color: '#dc2626',
@@ -104,14 +103,6 @@ export default function IncidentCard({ incident, onPress }: IncidentCardProps) {
   const severityInfo = getSeverityInfo();
   const statusInfo = getStatusInfo();
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   return (
     <TouchableOpacity
       onPress={() => onPress(incident)}
@@ -134,7 +125,7 @@ export default function IncidentCard({ incident, onPress }: IncidentCardProps) {
             {incident.incidentTitle}
           </Text>
           <Text className="text-base font-medium text-gray-600">
-            {incident.incidentTypeName}
+            {incident.incidentType.name}
           </Text>
         </View>
         <View className={`rounded-full px-3 py-1 ${severityInfo.tagBg}`}>
@@ -189,19 +180,11 @@ export default function IncidentCard({ incident, onPress }: IncidentCardProps) {
       </View>
 
       {/* Footer with Date and Time */}
-      <View className="flex-row items-center justify-between border-t border-gray-200 pt-3">
-        <View className="flex-row items-center">
-          <Calendar size={16} color="#6b7280" />
-          <Text className="ml-1 text-base text-gray-500">
-            {formatDate(incident.occurredAt, 'dd/MM/yyyy')}
-          </Text>
-        </View>
-        <View className="flex-row items-center">
-          <Clock size={16} color="#6b7280" />
-          <Text className="ml-1 text-base text-gray-500">
-            {formatTime(incident.occurredAt)}
-          </Text>
-        </View>
+      <View className="flex-row items-center justify-end border-t border-gray-200 pt-3">
+        <Clock size={16} color="#6b7280" />
+        <Text className="ml-1 text-base text-gray-500">
+          {formatDate(incident.occurredAt, 'HH:mm dd/MM/yyyy')}
+        </Text>
       </View>
     </TouchableOpacity>
   );

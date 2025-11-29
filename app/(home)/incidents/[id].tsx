@@ -11,12 +11,12 @@ import {
 import { useGetKoiFishById } from '@/hooks/useKoiFish';
 import { useGetPondById } from '@/hooks/usePond';
 import {
-  IncidentSeverity,
   IncidentStatus,
   KoiAffectedStatus,
   KoiIncident,
   PondIncident,
 } from '@/lib/api/services/fetchIncident';
+import { formatDate } from '@/lib/utils/formatDate';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -29,8 +29,6 @@ import {
   Edit,
   FileText,
   Heart,
-  ShieldCheck,
-  Thermometer,
   TrendingUp,
   User,
   Waves,
@@ -84,40 +82,6 @@ export const getStatusInfo = (status: IncidentStatus) => {
         color: '#d97706',
         bgColor: '#fffbeb',
         label: 'Đã báo cáo',
-      };
-  }
-};
-
-// Helper cho MỨC ĐỘ (Severity)
-export const getSeverityInfo = (severity: IncidentSeverity) => {
-  switch (severity) {
-    case IncidentSeverity.Urgent:
-      return {
-        icon: <AlertTriangle size={16} color="#dc2626" />,
-        color: '#dc2626',
-        bgColor: '#fef2f2',
-        label: 'Khẩn cấp',
-      };
-    case IncidentSeverity.High:
-      return {
-        icon: <AlertCircle size={16} color="#ea580c" />,
-        color: '#ea580c',
-        bgColor: '#fff7ed',
-        label: 'Cao',
-      };
-    case IncidentSeverity.Medium:
-      return {
-        icon: <Thermometer size={16} color="#d97706" />,
-        color: '#d97706',
-        bgColor: '#fffbeb',
-        label: 'Trung bình',
-      };
-    default:
-      return {
-        icon: <ShieldCheck size={16} color="#059669" />,
-        color: '#059669',
-        bgColor: '#f0fdf4',
-        label: 'Thấp',
       };
   }
 };
@@ -281,21 +245,6 @@ export default function IncidentDetailScreen() {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }),
-      time: date.toLocaleTimeString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    };
-  };
-
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-[#0A3D62]">
@@ -334,9 +283,7 @@ export default function IncidentDetailScreen() {
     );
   }
 
-  const severityInfo = getSeverityInfo(incidentData.severity);
   const statusInfo = getStatusInfo(incidentData.status);
-  const dateTime = formatDateTime(incidentData.occurredAt);
 
   return (
     <>
@@ -377,14 +324,14 @@ export default function IncidentDetailScreen() {
           {/* Tiêu đề & Loại */}
           <View className="mt-6">
             <Text className="text-sm font-medium text-blue-300">
-              {incidentData.incidentTypeName}
+              {incidentData.incidentType.name}
             </Text>
             <Text className="mt-1 text-2xl font-bold text-white">
               {incidentData.incidentTitle}
             </Text>
           </View>
 
-          {/* Tags (Trạng thái & Mức độ) */}
+          {/* Tags (Trạng thái) */}
           <View className="mt-4 flex-row gap-2">
             <View
               className="flex-row items-center rounded-full px-3 py-2"
@@ -396,18 +343,6 @@ export default function IncidentDetailScreen() {
                 style={{ color: statusInfo.color }}
               >
                 {statusInfo.label}
-              </Text>
-            </View>
-            <View
-              className="flex-row items-center rounded-full px-3 py-2"
-              style={{ backgroundColor: severityInfo.bgColor }}
-            >
-              {severityInfo.icon}
-              <Text
-                className="ml-2 text-base font-bold"
-                style={{ color: severityInfo.color }}
-              >
-                {severityInfo.label}
               </Text>
             </View>
           </View>
@@ -436,7 +371,10 @@ export default function IncidentDetailScreen() {
                 <InfoRow
                   icon={<Calendar size={20} color="#0A3D62" />}
                   label="Ngày xảy ra"
-                  value={`${dateTime.date} - ${dateTime.time}`}
+                  value={formatDate(
+                    incidentData.occurredAt,
+                    'dd/MM/yyyy HH:mm'
+                  )}
                 />
                 <InfoRow
                   icon={<User size={20} color="#0A3D62" />}
