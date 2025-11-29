@@ -63,7 +63,7 @@ export default function PondManagementScreen() {
 
   // Capacity (liters) range
   const [modalCapacityMin, setModalCapacityMin] = useState<number>(0);
-  const [modalCapacityMax, setModalCapacityMax] = useState<number>(10000);
+  const [modalCapacityMax, setModalCapacityMax] = useState<number>(1000000);
 
   // Depth (meters) range
   const [modalDepthMin, setModalDepthMin] = useState<number>(0);
@@ -97,7 +97,7 @@ export default function PondManagementScreen() {
     setModalPondTypeId(undefined);
     setModalPondTypeEnum(undefined);
     setModalCapacityMin(0);
-    setModalCapacityMax(1000);
+    setModalCapacityMax(1000000);
     setModalDepthMin(0);
     setModalDepthMax(5);
   };
@@ -129,6 +129,8 @@ export default function PondManagementScreen() {
         return 'Ao cá bán';
       case TypeOfPond.BROOD_STOCK:
         return 'Ao cá giống';
+      case TypeOfPond.QUARANTINE:
+        return 'Ao cách ly';
       default:
         return String(t);
     }
@@ -320,14 +322,14 @@ export default function PondManagementScreen() {
                               setDebouncedSearchText('');
                               resetModalFilters();
                             }}
-                            className="mr-2 rounded-xl bg-gray-100 px-6 py-3"
+                            className="mr-2 rounded-2xl bg-gray-100 px-6 py-3"
                           >
                             <Text className="font-semibold text-gray-900">
                               Xóa bộ lọc
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            className="rounded-xl bg-blue-500 px-6 py-3"
+                            className="rounded-2xl bg-blue-500 px-6 py-3"
                             onPress={() => setShowFilterSheet(true)}
                           >
                             <Text className="font-semibold text-white">
@@ -346,7 +348,7 @@ export default function PondManagementScreen() {
                         </Text>
                         <TouchableOpacity
                           onPress={() => setShowAddModal(true)}
-                          className="rounded-xl bg-blue-500 px-6 py-3"
+                          className="rounded-2xl bg-blue-500 px-6 py-3"
                         >
                           <Text className="font-semibold text-white">
                             Tạo hồ mới
@@ -580,7 +582,7 @@ export default function PondManagementScreen() {
                     <MultiSlider
                       values={[modalCapacityMin, modalCapacityMax]}
                       min={0}
-                      max={100000}
+                      max={10000000}
                       step={10}
                       onValuesChangeFinish={(vals: number[]) => {
                         setModalCapacityMin(Math.round(vals[0]));

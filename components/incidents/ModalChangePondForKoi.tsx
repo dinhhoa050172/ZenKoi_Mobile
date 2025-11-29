@@ -6,6 +6,7 @@ import { useChangeKoiFishPond } from '@/hooks/useKoiFish';
 import { useGetPonds } from '@/hooks/usePond';
 import { KoiFish } from '@/lib/api/services/fetchKoiFish';
 import { Pond, PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowRight,
@@ -15,7 +16,7 @@ import {
   MapPin,
   X,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   SafeAreaView,
@@ -47,11 +48,26 @@ export default function ModalChangePondForKoi({
   }>({ visible: false, title: '', message: '' });
 
   // API hooks
-  const { data: ponds, isLoading: pondsLoading } = useGetPonds(
-    { available: true, pageIndex: 1, pageSize: 100 },
+  const {
+    data: ponds,
+    isLoading: pondsLoading,
+    refetch,
+  } = useGetPonds(
+    {
+      pageIndex: 1,
+      pageSize: 100,
+      pondTypeEnum: TypeOfPond.QUARANTINE,
+      isNotMaintenance: true,
+    },
     visible
   );
   const changeKoiFishPondMutation = useChangeKoiFishPond();
+
+  useEffect(() => {
+    if (visible) {
+      refetch();
+    }
+  }, [visible, refetch]);
 
   const handleChangePond = async () => {
     if (!koi || !selectedPondId) return;
@@ -261,7 +277,7 @@ export default function ModalChangePondForKoi({
 
                         {/* Pond Details */}
                         <View className="mt-3 flex-row gap-3">
-                          <View className="flex-1 rounded-xl bg-gray-50 p-3">
+                          <View className="flex-1 rounded-2xl bg-gray-50 p-3">
                             <View className="flex-row items-center">
                               <Droplets size={14} color="#6b7280" />
                               <Text className="ml-1 text-xs font-bold text-gray-600">
@@ -273,7 +289,7 @@ export default function ModalChangePondForKoi({
                             </Text>
                           </View>
 
-                          <View className="flex-1 rounded-xl bg-gray-50 p-3">
+                          <View className="flex-1 rounded-2xl bg-gray-50 p-3">
                             <View className="flex-row items-center">
                               <FishSvg size={14} color="#6b7280" />
                               <Text className="ml-1 text-xs font-bold text-gray-600">

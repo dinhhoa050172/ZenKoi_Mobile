@@ -133,7 +133,7 @@ export default function ResolveIncidentModal({
 
                         <View className="rounded-2xl border border-slate-200 bg-slate-50 p-1 shadow-sm">
                           <TextInput
-                            className="min-h-[120px] rounded-xl bg-white p-4 text-base text-slate-900 shadow-sm"
+                            className="min-h-[120px] rounded-2xl bg-white p-4 text-base text-slate-900 shadow-sm"
                             placeholder="Mô tả chi tiết cách giải quyết sự cố, các biện pháp đã thực hiện, kết quả đạt được..."
                             placeholderTextColor="#94a3b8"
                             value={resolutionNotes}

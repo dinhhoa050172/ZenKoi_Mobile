@@ -300,7 +300,7 @@ export default function NotFoundScreen() {
           </View>
 
           {/* Fun message */}
-          <View className="mx-4 mt-8 rounded-xl border border-orange-200 bg-orange-50 p-4">
+          <View className="mx-4 mt-8 rounded-2xl border border-orange-200 bg-orange-50 p-4">
             <Text className="text-center text-sm italic text-orange-800">
               💡 Mẹo: Cá Koi bơi theo dòng nước, hãy theo dòng navigation để
               không bị lạc!

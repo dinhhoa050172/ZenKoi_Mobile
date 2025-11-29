@@ -132,7 +132,7 @@ export default function CancelIncidentModal({
 
                         <View className="rounded-2xl border border-slate-200 bg-slate-50 p-1 shadow-sm">
                           <TextInput
-                            className="min-h-[120px] rounded-xl bg-white p-4 text-base text-slate-900 shadow-sm"
+                            className="min-h-[120px] rounded-2xl bg-white p-4 text-base text-slate-900 shadow-sm"
                             placeholder="Mô tả lý do tại sao sự cố này cần được hủy, các thông tin liên quan..."
                             placeholderTextColor="#94a3b8"
                             value={resolutionNotes}
