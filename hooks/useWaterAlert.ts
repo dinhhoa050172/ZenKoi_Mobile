@@ -170,6 +170,28 @@ export function useDeleteWaterAlert() {
 }
 
 /**
+ * Mark all water alerts as seen
+ */
+export function useSeenAllWaterAlerts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const resp = await waterAlertServices.seenAllWaterAlerts();
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể đánh dấu đã xem');
+      return resp.result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: waterAlertKeys.lists() });
+      qc.invalidateQueries({ queryKey: pondKeys.all });
+    },
+    onError: (err: any) => {
+      console.error('Seen all water alerts error:', err);
+    },
+  });
+}
+
+/**
  * Prefetch helpers
  */
 export function usePrefetchWaterAlertById(id: number) {

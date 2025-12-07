@@ -68,6 +68,7 @@ export default function BreedingScreen() {
   const [currentBreedingId, setCurrentBreedingId] = useState<number | null>(
     null
   );
+  const [editPondId, setEditPondId] = useState<number | null>(null);
 
   // Custom alert state
   const [customAlertVisible, setCustomAlertVisible] = useState(false);
@@ -671,14 +672,17 @@ export default function BreedingScreen() {
                         onCreatePacket={() => {
                           setCurrentBreedingId(b.id);
                           setEditPacketFishId(null);
+                          setEditPondId(null);
                           setShowCreatePacketModal(true);
                         }}
                         onEditPacket={(
                           breedingProcessId: number,
-                          packetFishId: number
+                          packetFishId: number,
+                          pondId: number
                         ) => {
                           setCurrentBreedingId(breedingProcessId);
                           setEditPacketFishId(packetFishId ?? null);
+                          setEditPondId(pondId);
                           setShowCreatePacketModal(true);
                         }}
                       />
@@ -1037,16 +1041,18 @@ export default function BreedingScreen() {
         breedingId={currentBreedingId}
       />
 
-      {/* Create Packet Fish Modals */}
       <CreatePacketFishModal
         visible={showCreatePacketModal}
         onClose={() => {
           setShowCreatePacketModal(false);
+          setEditPondId(null);
         }}
         breedingId={currentBreedingId ?? 0}
         currentPondId={
+          editPondId ??
           breedingListToRender.find((x) => x.id === currentBreedingId)
-            ?.pondId ?? undefined
+            ?.pondId ??
+          undefined
         }
         packetFishId={editPacketFishId ?? undefined}
         onSuccess={() => refetchBreeding()}

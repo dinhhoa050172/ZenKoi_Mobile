@@ -4,8 +4,20 @@ import {
   useResolveWaterAlert,
 } from '@/hooks/useWaterAlert';
 import { Severity, WaterAlert } from '@/lib/api/services/fetchWaterAlert';
+import { WaterParameterType } from '@/lib/api/services/fetchWaterParameterThreshold';
 import { formatDate } from '@/lib/utils/formatDate';
-import { AlertCircle, Check, Droplets, Trash2, X } from 'lucide-react-native';
+import {
+  Activity,
+  AlertCircle,
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Clock,
+  Droplets,
+  Info,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,6 +25,7 @@ import {
   Dimensions,
   FlatList,
   PanResponder,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View,
@@ -38,31 +51,41 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isRefetching,
     refetch,
   } = useGetInfiniteWaterAlerts(filters, visible);
 
   const resolveMutation = useResolveWaterAlert();
   const deleteMutation = useDeleteWaterAlert();
 
-  // Flatten pages data
+  const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+
   const alertsList = useMemo(() => {
     const list = data?.pages.flatMap((page) => page.data) ?? [];
     return list;
   }, [data]);
 
   const onResolve = (id: number) => {
-    resolveMutation.mutate(id);
+    setResolvingIds((prev) => new Set(prev).add(id));
+    resolveMutation.mutate(id, {
+      onSettled: () => {
+        setResolvingIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          return newSet;
+        });
+      },
+    });
   };
 
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const onDelete = (id: number) => {
-    // open custom confirm modal
     setDeleteTarget(id);
   };
 
-  // Determine severity color
-  const getSeverityColor = (severity: string) => {
+  const getSeverityConfig = (severity: string) => {
     const s = (severity || '').toLowerCase();
     switch (true) {
       case s.includes('cao') ||
@@ -70,33 +93,45 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
         s.includes('critical') ||
         s.includes('urgent'):
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          text: 'text-red-700',
-          icon: '#dc2626',
+          bg: 'bg-red-500',
+          lightBg: 'bg-red-50',
+          border: 'border-red-100',
+          text: 'text-red-600',
+          darkText: 'text-red-700',
+          icon: '#ef4444',
+          gradient: ['#fee2e2', '#fecaca'],
         };
       case s.includes('trung bình') ||
         s.includes('medium') ||
         s.includes('warning'):
         return {
-          bg: 'bg-orange-50',
-          border: 'border-orange-200',
-          text: 'text-orange-700',
-          icon: '#ea580c',
+          bg: 'bg-orange-500',
+          lightBg: 'bg-orange-50',
+          border: 'border-orange-100',
+          text: 'text-orange-600',
+          darkText: 'text-orange-700',
+          icon: '#f97316',
+          gradient: ['#ffedd5', '#fed7aa'],
         };
       case s.includes('thấp') || s.includes('low'):
         return {
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-200',
-          text: 'text-yellow-700',
-          icon: '#ca8a04',
+          bg: 'bg-yellow-500',
+          lightBg: 'bg-yellow-50',
+          border: 'border-yellow-100',
+          text: 'text-yellow-600',
+          darkText: 'text-yellow-700',
+          icon: '#eab308',
+          gradient: ['#fef9c3', '#fef08a'],
         };
       default:
         return {
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-200',
-          text: 'text-yellow-700',
-          icon: '#ca8a04',
+          bg: 'bg-blue-500',
+          lightBg: 'bg-blue-50',
+          border: 'border-blue-100',
+          text: 'text-blue-600',
+          darkText: 'text-blue-700',
+          icon: '#3b82f6',
+          gradient: ['#dbeafe', '#bfdbfe'],
         };
     }
   };
@@ -126,145 +161,198 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
     }
   };
 
+  const translateParameterName = (param: string) => {
+    switch (param) {
+      case WaterParameterType.PH_LEVEL:
+        return 'Độ pH';
+      case WaterParameterType.TEMPERATURE_CELSIUS:
+        return 'Nhiệt độ';
+      case WaterParameterType.OXYGEN_LEVEL:
+        return 'Hàm lượng Oxy hòa tan';
+      case WaterParameterType.AMMONIA_LEVEL:
+        return 'Nồng độ Amoniac';
+      case WaterParameterType.NITRITE_LEVEL:
+        return 'Nồng độ Nitrit';
+      case WaterParameterType.NITRATE_LEVEL:
+        return 'Nồng độ Nitrat';
+      case WaterParameterType.CARBON_HARDNESS:
+        return 'Độ cứng cacbonat';
+      case WaterParameterType.WATER_LEVEL_METERS:
+        return 'Mực nước';
+      default:
+        return param;
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    const s = (severity || '').toLowerCase();
+    if (s.includes('cao') || s.includes('urgent')) {
+      return AlertTriangle;
+    } else if (s.includes('trung')) {
+      return AlertCircle;
+    }
+    return Info;
+  };
+
   const renderItem = ({ item }: { item: WaterAlert }) => {
-    const severityStyle = getSeverityColor(item.severity);
+    const config = getSeverityConfig(item.severity);
+    const SeverityIcon = getSeverityIcon(item.severity);
 
     return (
-      <View className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm">
-        {/* Header with severity indicator */}
-        <View
-          className={`flex-row items-center justify-between rounded-t-2xl border-b ${severityStyle.border} ${severityStyle.bg} px-4 py-3`}
-        >
-          <View className="flex-1 flex-row items-center">
-            <AlertCircle size={22} color={severityStyle.icon} />
-            <Text
-              className={`ml-2 text-base font-semibold uppercase ${severityStyle.text}`}
-            >
-              {translateSeverity(item.severity)}
-            </Text>
-          </View>
-          <Text className="text-base text-gray-500">
-            {formatDate(item.createdAt, 'HH:mm dd/MM/yyyy')}
+      <View className="mb-4 overflow-hidden rounded-3xl bg-white shadow-lg shadow-black/5">
+        {/* Severity Badge - Floating Style */}
+        <View className="absolute right-3 top-3 z-10 flex-row items-center rounded-full bg-white/95 px-3 py-1.5 shadow-sm">
+          <SeverityIcon size={14} color={config.icon} strokeWidth={2.5} />
+          <Text className={`ml-1.5 text-xs font-bold uppercase ${config.text}`}>
+            {translateSeverity(item.severity)}
           </Text>
         </View>
 
-        {/* Content */}
-        <View className="p-4">
+        {/* Header with gradient background */}
+        <View className={`${config.lightBg} px-5 pb-4 pt-5`}>
           <View className="flex-row items-start">
-            <View className="mr-3 mt-0.5">
-              <Droplets size={22} color="#3b82f6" />
+            <View className={`${config.bg} mr-3 rounded-2xl p-2.5 shadow-sm`}>
+              <Droplets size={20} color="white" strokeWidth={2.5} />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-semibold text-gray-900">
+              <Text className="text-lg font-bold text-gray-900">
                 {item.pondName}
               </Text>
-              <Text className="mt-1 text-base font-medium text-gray-700">
-                {item.parameterName}
-              </Text>
-              <Text className="mt-2 text-base leading-5 text-gray-600">
-                {item.message}
-              </Text>
-
-              {/* Measured Value Badge */}
-              <View className="mt-3 inline-flex self-start rounded-full bg-blue-50 px-3 py-1.5">
-                <Text className="text-base font-medium text-blue-700">
-                  Giá trị: {item.measuredValue}
-                </Text>
+              <View className="mt-1.5 flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <Activity size={14} color="#6b7280" strokeWidth={2} />
+                  <Text className="ml-1.5 text-sm font-medium text-gray-600">
+                    {translateParameterName(item.parameterName)}
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Clock size={10} color="#6b7280" />
+                  <Text className="ml-1 text-sm font-medium text-gray-500">
+                    {formatDate(
+                      new Date(
+                        new Date(item.createdAt).getTime() + 7 * 60 * 60 * 1000
+                      ).toISOString(),
+                      'HH:mm dd/MM/yyyy'
+                    )}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Content */}
+        <View className="px-5 py-4">
+          {/* Message */}
+          <View className="mb-4 rounded-2xl bg-gray-50 p-4">
+            <Text className="text-[15px] leading-6 text-gray-700">
+              {item.message}
+            </Text>
+          </View>
 
           {/* Action Buttons */}
-          <View className="mt-4 flex-row gap-2">
-            {!item.isResolved && (
+          {item.isResolved ? (
+            <View className="mb-2 flex-row items-center justify-center rounded-2xl bg-emerald-50 px-4 py-4">
+              <CheckCircle2 size={20} color="#10b981" strokeWidth={2.5} />
+              <Text className="ml-2 text-base font-bold text-emerald-600">
+                Đã giải quyết
+              </Text>
+            </View>
+          ) : (
+            <View className="mb-2 flex-row gap-2">
               <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center rounded-2xl border border-green-200 bg-green-50 py-3 active:bg-green-100"
+                className="flex-1 flex-row items-center justify-center rounded-2xl bg-emerald-500 py-4 shadow-sm shadow-emerald-500/30 active:bg-emerald-600"
                 onPress={() => onResolve(item.id)}
-                disabled={resolveMutation.isPending}
+                disabled={resolvingIds.has(item.id)}
               >
-                {resolveMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#16a34a" />
+                {resolvingIds.has(item.id) ? (
+                  <ActivityIndicator size="small" color="white" />
                 ) : (
                   <>
-                    <Check size={22} color="#16a34a" strokeWidth={2.5} />
-                    <Text className="ml-2 text-base font-semibold text-green-700">
-                      Đã xử lý
+                    <Check size={20} color="white" strokeWidth={2.5} />
+                    <Text className="ml-2 text-base font-bold text-white">
+                      Xử lý
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
-            )}
 
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center rounded-2xl border border-red-200 bg-red-50 py-3 active:bg-red-100"
-              onPress={() => onDelete(item.id)}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? (
-                <ActivityIndicator size="small" color="#dc2626" />
-              ) : (
-                <>
-                  <Trash2 size={22} color="#dc2626" strokeWidth={2.5} />
-                  <Text className="ml-2 text-base font-semibold text-red-700">
-                    Xóa
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                className="flex-1 flex-row items-center justify-center rounded-2xl border border-red-200 bg-red-50 py-4 active:bg-red-100"
+                onPress={() => onDelete(item.id)}
+                disabled={deletingIds.has(item.id)}
+              >
+                {deletingIds.has(item.id) ? (
+                  <ActivityIndicator size="small" color="#dc2626" />
+                ) : (
+                  <>
+                    <Trash2 size={18} color="#dc2626" strokeWidth={2} />
+                    <Text className="ml-2 text-sm font-semibold text-red-600">
+                      Xóa cảnh báo
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     );
   };
 
-  // Custom header for the modal
   const renderHeader = () => (
-    <View className="flex-row items-center justify-between border-b border-gray-200 px-4 pb-4">
-      <View className="flex-row items-center">
-        <View className="mr-3 rounded-full bg-red-100 p-2">
-          <AlertCircle size={20} color="red" />
+    <View className="border-b border-gray-100 px-5 pb-2">
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <View className="mr-3 rounded-2xl p-2.5">
+            <AlertCircle size={22} color="red" strokeWidth={2.5} />
+          </View>
+          <View>
+            <Text className="text-xl font-bold text-gray-900">
+              Cảnh báo nước
+            </Text>
+          </View>
         </View>
-        <Text className="text-lg font-bold text-red-500">Cảnh báo nước</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          className="rounded-full bg-gray-200 p-2 active:bg-gray-200"
+        >
+          <X size={20} color="#6b7280" strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        onPress={onClose}
-        className="rounded-full bg-gray-100 p-2 active:bg-gray-200"
-      >
-        <X size={20} color="#6b7280" />
-      </TouchableOpacity>
     </View>
   );
 
-  // Load more handler
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   };
 
-  // Footer component for loading indicator
   const renderFooter = () => {
     if (!isFetchingNextPage) return null;
     return (
-      <View className="items-center py-4">
+      <View className="items-center py-6">
         <ActivityIndicator size="small" color="#3b82f6" />
-        <Text className="mt-2 text-sm text-gray-500">Đang tải thêm...</Text>
+        <Text className="mt-2 text-sm font-medium text-gray-500">
+          Đang tải thêm...
+        </Text>
       </View>
     );
   };
 
-  // Bottom sheet animation and pan responder (self-contained — no BottomSheetModal)
   const slideAnim = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
   const screenHeight = Dimensions.get('window').height;
-  const modalHeight = (screenHeight * 80) / 100; // 80% height
+  const modalHeight = (screenHeight * 85) / 100;
 
   useEffect(() => {
     if (visible) {
       panY.setValue(0);
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 1,
-        duration: 300,
+        tension: 65,
+        friction: 10,
         useNativeDriver: true,
       }).start();
     } else {
@@ -290,6 +378,8 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
         } else {
           Animated.spring(panY, {
             toValue: 0,
+            tension: 65,
+            friction: 10,
             useNativeDriver: true,
           }).start();
         }
@@ -306,7 +396,7 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
 
   return (
     <>
-      {/* Overlay Background */}
+      {/* Overlay */}
       <Animated.View
         style={{
           position: 'absolute',
@@ -329,30 +419,34 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
           right: 0,
           bottom: 0,
           height: modalHeight,
-          backgroundColor: 'white',
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
+          backgroundColor: '#fafafa',
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
           transform: [{ translateY }, { translateY: panY }],
           zIndex: 999999,
           elevation: 999,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
         }}
         {...panResponder.panHandlers}
       >
-        {/* Drag handle */}
-        <View className="mb-2 mt-3 h-1.5 w-12 self-center rounded-full bg-gray-300" />
+        {/* Drag Handle */}
+        <View className="mb-3 mt-3 h-1.5 w-12 self-center rounded-full bg-gray-300" />
 
         {/* Header */}
         {renderHeader()}
 
-        {/* Content: FlatList */}
+        {/* Content */}
         <FlatList
           data={alertsList}
           keyExtractor={(item, index) => `alert-${item.id}-${index}`}
           renderItem={renderItem}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingTop: 8,
-            paddingBottom: 90,
+            paddingTop: 12,
+            paddingBottom: 100,
           }}
           style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
@@ -363,46 +457,58 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              colors={['#3b82f6']}
+              tintColor="#3b82f6"
+            />
+          }
           ListEmptyComponent={() => (
-            <View className="items-center py-12">
+            <View className="items-center py-16">
               {isLoading ? (
                 <>
-                  <ActivityIndicator size="large" color="#3b82f6" />
-                  <Text className="mt-4 text-sm font-medium text-gray-600">
+                  <View className="rounded-full bg-blue-50 p-6">
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                  </View>
+                  <Text className="mt-4 text-base font-semibold text-gray-700">
                     Đang tải cảnh báo...
+                  </Text>
+                  <Text className="mt-1 text-sm text-gray-500">
+                    Vui lòng chờ trong giây lát
                   </Text>
                 </>
               ) : isError ? (
                 <>
-                  <View className="rounded-full bg-red-100 p-4">
-                    <AlertCircle size={32} color="#dc2626" />
+                  <View className="rounded-full bg-red-50 p-6">
+                    <AlertCircle size={40} color="#ef4444" strokeWidth={2} />
                   </View>
-                  <Text className="mt-4 text-lg font-semibold text-red-600">
+                  <Text className="mt-4 text-lg font-bold text-red-600">
                     Không thể tải cảnh báo
                   </Text>
-                  <Text className="mt-1 text-base text-gray-500">
-                    Vui lòng thử lại sau
+                  <Text className="mt-1 text-sm text-gray-500">
+                    Đã xảy ra lỗi, vui lòng thử lại
                   </Text>
-
                   <TouchableOpacity
                     onPress={() => refetch()}
-                    className="mt-4 rounded-2xl bg-primary px-4 py-2"
+                    className="mt-6 rounded-2xl bg-blue-500 px-8 py-3.5 shadow-sm shadow-blue-500/30"
                     activeOpacity={0.8}
                   >
-                    <Text className="text-center text-lg font-semibold text-white">
+                    <Text className="text-center text-base font-bold text-white">
                       Thử lại
                     </Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <View className="rounded-full bg-gray-100 p-4">
-                    <Droplets size={32} color="#9ca3af" />
+                  <View className="rounded-full bg-emerald-50 p-6">
+                    <CheckCircle2 size={40} color="#10b981" strokeWidth={2} />
                   </View>
-                  <Text className="mt-4 text-sm font-medium text-gray-600">
+                  <Text className="mt-4 text-lg font-bold text-gray-700">
                     Không có cảnh báo
                   </Text>
-                  <Text className="mt-1 text-xs text-gray-500">
+                  <Text className="mt-1 text-sm text-gray-500">
                     Tất cả các thông số đều ổn định
                   </Text>
                 </>
@@ -412,15 +518,24 @@ const WaterAlertBottomSheet: React.FC<Props> = ({
         />
       </Animated.View>
 
-      {/* Delete confirmation using CustomAlert */}
+      {/* Delete Confirmation */}
       <CustomAlert
         visible={deleteTarget !== null}
         title="Xóa cảnh báo"
-        message="Bạn có chắc muốn xóa cảnh báo này?"
+        message="Bạn có chắc chắn muốn xóa cảnh báo này không?"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget !== null) {
-            deleteMutation.mutate(deleteTarget);
+            setDeletingIds((prev) => new Set(prev).add(deleteTarget));
+            deleteMutation.mutate(deleteTarget, {
+              onSettled: () => {
+                setDeletingIds((prev) => {
+                  const newSet = new Set(prev);
+                  newSet.delete(deleteTarget);
+                  return newSet;
+                });
+              },
+            });
           }
           setDeleteTarget(null);
         }}

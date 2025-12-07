@@ -36,7 +36,7 @@ export function useGetKoiFish(
   enabled = true,
   pageSize = 30
 ) {
-  const iq = useInfiniteQuery<any, Error>({
+  const iq = useInfiniteQuery<KoiFishPagination, Error>({
     queryKey: koiFishKeys.list(filters || {}),
     queryFn: async (ctx) => {
       const pageParam = (ctx?.pageParam as number) ?? 1;
@@ -60,7 +60,7 @@ export function useGetKoiFish(
 
   const merged: KoiFishPagination | undefined = iq.data
     ? ((): KoiFishPagination => {
-        const pages = (iq.data as any).pages as KoiFishPagination[];
+        const pages = iq.data.pages;
         const last = pages[pages.length - 1] ?? ({} as KoiFishPagination);
         return {
           pageIndex: last.pageIndex ?? 1,
@@ -76,7 +76,7 @@ export function useGetKoiFish(
   return {
     ...iq,
     data: merged,
-  } as any;
+  };
 }
 
 /*

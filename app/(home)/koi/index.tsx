@@ -368,7 +368,7 @@ export default function KoiManagementScreen() {
         {/* Filter Bar */}
         <View className="flex-row items-center justify-between bg-white px-4 py-3 shadow-sm">
           <Text className="text-base font-medium text-gray-700">
-            {koiList.length} cá Koi
+            {koiPagination?.totalItems} cá Koi
           </Text>
           <TouchableOpacity
             className="flex-row items-center rounded-full bg-gray-100 px-4 py-2"

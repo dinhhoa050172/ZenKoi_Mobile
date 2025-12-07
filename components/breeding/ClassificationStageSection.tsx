@@ -13,7 +13,11 @@ interface ClassificationStageSectionProps {
   breedingProcessId: number;
   onStartSelection: () => void;
   onCreatePacket?: (breedingProcessId: number) => void;
-  onEditPacket?: (breedingProcessId: number, packetFishId: number) => void;
+  onEditPacket?: (
+    breedingProcessId: number,
+    packetFishId: number,
+    pondId: number
+  ) => void;
 }
 
 export default function ClassificationStageSection({
@@ -32,8 +36,7 @@ export default function ClassificationStageSection({
   const pondPackets = pondPacketQuery.data?.data ?? [];
   const hasPondPacket = pondPackets.length > 0;
   const existingPacketFishId: number | undefined = pondPackets[0]
-    ? ((pondPackets[0] as any).packetFishId ??
-      (pondPackets[0] as any).packetFish?.id)
+    ? pondPackets[0].packetFishId
     : undefined;
 
   const classificationStageQuery = useGetClassificationStageByBreedingProcessId(
@@ -115,7 +118,8 @@ export default function ClassificationStageSection({
                   if (onEditPacket)
                     return onEditPacket(
                       breedingProcessId,
-                      existingPacketFishId
+                      existingPacketFishId,
+                      pondPackets[0].pondId
                     );
                   return router.push(`/breeding/${breedingProcessId}`);
                 }

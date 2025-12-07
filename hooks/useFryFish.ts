@@ -3,6 +3,7 @@ import {
   FryFishPagination,
   FryFishRequest,
   FryFishSearchParams,
+  FryFishSummary,
   fryFishServices,
 } from '@/lib/api/services/fetchFryFish';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -90,7 +91,7 @@ export function useGetFryFishSummaryByFryFishId(
 ) {
   return useQuery({
     queryKey: ['fryFish', 'summary', fryFishId],
-    queryFn: async (): Promise<any> => {
+    queryFn: async (): Promise<FryFishSummary> => {
       const resp =
         await fryFishServices.getFryFishSummaryByFryFishId(fryFishId);
       if (!resp.isSuccess)

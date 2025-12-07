@@ -99,6 +99,7 @@ export default function BreedingDetailScreen() {
   const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [showCreatePacketModal, setShowCreatePacketModal] = useState(false);
   const [editPacketFishId, setEditPacketFishId] = useState<number | null>(null);
+  const [editPondId, setEditPondId] = useState<number | null>(null);
   const [isMarkingSpawned, setIsMarkingSpawned] = useState(false);
 
   // Delete alert state
@@ -1051,8 +1052,10 @@ export default function BreedingDetailScreen() {
                               const packetId =
                                 first?.packetFishId ?? first?.packetFish?.id;
                               setEditPacketFishId(packetId ?? null);
+                              setEditPondId(first?.pondId ?? null);
                             } catch {
                               setEditPacketFishId(null);
+                              setEditPondId(null);
                             }
                             setShowCreatePacketModal(true);
                           }}
@@ -1276,8 +1279,10 @@ export default function BreedingDetailScreen() {
                             const packetId =
                               first?.packetFishId ?? first?.packetFish?.id;
                             setEditPacketFishId(packetId ?? null);
+                            setEditPondId(first?.pondId ?? null);
                           } catch {
                             setEditPacketFishId(null);
+                            setEditPondId(null);
                           }
                           setShowCreatePacketModal(true);
                         }}
@@ -1354,9 +1359,12 @@ export default function BreedingDetailScreen() {
       {/* All Modals */}
       <CreatePacketFishModal
         visible={showCreatePacketModal}
-        onClose={() => setShowCreatePacketModal(false)}
+        onClose={() => {
+          setShowCreatePacketModal(false);
+          setEditPondId(null);
+        }}
         breedingId={breedingId}
-        currentPondId={breedingDetail.pondId}
+        currentPondId={editPondId ?? breedingDetail.pondId}
         packetFishId={editPacketFishId ?? undefined}
         onSuccess={() => breedingDetailQuery.refetch()}
       />
