@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ZenKoi",
-    "slug": "ZenKoi",
+    "slug": "zenkoi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_ZenKoi.png",
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.ZenKoi"
+      "package": "com.anonymous.zenkoi"
     },
     "web": {
       "bundler": "metro",
@@ -69,7 +69,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "aabc20fa-376a-48f1-bb96-56f98f6f9630"
+        "projectId": "f4bdf4a9-bf78-4204-b6e8-3581d9a55a1d"
       }
     }
   }
