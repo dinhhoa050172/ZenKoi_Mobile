@@ -88,20 +88,44 @@ export async function requestNotificationPermissions(): Promise<boolean> {
  * @returns NotificationToken object hoặc null nếu thất bại
  */
 export async function getExpoPushToken(): Promise<NotificationToken | null> {
-  if (!Device.isDevice) {
-    console.warn('[NOTIFICATION] Cannot get push token on simulator');
+  // FOR TESTING: Generate a mock token to test backend integration without real device
+  // ⚠️ Set to false when deploying to production APK
+  const TESTING_MODE = false;
+
+  if (TESTING_MODE) {
+    const mockToken: NotificationToken = {
+      token: `ExponentPushToken[TEST-${Date.now()}-${Math.random().toString(36).substring(7)}]`,
+      platform: Platform.OS,
+    };
+    console.log('[NOTIFICATION] 🧪 TESTING MODE: Using mock token');
+    console.log('[NOTIFICATION] Mock token:', mockToken.token);
+    return mockToken;
+  }
+
+  // Skip device check if running in Expo Go (development)
+  if (isRunningInExpoGo()) {
+    console.warn(
+      '[NOTIFICATION] Push notifications không hoạt động trên Expo Go. Vui lòng build development build hoặc bật TESTING_MODE.'
+    );
     return null;
   }
 
-  if (isRunningInExpoGo()) {
+  // On real device or production build, get real token
+  if (!Device.isDevice) {
     console.warn(
-      '[NOTIFICATION] Push notifications không hoạt động trên Expo Go. Vui lòng build development build.'
+      '[NOTIFICATION] Cannot get push token on simulator/emulator. Token sẽ chỉ hoạt động trên thiết bị thật.'
     );
     return null;
   }
 
   try {
     console.log('[NOTIFICATION] Requesting push token from Expo...');
+    console.log('[NOTIFICATION] Device info:', {
+      isDevice: Device.isDevice,
+      deviceName: Device.deviceName,
+      platform: Platform.OS,
+    });
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: 'aabc20fa-376a-48f1-bb96-56f98f6f9630',
     });

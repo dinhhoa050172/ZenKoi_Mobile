@@ -137,9 +137,17 @@ export function useLogin() {
           try {
             const tokenData = await getExpoPushToken();
             if (tokenData?.token) {
+              console.log(
+                '🔧 [LOGIN] Token obtained:',
+                tokenData.token.substring(0, 30) + '...'
+              );
               await authServices.sendExpoPushToken(tokenData.token);
               console.log(
                 '🔧 [LOGIN] Notification token registered successfully'
+              );
+            } else {
+              console.warn(
+                '🔧 [LOGIN] No token obtained (may be simulator/emulator or permissions not granted)'
               );
             }
           } catch (tokenError) {
