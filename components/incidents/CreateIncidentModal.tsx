@@ -2,10 +2,7 @@ import ContextMenuField from '@/components/ContextMenuField';
 import { CustomAlert } from '@/components/CustomAlert';
 import { useCreateIncident } from '@/hooks/useIncident';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
-import {
-  IncidentSeverity,
-  RequestIncident,
-} from '@/lib/api/services/fetchIncident';
+import { RequestIncident } from '@/lib/api/services/fetchIncident';
 import { AlertTriangle, Calendar, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -32,7 +29,6 @@ export default function CreateIncidentModal({
     incidentTypeId: undefined,
     incidentTitle: '',
     description: '',
-    severity: IncidentSeverity.Low,
     occurredAt: new Date().toISOString(),
   });
 
@@ -50,13 +46,6 @@ export default function CreateIncidentModal({
   // Get incident types
   const { data: incidentTypesData } = useGetIncidentTypes();
   const incidentTypes = incidentTypesData?.data || [];
-
-  const severityOptions = [
-    { label: 'Thấp', value: IncidentSeverity.Low },
-    { label: 'Trung bình', value: IncidentSeverity.Medium },
-    { label: 'Cao', value: IncidentSeverity.High },
-    { label: 'Khẩn cấp', value: IncidentSeverity.Urgent },
-  ];
 
   const incidentTypeOptions = incidentTypes.map((type) => ({
     label: type.name,
@@ -84,7 +73,6 @@ export default function CreateIncidentModal({
         incidentTypeId: formData.incidentTypeId,
         incidentTitle: formData.incidentTitle.trim(),
         description: formData.description.trim(),
-        severity: formData.severity!,
         occurredAt: formData.occurredAt!,
       });
 
@@ -93,7 +81,6 @@ export default function CreateIncidentModal({
         incidentTypeId: undefined,
         incidentTitle: '',
         description: '',
-        severity: IncidentSeverity.Low,
         occurredAt: new Date().toISOString(),
       });
 
@@ -108,7 +95,6 @@ export default function CreateIncidentModal({
       incidentTypeId: undefined,
       incidentTitle: '',
       description: '',
-      severity: IncidentSeverity.Low,
       occurredAt: new Date().toISOString(),
     });
     onClose();
@@ -187,20 +173,6 @@ export default function CreateIncidentModal({
                   placeholderTextColor="#9ca3af"
                 />
               </View>
-
-              {/* Severity */}
-              <ContextMenuField
-                label="Mức độ nghiêm trọng"
-                value={formData.severity}
-                options={severityOptions}
-                onSelect={(value) =>
-                  setFormData({
-                    ...formData,
-                    severity: value as IncidentSeverity,
-                  })
-                }
-                placeholder="Chọn mức độ"
-              />
 
               {/* Description */}
               <View className="mb-4">
