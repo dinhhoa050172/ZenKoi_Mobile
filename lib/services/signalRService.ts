@@ -7,8 +7,14 @@ import { WaterAlert } from '../types/alert';
 
 // Get backend URL từ environment hoặc fallback
 const getBackendUrl = (): string => {
-  // Đổi HTTPS sang WSS cho WebSocket
-  return 'ws://14.225.219.222:5000/api/ws/alerts';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://zenkoi.site';
+
+  // Chuyển đổi HTTP/HTTPS sang WS/WSS
+  const wsUrl = apiUrl.replace(/^https?:\/\//, (match) =>
+    match === 'https://' ? 'wss://' : 'ws://'
+  );
+
+  return `${wsUrl}/api/ws/alerts`;
 };
 
 type AlertHandler = (alert: WaterAlert) => void;
