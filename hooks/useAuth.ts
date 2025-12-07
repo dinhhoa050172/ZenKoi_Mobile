@@ -4,6 +4,7 @@ import {
   LoginResponse,
 } from '@/lib/api/services/fetchAuth';
 import { userServices } from '@/lib/api/services/fetchUser';
+import { getExpoPushToken } from '@/lib/services/notificationService';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -131,7 +132,25 @@ export function useLogin() {
             // Don't fail the login if profile fetch fails
           }
 
-          // Step 4: Complete login process
+          // Step 4: Register notification token
+          console.log('🔧 [LOGIN] Step 4: Registering notification token...');
+          try {
+            const tokenData = await getExpoPushToken();
+            if (tokenData?.token) {
+              await authServices.sendExpoPushToken(tokenData.token);
+              console.log(
+                '🔧 [LOGIN] Notification token registered successfully'
+              );
+            }
+          } catch (tokenError) {
+            console.warn(
+              '🔧 [LOGIN] Failed to register notification token:',
+              tokenError
+            );
+            // Don't fail login if token registration fails
+          }
+
+          // Step 5: Complete login process
           queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
           queryClient.invalidateQueries({ queryKey: ['user'] }); // Also invalidate user queries
           router.replace('/(home)');

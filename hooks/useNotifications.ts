@@ -166,7 +166,13 @@ export function useNotifications() {
    */
   useEffect(() => {
     if (isAuthenticated) {
-      initializeNotifications();
+      // Initialize notifications when authenticated
+      // Note: Token registration is already handled in useAuth after login,
+      // but we still need to set up listeners and handle app restarts
+      if (!hasRegisteredRef.current) {
+        console.log('[NOTIFICATIONS] Auth detected, initializing...');
+        initializeNotifications();
+      }
     } else {
       cleanupNotifications();
     }

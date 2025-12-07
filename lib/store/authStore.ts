@@ -8,6 +8,7 @@ import {
   UserRole,
   userServices,
 } from '../api/services/fetchUser';
+import { getExpoPushToken } from '../services/notificationService';
 
 // Storage keys
 const AUTH_TOKEN_KEY = 'auth-token';
@@ -416,6 +417,22 @@ export const initializeAuth = async () => {
             .syncUserFromProfile(userResponse.result);
 
           console.log('🔧 [AUTH INIT] User profile synced successfully');
+
+          // Register notification token after successful auth restoration
+          try {
+            console.log('🔧 [AUTH INIT] Registering notification token...');
+            const tokenData = await getExpoPushToken();
+            if (tokenData?.token) {
+              await authServices.sendExpoPushToken(tokenData.token);
+              console.log('🔧 [AUTH INIT] Notification token registered');
+            }
+          } catch (tokenError) {
+            console.warn(
+              '🔧 [AUTH INIT] Failed to register notification token:',
+              tokenError
+            );
+            // Don't fail auth initialization if token registration fails
+          }
         } else {
           console.warn(
             '🔧 [AUTH INIT] getMe API failed:',

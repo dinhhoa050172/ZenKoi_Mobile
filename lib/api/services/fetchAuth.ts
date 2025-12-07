@@ -194,7 +194,7 @@ export const authServices = {
   sendExpoPushToken: async (
     expoPushToken: string
   ): Promise<ExpoPushTokenResponse> => {
-    const response = await apiService.post<
+    const response = await apiService.put<
       ExpoPushTokenResponse,
       { expoPushToken: string }
     >('/api/Accounts/update-push-token', { expoPushToken });
