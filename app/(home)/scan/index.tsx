@@ -82,7 +82,8 @@ export default function ScanScreen() {
   };
 
   const handleSearch = async (searchCode = code) => {
-    if (!searchCode.trim()) {
+    const trimmed = searchCode.trim();
+    if (!trimmed) {
       showCustomAlert({
         title: 'Lỗi',
         message: 'Vui lòng nhập mã hoặc quét RFID',
@@ -90,9 +91,17 @@ export default function ScanScreen() {
       });
       return;
     }
-    setIsLoading(true);
+
     Keyboard.dismiss();
-    setRfidToSearch(searchCode.trim());
+
+    if (trimmed === rfidToSearch) {
+      setIsLoading(true);
+      await koiQuery.refetch?.();
+      return;
+    }
+
+    setIsLoading(true);
+    setRfidToSearch(trimmed);
   };
 
   useEffect(() => {
@@ -103,7 +112,7 @@ export default function ScanScreen() {
 
     if (koiQuery.data) {
       setIsLoading(false);
-      const koi = koiQuery.data as any;
+      const koi = koiQuery.data as KoiFish;
       const id = koi?.id;
       if (id) {
         router.push({
@@ -480,6 +489,42 @@ export default function ScanScreen() {
                     koi?.images && koi.images.length > 0
                       ? koi.images[0]
                       : res.imageUrl || null;
+
+                  if (!res.koiFish) {
+                    return (
+                      <View className="mb-4 px-6">
+                        <View className="overflow-hidden rounded-3xl border border-yellow-200 bg-white shadow-lg">
+                          {/* Header Section */}
+                          <View className="bg-gradient-to-r from-yellow-50 to-amber-50 px-5 pt-4">
+                            <View className="flex-row items-center">
+                              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-yellow-500">
+                                <CheckCircle size={20} color="white" />
+                              </View>
+                              <View>
+                                <Text className="text-lg font-bold text-gray-900">
+                                  Kết quả nhận diện
+                                </Text>
+                                <Text className="text-base text-gray-500">
+                                  Không tìm ra con cá nào phù hợp
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+
+                          {/* Content Section */}
+                          <View className="p-5">
+                            {/* Message */}
+                            <View className="flex-1 justify-center">
+                              <Text className="text-base text-gray-600">
+                                Hình ảnh không khớp với bất kỳ cá Koi nào trong
+                                hệ thống. Vui lòng thử lại với ảnh khác.
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  }
 
                   return (
                     <View className="mb-4 px-6">

@@ -56,7 +56,7 @@ export function useGetPatterns(pageIndex = 1, pageSize = 30, enabled = true) {
  * @param pageSize items per page
  */
 export function useGetPatternsInfinite(enabled = true, pageSize = 30) {
-  const iq = useInfiniteQuery<any, Error>({
+  const iq = useInfiniteQuery<PatternPagination, Error>({
     queryKey: patternKeys.list({ pageSize }),
     queryFn: async (ctx) => {
       const pageParam = (ctx?.pageParam as number) ?? 1;
@@ -76,7 +76,7 @@ export function useGetPatternsInfinite(enabled = true, pageSize = 30) {
 
   const merged: PatternPagination | undefined = iq.data
     ? ((): PatternPagination => {
-        const pages = (iq.data as any).pages as PatternPagination[];
+        const pages = iq.data.pages;
         const last = pages[pages.length - 1] ?? ({} as PatternPagination);
         return {
           pageIndex: last.pageIndex ?? 1,
@@ -92,7 +92,7 @@ export function useGetPatternsInfinite(enabled = true, pageSize = 30) {
   return {
     ...iq,
     data: merged,
-  } as any;
+  };
 }
 
 /**

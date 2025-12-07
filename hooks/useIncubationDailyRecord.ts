@@ -4,6 +4,7 @@ import {
   IncubationDailyRecordRequest,
   IncubationDailyRecordRequestV2,
   incubationDailyRecordServices,
+  IncubationDailyRecordSummary,
   UpdateIncubationDailyRecordRequest,
   UpdateIncubationDailyRecordRequestV2,
 } from '@/lib/api/services/fetchIncubationDailyRecord';
@@ -87,7 +88,7 @@ export function useGetIncubationDailyRecordSummaryByEggBatchId(
 ) {
   return useQuery({
     queryKey: ['incubationDailyRecordSummary', eggBatchId],
-    queryFn: async (): Promise<any> => {
+    queryFn: async (): Promise<IncubationDailyRecordSummary> => {
       const resp =
         await incubationDailyRecordServices.getIncubationDailyRecordSummaryByEggBatchId(
           eggBatchId

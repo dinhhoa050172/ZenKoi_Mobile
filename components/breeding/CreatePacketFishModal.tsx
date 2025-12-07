@@ -11,14 +11,15 @@ import {
 import { useGetPonds } from '@/hooks/usePond';
 import { useCreatePondPacketFish } from '@/hooks/usePondPacketFish';
 import { useUploadImage } from '@/hooks/useUpload';
-// FishSize is no longer used; packet requests use minSize/maxSize
 import { useGetVarieties } from '@/hooks/useVariety';
 import {
   PacketFish,
   PacketFishRequest,
+  PacketFishVariety,
 } from '@/lib/api/services/fetchPacketFish';
 import { Pond, PondStatus } from '@/lib/api/services/fetchPond';
 import { TypeOfPond } from '@/lib/api/services/fetchPondType';
+import { Variety } from '@/lib/api/services/fetchVariety';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Camera,
@@ -100,8 +101,8 @@ export const CreatePacketFishModal: React.FC<Props> = ({
   );
   const varietyOptions = useMemo(() => {
     const list = varietiesQuery.data?.data ?? [];
-    return list.map((v: any) => ({
-      label: v.varietyName ?? v.name ?? `Giống ${v.id}`,
+    return list.map((v: Variety) => ({
+      label: v.varietyName ?? `Giống ${v.id}`,
       value: String(v.id),
     }));
   }, [varietiesQuery.data]);
@@ -134,10 +135,11 @@ export const CreatePacketFishModal: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !packetFishId) {
+      resetForm();
       setSelectedPondId(currentPondId ?? allPonds?.[0]?.id ?? null);
     }
-  }, [visible, allPonds, currentPondId]);
+  }, [visible, packetFishId, currentPondId, allPonds]);
 
   useEffect(() => {
     if (packetQuery.data) {
@@ -155,14 +157,15 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       }
       if (p.varietyPacketFishes && p.varietyPacketFishes.length > 0) {
         const ids = p.varietyPacketFishes
-          .map((vp: any) => Number(vp.varietyId ?? vp.id ?? vp.varietyId))
+          .map((vp: PacketFishVariety) => Number(vp.varietyId))
           .filter((n: number) => !Number.isNaN(n));
         setSelectedVarietyIds(ids);
       }
       setIsAvailable(!!p.isAvailable);
       setImages(p.images ?? []);
+      setSelectedPondId(currentPondId ?? allPonds?.[0]?.id ?? null);
     }
-  }, [packetQuery.data]);
+  }, [packetQuery.data, visible, currentPondId, allPonds]);
 
   const uploadImage = useUploadImage();
 
@@ -300,7 +303,47 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       return;
     }
 
-    const fishCount = Number(fishPerPacket) || 1;
+    if (!selectedPondId) {
+      showCustomAlert('Lỗi', 'Vui lòng chọn hồ cho lô cá', 'danger');
+      return;
+    }
+
+    if (images.length === 0) {
+      showCustomAlert('Lỗi', 'Vui lòng thêm ít nhất 1 ảnh cho lô cá', 'danger');
+      return;
+    }
+
+    if (selectedVarietyIds.length === 0) {
+      showCustomAlert('Lỗi', 'Vui lòng chọn ít nhất 1 giống cá', 'danger');
+      return;
+    }
+
+    const price = Number(pricePerPacket);
+    if (isNaN(price) || price <= 0) {
+      showCustomAlert('Lỗi', 'Giá phải là lớn hơn 0', 'danger');
+      return;
+    }
+
+    const min = Number(minSize);
+    const max = Number(maxSize);
+    if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0) {
+      showCustomAlert('Lỗi', 'Size phải lớn hơn 0', 'danger');
+      return;
+    }
+    if (min >= max) {
+      showCustomAlert(
+        'Lỗi',
+        'Size nhỏ nhất phải nhỏ hơn size lớn nhất',
+        'danger'
+      );
+      return;
+    }
+
+    const fishCount = Number(fishPerPacket);
+    if (isNaN(fishCount) || fishCount <= 0) {
+      showCustomAlert('Lỗi', 'Số cá/lô phải lớn hơn 0', 'danger');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -312,8 +355,8 @@ export const CreatePacketFishModal: React.FC<Props> = ({
       const packetReq: PacketFishRequest = {
         name: name.trim(),
         description: description.trim(),
-        minSize: Number(minSize) || 0,
-        maxSize: Number(maxSize) || 0,
+        minSize: min,
+        maxSize: max,
         fishPerPacket: fishCount,
         pricePerPacket: Number(pricePerPacket) || 0,
         birthDate,
@@ -592,7 +635,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                       value={pricePerPacket}
                       onChangeText={setPricePerPacket}
                       keyboardType="numeric"
-                      placeholder="0"
+                      placeholder="VD: 50000"
                       placeholderTextColor="#9ca3af"
                       className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                     />
@@ -610,7 +653,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                     value={minSize}
                     onChangeText={setMinSize}
                     keyboardType="numeric"
-                    placeholder="e.g. 21"
+                    placeholder="VD: 21cm"
                     placeholderTextColor="#9ca3af"
                     className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                   />
@@ -623,7 +666,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                     value={maxSize}
                     onChangeText={setMaxSize}
                     keyboardType="numeric"
-                    placeholder="e.g. 25"
+                    placeholder="VD: 25cm"
                     placeholderTextColor="#9ca3af"
                     className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                   />
@@ -645,7 +688,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                     value={fishPerPacket}
                     onChangeText={setFishPerPacket}
                     keyboardType="numeric"
-                    placeholder="10"
+                    placeholder="VD: 10"
                     placeholderTextColor="#9ca3af"
                     className="rounded-2xl border border-gray-200 bg-gray-50 p-3 text-base font-medium text-gray-900"
                   />
