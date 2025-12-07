@@ -6,7 +6,10 @@ import {
   useGetFarmQuickStats,
   useGetFarmStatistics,
 } from '@/hooks/useFarmDashboard';
-import { useGetWaterAlerts } from '@/hooks/useWaterAlert';
+import {
+  useGetWaterAlerts,
+  useSeenAllWaterAlerts,
+} from '@/hooks/useWaterAlert';
 import { Severity, WaterAlert } from '@/lib/api/services/fetchWaterAlert';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -153,14 +156,21 @@ const SummaryItem: React.FC<SummaryItemProps> = ({ item }) => (
 const FarmStaffDashboard: React.FC = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const insets = useSafeAreaInsets();
-  const alertsQuery = useGetWaterAlerts({ pageIndex: 1, pageSize: 100 }, true);
+  const alertsQuery = useGetWaterAlerts({ pageIndex: 1, pageSize: 2 }, true);
   const alerts = (alertsQuery.data?.data || []).slice(0, 2);
-  const totalAlerts = alertsQuery.data?.totalItems || 0;
+  const totalArlertsNotSeen = useGetWaterAlerts(
+    { isSeen: false, pageIndex: 1, pageSize: 100 },
+    true
+  );
+  const totalAlerts = totalArlertsNotSeen.data?.totalItems || 0;
   const notificationCount = totalAlerts > 99 ? '99+' : totalAlerts.toString();
+
+  const seenAllMutation = useSeenAllWaterAlerts();
 
   useFocusEffect(
     useCallback(() => {
       alertsQuery.refetch();
+      totalArlertsNotSeen.refetch();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
@@ -272,7 +282,12 @@ const FarmStaffDashboard: React.FC = () => {
             </View>
 
             <TouchableOpacity
-              onPress={() => setShowHistoryModal(true)}
+              onPress={() => {
+                if (totalAlerts > 0) {
+                  seenAllMutation.mutate();
+                }
+                setShowHistoryModal(true);
+              }}
               className="rounded-full p-2"
             >
               <Bell size={24} color="#0A3D62" />

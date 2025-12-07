@@ -34,11 +34,11 @@ export function useGetBreedingProcesses(
   enabled = true
 ) {
   // create a stable key based on filters except pagination fields
-  const filterKey = { ...(filters || {}) } as any;
+  const filterKey = { ...(filters || {}) };
   delete filterKey.pageIndex;
   delete filterKey.pageSize;
 
-  return useInfiniteQuery({
+  return useInfiniteQuery<BreedingProcessPagination, Error>({
     queryKey: breedingProcessKeys.list(filterKey || {}),
     initialPageParam: 1,
     queryFn: async ({ pageParam = 1 }): Promise<BreedingProcessPagination> => {
@@ -54,19 +54,10 @@ export function useGetBreedingProcesses(
     },
     enabled,
     getNextPageParam: (lastPage) => {
-      // Attempt multiple possible pagination fields for robustness
-      const current = Number(
-        (lastPage as any).pageIndex ?? (lastPage as any).page ?? 1
-      );
-      const totalPages = Number(
-        (lastPage as any).totalPages ??
-          (lastPage as any).totalPage ??
-          (lastPage as any).total ??
-          0
-      );
+      const current = Number(lastPage.pageIndex ?? 1);
+      const totalPages = Number(lastPage.totalPages ?? 0);
       if (totalPages && current < totalPages) return current + 1;
-      // fallback: if server returns hasNextPage
-      if ((lastPage as any).hasNextPage) return current + 1;
+      if (lastPage.hasNextPage) return current + 1;
       return undefined;
     },
     staleTime: 0,

@@ -1,7 +1,7 @@
 import apiService, { RequestParams } from '../apiClient';
 import { FishSize } from './fetchKoiFish';
 
-interface PacketFishVariety {
+export interface PacketFishVariety {
   id: number;
   varietyId: string;
   varietyName: string;
