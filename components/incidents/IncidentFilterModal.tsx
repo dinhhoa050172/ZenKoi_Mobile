@@ -2,19 +2,11 @@ import ContextMenuField from '@/components/ContextMenuField';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import {
   IncidentSearchParams,
-  IncidentSeverity,
   IncidentStatus,
 } from '@/lib/api/services/fetchIncident';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  AlertTriangle,
-  Calendar,
-  Filter,
-  RotateCcw,
-  Search,
-  X,
-} from 'lucide-react-native';
+import { Calendar, Filter, RotateCcw, Search, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -34,13 +26,6 @@ interface IncidentFilterModalProps {
   onApplyFilter: (filters: IncidentSearchParams) => void;
   initialFilters?: IncidentSearchParams;
 }
-
-const severityOptions = [
-  { value: IncidentSeverity.Low, label: 'Thấp', color: '#10b981' },
-  { value: IncidentSeverity.Medium, label: 'Trung bình', color: '#f59e0b' },
-  { value: IncidentSeverity.High, label: 'Cao', color: '#f97316' },
-  { value: IncidentSeverity.Urgent, label: 'Khẩn cấp', color: '#ef4444' },
-];
 
 const statusOptions = [
   { value: IncidentStatus.Reported, label: 'Đã báo cáo', color: '#3b82f6' },
@@ -111,7 +96,6 @@ export default function IncidentFilterModal({
     let count = 0;
     if (filters.Search) count++;
     if (filters.Status) count++;
-    if (filters.Severity) count++;
     if (filters.IncidentTypeId) count++;
     if (filters.OccurredFrom) count++;
     if (filters.OccurredTo) count++;
@@ -238,46 +222,6 @@ export default function IncidentFilterModal({
                               }`}
                             >
                               {status.label}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Divider */}
-                  <View className="h-px bg-slate-100" />
-
-                  {/* Severity Filter Section */}
-                  <View className="py-4">
-                    <Text className="mb-3 text-base font-semibold text-slate-600">
-                      Mức độ nghiêm trọng
-                    </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      {severityOptions.map((severity) => (
-                        <TouchableOpacity
-                          key={severity.value}
-                          onPress={() =>
-                            filters.Severity === severity.value
-                              ? removeFilter('Severity')
-                              : updateFilter('Severity', severity.value)
-                          }
-                          className={`rounded-2xl border px-4 py-2 ${
-                            filters.Severity === severity.value
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-slate-200 bg-white'
-                          }`}
-                        >
-                          <View className="flex-row items-center">
-                            <AlertTriangle size={16} color={severity.color} />
-                            <Text
-                              className={`ml-2 text-base font-medium ${
-                                filters.Severity === severity.value
-                                  ? 'text-blue-700'
-                                  : 'text-slate-700'
-                              }`}
-                            >
-                              {severity.label}
                             </Text>
                           </View>
                         </TouchableOpacity>
