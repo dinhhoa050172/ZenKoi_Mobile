@@ -34,6 +34,7 @@ export interface WaterAlert {
   alertType: AlertType;
   severity: Severity;
   message: string;
+  seen: boolean;
   createdAt: string;
   isResolved: boolean;
   resolvedByUserId: number | null;
@@ -43,6 +44,7 @@ export interface WaterAlert {
 export interface WaterAlertSearchParams {
   pondId?: number;
   isResolved?: boolean;
+  isSeen?: boolean;
   alertType?: AlertType;
   severity?: Severity;
   pageIndex?: number;
@@ -83,6 +85,7 @@ export const convertWaterAlertFilter = (
   // Basic parameters
   if (filters.pondId) params.pondId = filters.pondId;
   if (filters.isResolved !== undefined) params.isResolved = filters.isResolved;
+  if (filters.isSeen !== undefined) params.isSeen = filters.isSeen;
   if (filters.alertType) params.alertType = filters.alertType;
   if (filters.severity) params.severity = filters.severity;
   if (filters.pageIndex) params.pageIndex = filters.pageIndex;
@@ -125,6 +128,14 @@ export const waterAlertServices = {
   deleteWaterAlert: async (id: number): Promise<WaterAlertResponse> => {
     const response = await apiService.delete<WaterAlertResponse>(
       `/api/wateralert/${id}`
+    );
+    return response.data;
+  },
+
+  // Seen all water alerts
+  seenAllWaterAlerts: async (): Promise<WaterAlertPaginationResponse> => {
+    const response = await apiService.put<WaterAlertPaginationResponse>(
+      `/api/wateralert/seen-all`
     );
     return response.data;
   },
