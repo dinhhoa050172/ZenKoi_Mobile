@@ -4,6 +4,7 @@ import {
   WorkSchedule,
   WorkScheduleStatus,
 } from '@/lib/api/services/fetchWorkSchedule';
+import { parseLocalDate, parseLocalDateTime } from '@/lib/utils/formatDate';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, CheckCircle, Clock, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -64,27 +65,6 @@ export default function TaskCompletionModal({
   const handleComplete = async () => {
     if (!task) return;
 
-    // Parse scheduled date/time explicitly into local (device) timezone to avoid
-    // cross-timezone parsing issues (e.g., server uses UTC). This ensures users
-    // in UTC+7 see the correct scheduled day/time.
-    const parseLocalDate = (dateStr: string) => {
-      // Accept formats like "YYYY-MM-DD" or full ISO strings
-      if (dateStr.includes('T')) {
-        const d = new Date(dateStr);
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      }
-      const [y, m, d] = dateStr.split('-').map((s) => Number(s));
-      return new Date(y, (m || 1) - 1, d || 1);
-    };
-
-    const parseLocalDateTime = (dateStr: string, timeStr?: string) => {
-      const [y, m, d] = dateStr.split('-').map((s) => Number(s));
-      const [hh = 0, mm = 0] = (timeStr || '00:00')
-        .split(':')
-        .map((s) => Number(s));
-      return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0);
-    };
-
     const currentDate = new Date();
     const scheduleDateLocal = parseLocalDate(task.scheduledDate);
     const startTimeLocal = parseLocalDateTime(
@@ -92,6 +72,15 @@ export default function TaskCompletionModal({
       task.startTime
     );
     const endTimeLocal = parseLocalDateTime(task.scheduledDate, task.endTime);
+
+    if (!scheduleDateLocal || !startTimeLocal || !endTimeLocal) {
+      setCustomAlertTitle('Lỗi');
+      setCustomAlertMessage('Không thể phân tích thời gian công việc.');
+      setCustomAlertType('danger');
+      setCustomAlertOnConfirm(() => null);
+      setCustomAlertVisible(true);
+      return;
+    }
 
     // Check if it's the scheduled date (compare local date components)
     const isScheduledDate =
@@ -139,6 +128,11 @@ export default function TaskCompletionModal({
       setCustomAlertType('danger');
       setCustomAlertOnConfirm(() => null);
       setCustomAlertVisible(true);
+      return;
+    }
+
+    // Prevent double submission
+    if (isLoading || updateStatusMutation.isPending) {
       return;
     }
 

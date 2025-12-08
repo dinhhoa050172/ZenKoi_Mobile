@@ -257,6 +257,8 @@ export function useUpdateWorkScheduleStatus() {
       if (vars?.id)
         qc.invalidateQueries({ queryKey: workScheduleKeys.detail(vars.id) });
       qc.invalidateQueries({ queryKey: workScheduleKeys.lists() });
+      qc.invalidateQueries({ queryKey: workScheduleKeys.self() });
+      qc.invalidateQueries({ queryKey: workScheduleKeys.all });
     },
     onError: (err: any) => {
       Toast.show({
