@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Toast from 'react-native-toast-message';
 import { signalRService } from '../lib/services/signalRService';
 import {
+  AlertType,
   ParameterNameLabels,
   SeverityLevel,
   WaterAlert,
@@ -40,11 +41,13 @@ export function useSignalR() {
       // Chỉ hiển thị toast cho alerts quan trọng
       if (
         alert.Severity === SeverityLevel.High ||
-        alert.Severity === SeverityLevel.Urgent
+        alert.Severity === SeverityLevel.Urgent ||
+        alert.AlertType === AlertType.High ||
+        alert.AlertType === AlertType.RapidChange
       ) {
         Toast.show({
           type: alert.Severity === SeverityLevel.Urgent ? 'error' : 'info',
-          text1: `🚨 Cảnh báo ${parameterLabel}`,
+          text1: `Cảnh báo ${parameterLabel}`,
           text2: alert.Message,
           position: 'top',
           visibilityTime: 6000,

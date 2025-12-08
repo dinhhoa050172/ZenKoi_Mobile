@@ -578,7 +578,7 @@ export default function BreedingScreen() {
                         <View className="flex-row justify-between">
                           <View className="items-center">
                             <Text className="text-xs text-gray-600">
-                              Số trứng
+                              Tổng số trứng
                             </Text>
                             <Text className="text-lg font-bold text-orange-600">
                               {b.totalEggs ?? 0}
@@ -759,6 +759,13 @@ export default function BreedingScreen() {
                             {eggCount} con
                           </Text>
                         </View>
+                        {b.note && (
+                          <View className="mt-2">
+                            <Text className="text-base font-semibold italic text-gray-500">
+                              Ghi chú: {b.note}
+                            </Text>
+                          </View>
+                        )}
                       </View>
 
                       <TouchableOpacity

@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useGetEggBatchByBreedingProcessId } from '@/hooks/useEggBatch';
 import { useCreateFryFish } from '@/hooks/useFryFish';
 import {
@@ -8,6 +9,7 @@ import {
   useGetIncubationDailyRecordSummaryByEggBatchId,
 } from '@/hooks/useIncubationDailyRecord';
 import { useGetPonds } from '@/hooks/usePond';
+import { FryFishRequest } from '@/lib/api/services/fetchFryFish';
 import { PondStatus } from '@/lib/api/services/fetchPond';
 import { TypeOfPond } from '@/lib/api/services/fetchPondType';
 import { useQueryClient } from '@tanstack/react-query';
@@ -84,6 +86,8 @@ export function UpdateEggBatchModal({
   const createIncubationMutationV2 = useCreateIncubationDailyRecordV2();
   const createFryFish = useCreateFryFish();
 
+  const debouncedHatchedEggs = useDebounce(dailyHatchedEggs, 500);
+
   const clearInputs = () => {
     setDailyHealthyEggs('');
     setDailyHatchedEggs('');
@@ -92,6 +96,29 @@ export function UpdateEggBatchModal({
     setTransferPondId(null);
     setTransferPondLabel('Chọn hồ');
   };
+
+  // Auto-set transfer to fry stage when all eggs hatch
+  useEffect(() => {
+    const hasExisting =
+      (existingIncubationRecordsQuery.data?.data?.length ?? 0) > 0;
+    if (hasExisting && incubationSummaryQuery.data && debouncedHatchedEggs) {
+      const summary = incubationSummaryQuery.data;
+      const totalEggs = eggBatchQuery.data?.quantity ?? 0;
+      const remainingEggs =
+        totalEggs -
+        (summary.totalRottenEggs ?? 0) -
+        (summary.totalHatchedEggs ?? 0);
+      const hatched = parseInt(debouncedHatchedEggs, 10);
+      if (hatched === remainingEggs && remainingEggs > 0) {
+        setDailySuccess(true);
+      }
+    }
+  }, [
+    debouncedHatchedEggs,
+    existingIncubationRecordsQuery.data?.data?.length,
+    incubationSummaryQuery.data,
+    eggBatchQuery.data,
+  ]);
 
   // internal ponds: modal fetches empty ponds itself
   const internalPondsQuery = useGetPonds(
@@ -172,7 +199,31 @@ export function UpdateEggBatchModal({
     const hatched =
       dailyHatchedEggs.trim() === '' ? NaN : parseInt(dailyHatchedEggs, 10);
     if (!Number.isFinite(hatched) || hatched < 0) {
-      errors.hatchedEggs = 'Nhập số lượng trứng nở lớn hơn hoặc bằng 0';
+      errors.hatchedEggs = hasExistingRecords
+        ? 'Số lượng trứng nở phải lớn hơn 0'
+        : 'Nhập số lượng trứng nở lớn hơn hoặc bằng 0';
+    }
+
+    // Calculate remaining eggs for validation
+    let remainingEggs = 0;
+    if (hasExistingRecords && incubationSummaryQuery.data) {
+      const summary = incubationSummaryQuery.data;
+      const totalEggs = eggBatchQuery.data?.quantity ?? 0;
+      remainingEggs =
+        totalEggs -
+        (summary.totalRottenEggs ?? 0) -
+        (summary.totalHatchedEggs ?? 0);
+    }
+
+    // Additional validation for subsequent records
+    if (hasExistingRecords) {
+      if (hatched <= 0) {
+        errors.hatchedEggs = 'Số lượng trứng nở phải lớn hơn 0';
+      }
+      if (hatched === remainingEggs) {
+        // Force transfer to fry stage when all eggs have hatched
+        setDailySuccess(true);
+      }
     }
 
     if (!eggBatch) {
@@ -203,7 +254,7 @@ export function UpdateEggBatchModal({
       }
 
       if (dailySuccess && transferPondId) {
-        const fryFishData = {
+        const fryFishData: FryFishRequest = {
           breedingProcessId: breedingId,
           pondId: transferPondId,
         };
@@ -544,7 +595,7 @@ export function UpdateEggBatchModal({
                         placeholder="Chọn hồ"
                       />
                       {dailyErrors.pond ? (
-                        <Text className="mt-2 text-xs text-red-500">
+                        <Text className="mt-2 text-sm text-red-500">
                           {dailyErrors.pond}
                         </Text>
                       ) : null}

@@ -102,7 +102,7 @@ export function useCreateEggBatch() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: eggBatchKeys.lists() });
       qc.invalidateQueries({ queryKey: eggBatchKeys.all });
-      qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });
+      qc.invalidateQueries({ queryKey: breedingProcessKeys.all });
       Toast.show({
         type: 'success',
         text1: 'Tạo lô trứng thành công',
@@ -135,7 +135,7 @@ export function useUpdateEggBatch() {
     onSuccess: (_, vars) => {
       Toast.show({
         type: 'success',
-        text1: 'Cập nhật thành công',
+        text1: 'Cập nhật lô trứng thành công',
         position: 'top',
       });
       qc.invalidateQueries({ queryKey: eggBatchKeys.details() });
@@ -147,7 +147,7 @@ export function useUpdateEggBatch() {
     onError: (err: any) => {
       Toast.show({
         type: 'error',
-        text1: 'Cập nhật thất bại',
+        text1: 'Cập nhật lô trứng thất bại',
         text2: err?.message ?? String(err),
         position: 'top',
       });
@@ -168,7 +168,11 @@ export function useDeleteEggBatch() {
       return resp.result;
     },
     onSuccess: () => {
-      Toast.show({ type: 'success', text1: 'Xóa thành công', position: 'top' });
+      Toast.show({
+        type: 'success',
+        text1: 'Xóa lô trứng thành công',
+        position: 'top',
+      });
       qc.invalidateQueries({ queryKey: eggBatchKeys.lists() });
       qc.invalidateQueries({ queryKey: eggBatchKeys.all });
       qc.invalidateQueries({ queryKey: breedingProcessKeys.lists() });

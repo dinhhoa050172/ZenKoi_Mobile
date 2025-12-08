@@ -38,7 +38,6 @@ export interface WaterParameterRecordRequest {
   nitrateLevel: number;
   carbonHardness: number;
   waterLevelMeters: number;
-  recordedAt: string;
   notes: string;
 }
 
