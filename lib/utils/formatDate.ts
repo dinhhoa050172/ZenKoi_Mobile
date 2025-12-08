@@ -137,3 +137,73 @@ export function formatTimeFromISOString(
     });
   }
 }
+
+/**
+ * Parse a date string into a local Date (date-only): handles YYYY-MM-DD or ISO strings
+ * Returns null if the input is missing or invalid
+ */
+export function parseLocalDate(dateStr?: string): Date | null {
+  if (!dateStr) return null;
+  try {
+    if (dateStr.includes('T')) {
+      const d = parseISO(dateStr);
+      if (!isValid(d)) return null;
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    const parts = dateStr.split('-').map((s) => Number(s));
+    const y = parts[0] || 0;
+    const m = parts[1] || 1;
+    const d = parts[2] || 1;
+    return new Date(y, m - 1, d);
+  } catch (error) {
+    console.warn('parseLocalDate failed for', dateStr, error);
+    return null;
+  }
+}
+
+/**
+ * Parse date/time into a local Date object.
+ * If `timeStr` is an ISO datetime, parse that. If it's HH:mm, combine with `dateStr`.
+ * If `dateStr` is ISO with timezone, parse into local Date.
+ * Returns null on invalid input
+ */
+export function parseLocalDateTime(
+  dateStr?: string,
+  timeStr?: string
+): Date | null {
+  if (!dateStr) return null;
+  try {
+    // If timeStr is provided and is a full ISO string
+    if (timeStr) {
+      if (timeStr.includes('T')) {
+        const d = parseISO(timeStr);
+        return isValid(d) ? d : null;
+      }
+
+      if (timeStr.includes(':')) {
+        // HH:mm
+        const [hh, mm] = timeStr.split(':').map((s) => Number(s));
+        const [y, m, d] = dateStr.split('-').map((s) => Number(s));
+        return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0);
+      }
+    }
+
+    // If dateStr itself is an ISO with time
+    if (dateStr.includes('T')) {
+      const d = parseISO(dateStr);
+      return isValid(d) ? d : null;
+    }
+
+    // fallback: date only
+    const [y, m, d] = dateStr.split('-').map((s) => Number(s));
+    return new Date(y, (m || 1) - 1, d || 1);
+  } catch (err) {
+    console.warn('parseLocalDateTime failed for', dateStr, timeStr, err);
+    try {
+      return new Date(dateStr);
+    } catch {
+      return null;
+    }
+  }
+}
