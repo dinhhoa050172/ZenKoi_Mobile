@@ -8,6 +8,7 @@ import {
   WorkScheduleStatus,
 } from '@/lib/api/services/fetchWorkSchedule';
 import { useAuthStore } from '@/lib/store/authStore';
+import { parseLocalDate, parseLocalDateTime } from '@/lib/utils/formatDate';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { RefreshControl, Text, TouchableOpacity, View } from 'react-native';
@@ -32,8 +33,7 @@ export default function TasksScreen() {
     'danger' | 'warning' | 'info'
   >('info');
   const insets = useSafeAreaInsets();
-  console.log('today:', today);
-  console.log('selected day:', selectedDate);
+
   // Get user from auth store
   const { user } = useAuthStore();
   const staffId = user?.id ? Number(user.id) : 0;
@@ -55,8 +55,6 @@ export default function TasksScreen() {
 
   const weekRange = getWeekRange(weekOffset);
 
-  console.log('week form:', weekRange.from);
-  console.log('week to:', weekRange.to);
   // Fetch work schedules for the entire week
   const {
     data: workScheduleData,
@@ -192,6 +190,42 @@ export default function TasksScreen() {
     setSelectedDate(dayInfo.fullDate);
   };
 
+  // Check if current time is within task time range
+  const isTaskTimeValid = (task: WorkSchedule): boolean => {
+    const now = new Date();
+
+    // Parse scheduled date using utility function
+    const scheduledDateLocal = parseLocalDate(task.scheduledDate);
+    if (!scheduledDateLocal) return false;
+
+    // Check if it's the scheduled date (compare local date components)
+    const isScheduledDate =
+      now.getFullYear() === scheduledDateLocal.getFullYear() &&
+      now.getMonth() === scheduledDateLocal.getMonth() &&
+      now.getDate() === scheduledDateLocal.getDate();
+
+    // If task is not scheduled for today, don't allow completion
+    if (!isScheduledDate) {
+      return false;
+    }
+
+    // Parse start and end time using utility function
+    const startDateTime = parseLocalDateTime(
+      task.scheduledDate,
+      task.startTime
+    );
+    const endDateTime = parseLocalDateTime(task.scheduledDate, task.endTime);
+
+    if (!startDateTime || !endDateTime) return false;
+
+    // Check if current time is within range
+    const currentTime = now.getTime();
+    return (
+      currentTime >= startDateTime.getTime() &&
+      currentTime <= endDateTime.getTime()
+    );
+  };
+
   // Handle task press - open completion modal
   const handleTaskPress = (task: WorkSchedule) => {
     // Only allow completion if task is pending or in progress
@@ -199,6 +233,33 @@ export default function TasksScreen() {
       task.status === WorkScheduleStatus.PENDING ||
       task.status === WorkScheduleStatus.IN_PROGRESS
     ) {
+      // Check if current time is within task time range
+      if (!isTaskTimeValid(task)) {
+        const now = new Date();
+        const scheduledDateLocal = parseLocalDate(task.scheduledDate);
+
+        const isScheduledDate =
+          scheduledDateLocal &&
+          now.getFullYear() === scheduledDateLocal.getFullYear() &&
+          now.getMonth() === scheduledDateLocal.getMonth() &&
+          now.getDate() === scheduledDateLocal.getDate();
+
+        if (!isScheduledDate) {
+          setCustomAlertTitle('Không thể hoàn thành');
+          setCustomAlertMessage(
+            'Công việc này không được lên lịch cho hôm nay.'
+          );
+        } else {
+          setCustomAlertTitle('Chưa đến giờ làm việc');
+          setCustomAlertMessage(
+            `Công việc này chỉ có thể hoàn thành trong khung giờ ${task.startTime} - ${task.endTime}.`
+          );
+        }
+        setCustomAlertType('warning');
+        setCustomAlertVisible(true);
+        return;
+      }
+
       setSelectedTask(task);
       setIsModalVisible(true);
     } else {
@@ -207,7 +268,7 @@ export default function TasksScreen() {
         `Nhiệm vụ này ${
           task.status === WorkScheduleStatus.COMPLETED
             ? 'đã hoàn thành'
-            : 'chưa hoàn thành'
+            : 'quá giờ hoàn thành'
         }.`
       );
       setCustomAlertType('info');
@@ -367,27 +428,34 @@ export default function TasksScreen() {
                   onPress={() => handleDayPress(dayInfo)}
                   className="relative items-center"
                 >
-                  <View
-                    className="relative h-10 w-10 items-center justify-center"
-                    style={{
-                      borderRadius: 20,
-                      backgroundColor: isSelected ? '#0A3D62' : 'transparent',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Text
-                      className={`font-medium ${
-                        isSelected ? 'text-white' : 'text-gray-600'
-                      }`}
+                  <View className="relative">
+                    <View
+                      className="h-10 w-10 items-center justify-center"
+                      style={{
+                        borderRadius: 20,
+                        backgroundColor: isSelected ? '#0A3D62' : 'transparent',
+                      }}
                     >
-                      {dayInfo.day}
-                    </Text>
+                      <Text
+                        className={`font-medium ${
+                          isSelected ? 'text-white' : 'text-gray-600'
+                        }`}
+                      >
+                        {dayInfo.day}
+                      </Text>
+                    </View>
 
                     {/* Task count indicator */}
                     {dayTaskCount > 0 && (
                       <View
-                        className="absolute -right-1 -top-1 h-4 min-w-4 items-center justify-center rounded-full bg-red-500"
-                        style={{ minWidth: 16 }}
+                        className="absolute items-center justify-center rounded-full bg-red-500"
+                        style={{
+                          minWidth: 16,
+                          height: 16,
+                          right: -2,
+                          top: -2,
+                          paddingHorizontal: 4,
+                        }}
                       >
                         <Text className="text-xs font-bold text-white">
                           {dayTaskCount}

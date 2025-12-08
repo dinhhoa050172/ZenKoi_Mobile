@@ -75,7 +75,7 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
           tagBg: 'bg-orange-500',
           tagText: 'text-white',
           iconColor: '#ea580c',
-          label: '! Chưa hoàn thành',
+          label: '! Quá giờ hoàn thành',
           accentColor: '#f97316',
         };
       default:
@@ -263,19 +263,6 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
                 </Text>
               </View>
             )}
-          </View>
-
-          {/* Bottom Action Indicator */}
-          <View
-            className="mt-3 flex-row items-center justify-between border-t pt-3"
-            style={{ borderColor: statusInfo.accentColor + '30' }}
-          >
-            <Text
-              className={`text-sm font-bold ${statusInfo.textColor} opacity-60`}
-            >
-              Nhấn để xem chi tiết
-            </Text>
-            <ChevronRight size={16} color={statusInfo.iconColor} />
           </View>
         </View>
       </View>
