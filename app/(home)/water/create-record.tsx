@@ -2,7 +2,7 @@ import { CustomAlert } from '@/components/CustomAlert';
 import InputField from '@/components/InputField';
 import { useGetPondById } from '@/hooks/usePond';
 import { useCreateWaterParameterRecord } from '@/hooks/useWaterParameterRecord';
-import { formatISOWithLocalOffset } from '@/lib/utils/timezone';
+import { WaterParameterRecordRequest } from '@/lib/api/services/fetchWaterParameterRecord';
 import { useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -86,7 +86,7 @@ export default function CreateWaterParameterRecordScreen() {
       return;
     }
 
-    const payload = {
+    const payload: WaterParameterRecordRequest = {
       pondId: parsedPondId,
       phLevel: parseFloat(phLevel ?? '0') || 0,
       temperatureCelsius: parseFloat(temperatureCelsius ?? '0') || 0,
@@ -96,7 +96,6 @@ export default function CreateWaterParameterRecordScreen() {
       nitrateLevel: parseFloat(nitrateLevel ?? '0') || 0,
       carbonHardness: parseFloat(carbonHardness ?? '0') || 0,
       waterLevelMeters: parseFloat(waterLevelMeters ?? '0') || 0,
-      recordedAt: formatISOWithLocalOffset(),
       notes: notes || '',
     };
 

@@ -4,7 +4,7 @@ import {
   useGetWaterParameterRecordById,
   useUpdateWaterParameterRecord,
 } from '@/hooks/useWaterParameterRecord';
-import { formatISOWithLocalOffset } from '@/lib/utils/timezone';
+import { WaterParameterRecordRequest } from '@/lib/api/services/fetchWaterParameterRecord';
 import { useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -97,7 +97,7 @@ export default function EditWaterParameterRecordScreen() {
       return;
     }
 
-    const payload = {
+    const payload: WaterParameterRecordRequest = {
       pondId: record?.pondId ?? 0,
       phLevel: parseFloat(phLevel) || 0,
       temperatureCelsius: parseFloat(temperatureCelsius) || 0,
@@ -107,7 +107,6 @@ export default function EditWaterParameterRecordScreen() {
       nitrateLevel: parseFloat(nitrateLevel) || 0,
       carbonHardness: parseFloat(carbonHardness) || 0,
       waterLevelMeters: parseFloat(waterLevelMeters) || 0,
-      recordedAt: formatISOWithLocalOffset(),
       notes: notes || '',
     };
 

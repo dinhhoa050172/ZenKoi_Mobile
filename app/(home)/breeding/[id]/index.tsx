@@ -88,6 +88,10 @@ export default function BreedingDetailScreen() {
     useState(false);
   const [editingFrySurvivalRecord, setEditingFrySurvivalRecord] =
     useState<FrySurvivalRecordsBreeding | null>(null);
+  const [editingFrySurvivalPreviousCount, setEditingFrySurvivalPreviousCount] =
+    useState<number | null>(null);
+  const [isFirstFrySurvivalRecord, setIsFirstFrySurvivalRecord] =
+    useState(false);
   const [showEditClassificationModal, setShowEditClassificationModal] =
     useState(false);
   const [editingClassificationRecord, setEditingClassificationRecord] =
@@ -435,8 +439,11 @@ export default function BreedingDetailScreen() {
             <InfoRow
               label="Ngày bắt đầu"
               value={formatDate(breedingDetail.startDate, 'dd/MM/yyyy')}
-              isLast
+              isLast={!breedingDetail.note}
             />
+            {breedingDetail.note && (
+              <InfoRow label="Ghi chú" value={breedingDetail.note} isLast />
+            )}
           </View>
         </View>
 
@@ -584,7 +591,8 @@ export default function BreedingDetailScreen() {
             {(breedingDetail.status === BreedingStatus.EGG_BATCH ||
               breedingDetail.status === BreedingStatus.FRY_FISH ||
               breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-              breedingDetail.status === BreedingStatus.COMPLETE) &&
+              breedingDetail.status === BreedingStatus.COMPLETE ||
+              breedingDetail.status === BreedingStatus.FAILED) &&
               breedingDetail.batch && (
                 <TimelineItem
                   title="Ấp trứng"
@@ -769,7 +777,8 @@ export default function BreedingDetailScreen() {
             {/* Fry Fish */}
             {(breedingDetail.status === BreedingStatus.FRY_FISH ||
               breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-              breedingDetail.status === BreedingStatus.COMPLETE) &&
+              breedingDetail.status === BreedingStatus.COMPLETE ||
+              breedingDetail.status === BreedingStatus.FAILED) &&
               breedingDetail.fryFish && (
                 <TimelineItem
                   title="Nuôi cá bột"
@@ -903,7 +912,25 @@ export default function BreedingDetailScreen() {
                                     <View className="w-16 flex-row items-center justify-center gap-1">
                                       <TouchableOpacity
                                         onPress={() => {
+                                          const records =
+                                            breedingDetail.fryFish
+                                              ?.frySurvivalRecords ?? [];
+                                          const recordIndex = records.findIndex(
+                                            (r) => r.id === record.id
+                                          );
+                                          const isFirst = recordIndex === 0;
+                                          const previousCount = isFirst
+                                            ? (breedingDetail.fryFish
+                                                ?.initialCount ?? null)
+                                            : recordIndex > 0
+                                              ? records[recordIndex - 1]
+                                                  .countAlive
+                                              : null;
                                           setEditingFrySurvivalRecord(record);
+                                          setEditingFrySurvivalPreviousCount(
+                                            previousCount
+                                          );
+                                          setIsFirstFrySurvivalRecord(isFirst);
                                           setShowEditFrySurvivalModal(true);
                                         }}
                                         className="p-1"
@@ -955,7 +982,8 @@ export default function BreedingDetailScreen() {
 
             {/* Classification */}
             {(breedingDetail.status === BreedingStatus.CLASSIFICATION ||
-              breedingDetail.status === BreedingStatus.COMPLETE) &&
+              breedingDetail.status === BreedingStatus.COMPLETE ||
+              breedingDetail.status === BreedingStatus.FAILED) &&
               breedingDetail.classificationStage && (
                 <TimelineItem
                   title="Tuyển chọn"
@@ -1038,46 +1066,47 @@ export default function BreedingDetailScreen() {
                         ).toLocaleString()}{' '}
                         con
                       </Text>
-                      {breedingDetail.classificationStage.classificationRecords
-                        .length >= 3 && (
-                        <TouchableOpacity
-                          onPress={async () => {
-                            try {
-                              const res = await pondPacketQuery.refetch();
-                              const items =
-                                res.data?.data ??
-                                pondPacketQuery.data?.data ??
-                                [];
-                              const first = items[0];
-                              const packetId =
-                                first?.packetFishId ?? first?.packetFish?.id;
-                              setEditPacketFishId(packetId ?? null);
-                              setEditPondId(first?.pondId ?? null);
-                            } catch {
-                              setEditPacketFishId(null);
-                              setEditPondId(null);
-                            }
-                            setShowCreatePacketModal(true);
-                          }}
-                          className="flex-row items-center gap-1 rounded-2xl bg-blue-500 px-3 py-1.5"
-                        >
-                          {hasPondPacket ? (
-                            <>
-                              <Edit size={14} color="#fff" />
-                              <Text className="text-base font-semibold text-white">
-                                Sửa lô
-                              </Text>
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={14} color="#fff" />
-                              <Text className="text-base font-semibold text-white">
-                                Tạo lô
-                              </Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
-                      )}
+                      {breedingDetail.status !== BreedingStatus.FAILED &&
+                        breedingDetail.classificationStage.classificationRecords
+                          .length >= 3 && (
+                          <TouchableOpacity
+                            onPress={async () => {
+                              try {
+                                const res = await pondPacketQuery.refetch();
+                                const items =
+                                  res.data?.data ??
+                                  pondPacketQuery.data?.data ??
+                                  [];
+                                const first = items[0];
+                                const packetId =
+                                  first?.packetFishId ?? first?.packetFish?.id;
+                                setEditPacketFishId(packetId ?? null);
+                                setEditPondId(first?.pondId ?? null);
+                              } catch {
+                                setEditPacketFishId(null);
+                                setEditPondId(null);
+                              }
+                              setShowCreatePacketModal(true);
+                            }}
+                            className="flex-row items-center gap-1 rounded-2xl bg-blue-500 px-3 py-1.5"
+                          >
+                            {hasPondPacket ? (
+                              <>
+                                <Edit size={14} color="#fff" />
+                                <Text className="text-base font-semibold text-white">
+                                  Sửa lô
+                                </Text>
+                              </>
+                            ) : (
+                              <>
+                                <Plus size={14} color="#fff" />
+                                <Text className="text-base font-semibold text-white">
+                                  Tạo lô
+                                </Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        )}
                     </View>
 
                     {/* Classification Records Table */}
@@ -1156,12 +1185,23 @@ export default function BreedingDetailScreen() {
                                             );
                                           }}
                                           className="p-1"
-                                          disabled={hasPondPacket && idx <= 2}
+                                          disabled={
+                                            idx !==
+                                            (breedingDetail.classificationStage
+                                              ?.classificationRecords?.length ??
+                                              0) -
+                                              1
+                                          }
                                         >
                                           <Edit
                                             size={18}
                                             color={
-                                              hasPondPacket && idx <= 2
+                                              idx !==
+                                              (breedingDetail
+                                                .classificationStage
+                                                ?.classificationRecords
+                                                ?.length ?? 0) -
+                                                1
                                                 ? '#9ca3af'
                                                 : '#3b82f6'
                                             }
@@ -1181,7 +1221,12 @@ export default function BreedingDetailScreen() {
                                           disabled={
                                             deleteClassificationMutation.status ===
                                               'pending' ||
-                                            (hasPondPacket && idx <= 2)
+                                            idx !==
+                                              (breedingDetail
+                                                .classificationStage
+                                                ?.classificationRecords
+                                                ?.length ?? 0) -
+                                                1
                                           }
                                         >
                                           <Trash2
@@ -1189,7 +1234,12 @@ export default function BreedingDetailScreen() {
                                             color={
                                               deleteClassificationMutation.status ===
                                                 'pending' ||
-                                              (hasPondPacket && idx <= 2)
+                                              idx !==
+                                                (breedingDetail
+                                                  .classificationStage
+                                                  ?.classificationRecords
+                                                  ?.length ?? 0) -
+                                                  1
                                                 ? '#9ca3af'
                                                 : '#ef4444'
                                             }
@@ -1408,6 +1458,9 @@ export default function BreedingDetailScreen() {
         }}
         record={editingIncubationRecord}
         isFirstRecord={isFirstIncubationRecord}
+        breedingId={breedingId}
+        totalEggs={breedingDetail.totalEggs ?? 0}
+        pondTypeEnum={TypeOfPond.FRY_FISH}
       />
 
       <ChangePondModal
@@ -1451,10 +1504,14 @@ export default function BreedingDetailScreen() {
         onClose={() => {
           setShowEditFrySurvivalModal(false);
           setEditingFrySurvivalRecord(null);
+          setEditingFrySurvivalPreviousCount(null);
+          setIsFirstFrySurvivalRecord(false);
           breedingDetailQuery.refetch();
         }}
         record={editingFrySurvivalRecord}
         fryFishId={breedingDetail.fryFish?.id ?? 0}
+        previousCountAlive={editingFrySurvivalPreviousCount}
+        isFirstRecord={isFirstFrySurvivalRecord}
       />
 
       <EditClassificationRecordModal

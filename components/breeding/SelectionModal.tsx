@@ -451,7 +451,12 @@ export function SelectionModal({
                 onPress={handleSave}
               >
                 {isLoading ? (
-                  <ActivityIndicator size="small" color="white" />
+                  <View className="flex-row items-center">
+                    <ActivityIndicator size="small" color="white" />
+                    <Text className="ml-2 text-base font-semibold text-white">
+                      Đang lưu...
+                    </Text>
+                  </View>
                 ) : (
                   <View className="flex-row items-center">
                     <CheckCircle2 size={18} color="white" />
@@ -469,7 +474,7 @@ export function SelectionModal({
       {/* Fish Identification Alert */}
       <CustomAlert
         visible={showFishIdentificationAlert}
-        title="Hoàn thành tuyển chọn! 🎉"
+        title="Hoàn thành tuyển chọn!"
         message="Bạn đã hoàn thành 4 lần tuyển chọn. Bạn có muốn định danh cá ngay bây giờ không?"
         type="info"
         cancelText="Để sau"

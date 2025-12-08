@@ -1,10 +1,20 @@
+import { CustomAlert } from '@/components/CustomAlert';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useCreateFryFish } from '@/hooks/useFryFish';
 import {
+  useGetIncubationDailyRecordSummaryByEggBatchId,
   useUpdateIncubationDailyRecord,
   useUpdateIncubationDailyRecordV2,
 } from '@/hooks/useIncubationDailyRecord';
+import { useGetPonds } from '@/hooks/usePond';
 import { IncubationDailyReordBreeding } from '@/lib/api/services/fetchBreedingProcess';
+import { FryFishRequest } from '@/lib/api/services/fetchFryFish';
+import { PondStatus } from '@/lib/api/services/fetchPond';
+import { TypeOfPond } from '@/lib/api/services/fetchPondType';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  ArrowRight,
   Check,
   CheckCircle2,
   Edit3,
@@ -15,19 +25,24 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  ScrollView,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Toast from 'react-native-toast-message';
+import ContextMenuField from '../ContextMenuField';
 
 interface EditIncubationRecordModalProps {
   visible: boolean;
   onClose: () => void;
   record: IncubationDailyReordBreeding | null;
   isFirstRecord: boolean;
+  breedingId: number | null;
+  totalEggs: number;
+  pondTypeEnum?: TypeOfPond;
 }
 
 export function EditIncubationRecordModal({
@@ -35,27 +50,88 @@ export function EditIncubationRecordModal({
   onClose,
   record,
   isFirstRecord,
+  breedingId,
+  totalEggs,
+  pondTypeEnum,
 }: EditIncubationRecordModalProps) {
   const [healthyEggs, setHealthyEggs] = useState('');
   const [hatchedEggs, setHatchedEggs] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [transferPondId, setTransferPondId] = useState<number | null>(null);
+  const [transferPondLabel, setTransferPondLabel] = useState<string>('Chọn hồ');
   const [errors, setErrors] = useState<{
     healthyEggs?: string;
     hatchedEggs?: string;
+    pond?: string;
   }>({});
+
+  // Error alert state
+  const [errorAlert, setErrorAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const queryClient = useQueryClient();
 
   const updateMutation = useUpdateIncubationDailyRecord();
   const updateMutationV2 = useUpdateIncubationDailyRecordV2();
+  const createFryFish = useCreateFryFish();
+
+  const debouncedHatchedEggs = useDebounce(hatchedEggs, 500);
+
+  const summaryQuery = useGetIncubationDailyRecordSummaryByEggBatchId(
+    record?.eggBatchId ?? 0,
+    !!record?.eggBatchId
+  );
+
+  // internal ponds
+  const internalPondsQuery = useGetPonds(
+    { pageIndex: 1, pageSize: 200, status: PondStatus.EMPTY, pondTypeEnum },
+    !!visible && !!breedingId
+  );
+  const internalPondsList = internalPondsQuery.data?.data ?? [];
 
   useEffect(() => {
     if (visible && record) {
       setHealthyEggs(record.healthyEggs?.toString() || '');
       setHatchedEggs(record.hatchedEggs?.toString() || '');
+      setSuccess(record.success || false);
     }
   }, [visible, record]);
+
+  // Auto-set transfer to fry stage when all eggs hatch
+  useEffect(() => {
+    if (!isFirstRecord && summaryQuery.data && debouncedHatchedEggs) {
+      const summary = summaryQuery.data;
+      const remainingEggs =
+        totalEggs -
+        (summary.totalRottenEggs ?? 0) -
+        (summary.totalHatchedEggs ?? 0) +
+        (record?.hatchedEggs ?? 0); // adjust for current record
+      const hatched = parseInt(debouncedHatchedEggs, 10);
+      if (hatched === remainingEggs && remainingEggs > 0) {
+        setSuccess(true);
+      }
+    }
+  }, [
+    debouncedHatchedEggs,
+    isFirstRecord,
+    summaryQuery.data,
+    record,
+    totalEggs,
+  ]);
 
   const clearInputs = () => {
     setHealthyEggs('');
     setHatchedEggs('');
+    setSuccess(false);
+    setTransferPondId(null);
+    setTransferPondLabel('Chọn hồ');
     setErrors({});
   };
 
@@ -83,13 +159,18 @@ export function EditIncubationRecordModal({
         healthyEggs.trim() === '' ? NaN : parseInt(healthyEggs, 10);
       if (!Number.isFinite(healthy) || healthy < 0) {
         validationErrors.healthyEggs =
-          'Vui lòng nhập số lượng trứng khỏe hợp lệ';
+          'Nhập số lượng trứng khỏe lớn hơn hoặc bằng 0';
       }
     }
 
     const hatched = hatchedEggs.trim() === '' ? NaN : parseInt(hatchedEggs, 10);
     if (!Number.isFinite(hatched) || hatched < 0) {
-      validationErrors.hatchedEggs = 'Vui lòng nhập số lượng trứng nở hợp lệ';
+      validationErrors.hatchedEggs =
+        'Nhập số lượng trứng nở lớn hơn hoặc bằng 0';
+    }
+
+    if (success && !transferPondId) {
+      validationErrors.pond = 'Vui lòng chọn hồ nuôi cá bột';
     }
 
     setErrors(validationErrors);
@@ -102,7 +183,7 @@ export function EditIncubationRecordModal({
           data: {
             healthyEggs: parseInt(healthyEggs, 10),
             hatchedEggs: parseInt(hatchedEggs, 10),
-            success: false,
+            success: success,
           },
         });
       } else {
@@ -110,30 +191,47 @@ export function EditIncubationRecordModal({
           id: record.id,
           data: {
             hatchedEggs: parseInt(hatchedEggs, 10),
-            success: false,
+            success: success,
           },
         });
       }
 
-      Toast.show({
-        type: 'success',
-        text1: 'Thành công',
-        text2: 'Đã cập nhật bản ghi ấp trứng!',
-      });
+      if (success && transferPondId && breedingId) {
+        const fryFishData: FryFishRequest = {
+          breedingProcessId: breedingId,
+          pondId: transferPondId,
+        };
+        await createFryFish.mutateAsync(fryFishData);
+        Toast.show({
+          type: 'success',
+          text1: 'Đã chuyển sang giai đoạn nuôi cá bột!',
+        });
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công',
+          text2: 'Đã cập nhật bản ghi ấp trứng!',
+        });
+      }
 
+      queryClient.invalidateQueries({ queryKey: ['breedingProcesses'] });
+      queryClient.invalidateQueries({ queryKey: ['fryFish'] });
+      queryClient.invalidateQueries({ queryKey: ['incubationDailyRecords'] });
+      queryClient.invalidateQueries({ queryKey: ['incubationSummary'] });
       handleClose();
     } catch (err: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Lỗi',
-        text2: err?.message || 'Không thể cập nhật bản ghi',
+      setErrorAlert({
+        visible: true,
+        title: 'Lỗi',
+        message: err?.message || 'Không thể cập nhật bản ghi',
       });
     }
   };
 
   const isLoading =
     updateMutation.status === 'pending' ||
-    updateMutationV2.status === 'pending';
+    updateMutationV2.status === 'pending' ||
+    createFryFish.status === 'pending';
 
   // Format date for display
   const formatDate = (dateStr?: string) => {
@@ -151,7 +249,10 @@ export function EditIncubationRecordModal({
       onRequestClose={handleClose}
     >
       <View className="flex-1 items-center justify-center bg-black/50 px-4">
-        <View className="w-full max-w-md rounded-3xl bg-white shadow-2xl">
+        <View
+          className="w-full max-w-md flex-1 overflow-hidden rounded-3xl bg-white shadow-2xl"
+          style={{ maxHeight: '85%' }}
+        >
           {/* Header */}
           <View className="items-center border-b border-gray-100 px-6 py-4">
             <View className="mb-2 h-12 w-12 items-center justify-center rounded-full bg-orange-100">
@@ -173,8 +274,15 @@ export function EditIncubationRecordModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            contentContainerStyle={{ padding: 24 }}
+          <KeyboardAwareScrollView
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: 24,
+              paddingTop: 10,
+              paddingBottom: 20,
+            }}
+            bottomOffset={20}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
             {/* Info Card */}
@@ -188,6 +296,23 @@ export function EditIncubationRecordModal({
               <View className="p-4">
                 {record && (
                   <View className="space-y-2">
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-base text-gray-600">
+                        {isFirstRecord ? 'Tổng trứng' : 'Trứng khỏe'}
+                      </Text>
+                      <Text className="text-base font-semibold text-gray-900">
+                        {isFirstRecord
+                          ? totalEggs.toLocaleString()
+                          : (
+                              totalEggs -
+                              (summaryQuery.data?.totalRottenEggs ?? 0) -
+                              (summaryQuery.data?.totalHatchedEggs ?? 0) +
+                              (record.rottenEggs ?? 0) +
+                              (record.hatchedEggs ?? 0)
+                            ).toLocaleString()}{' '}
+                        quả
+                      </Text>
+                    </View>
                     {isFirstRecord && (
                       <View className="flex-row items-center justify-between">
                         <Text className="text-base text-gray-600">
@@ -301,6 +426,57 @@ export function EditIncubationRecordModal({
               </View>
             </View>
 
+            {/* Transfer to Fry Stage */}
+            <View className="mt-4 overflow-hidden rounded-2xl border-2 border-gray-200 bg-white">
+              <View className="flex-row items-center justify-between bg-purple-50 px-4 py-3">
+                <View className="flex-1 flex-row items-center">
+                  <ArrowRight size={22} color="#a855f7" />
+                  <View className="ml-2 flex-1">
+                    <Text className="text-base font-semibold text-purple-700">
+                      Chuyển sang nuôi cá bột
+                    </Text>
+                    <Text className="text-sm text-purple-600">
+                      Tự động khi nở hết trứng
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={success}
+                  onValueChange={(v) => setSuccess(v)}
+                  trackColor={{ true: '#a855f7', false: '#d1d5db' }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+
+              {success && (
+                <View className="border-t border-gray-100 p-4">
+                  <ContextMenuField
+                    label="Hồ nuôi cá bột *"
+                    value={transferPondLabel}
+                    options={internalPondsList.map((p) => ({
+                      label: `${p.id}: ${p.pondName ?? p.id}`,
+                      value: `${p.id}: ${p.pondName ?? p.id}`,
+                      meta: `Sức chứa tối đa: ${p.maxFishCount ?? '—'}`,
+                    }))}
+                    onSelect={(v: string) => {
+                      const id = String(v).split(':')[0]?.trim();
+                      setTransferPondId(id ? Number(id) : null);
+                      setTransferPondLabel(String(v));
+                      if (errors.pond)
+                        setErrors((p) => ({ ...p, pond: undefined }));
+                    }}
+                    onPress={internalPondsQuery.refetch}
+                    placeholder="Chọn hồ"
+                  />
+                  {errors.pond ? (
+                    <Text className="mt-2 text-sm text-red-500">
+                      {errors.pond}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+            </View>
+
             {/* Help Text */}
             <View className="mt-4 rounded-2xl bg-gray-50 p-3">
               <Text className="text-base leading-5 text-gray-600">
@@ -309,7 +485,7 @@ export function EditIncubationRecordModal({
                 lưu.
               </Text>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {/* Footer Actions */}
           <View className="flex-row gap-3 border-t border-gray-100 p-4">
@@ -338,6 +514,29 @@ export function EditIncubationRecordModal({
           </View>
         </View>
       </View>
+
+      <CustomAlert
+        visible={errorAlert.visible}
+        title={errorAlert.title}
+        message={errorAlert.message}
+        type="danger"
+        cancelText="Đóng"
+        confirmText="Đóng"
+        onCancel={() => {
+          setErrorAlert({
+            visible: false,
+            title: '',
+            message: '',
+          });
+        }}
+        onConfirm={() => {
+          setErrorAlert({
+            visible: false,
+            title: '',
+            message: '',
+          });
+        }}
+      />
     </Modal>
   );
 }

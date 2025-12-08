@@ -26,6 +26,8 @@ interface EditFrySurvivalRecordModalProps {
   onClose: () => void;
   record: FrySurvivalRecordsBreeding | null;
   fryFishId: number;
+  previousCountAlive?: number | null;
+  isFirstRecord?: boolean;
 }
 
 export function EditFrySurvivalRecordModal({
@@ -33,6 +35,8 @@ export function EditFrySurvivalRecordModal({
   onClose,
   record,
   fryFishId,
+  previousCountAlive,
+  isFirstRecord = false,
 }: EditFrySurvivalRecordModalProps) {
   const [countAlive, setCountAlive] = useState('');
   const [note, setNote] = useState('');
@@ -183,6 +187,22 @@ export function EditFrySurvivalRecordModal({
                     {(record.survivalRate ?? 0).toFixed(1)}%
                   </Text>
                 </View>
+                {previousCountAlive !== null &&
+                  previousCountAlive !== undefined && (
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <FishSvg size={18} color="#3b82f6" />
+                        <Text className="ml-2 text-base text-blue-700">
+                          {isFirstRecord
+                            ? 'Số lượng ban đầu'
+                            : 'Số lượng sống lần trước'}
+                        </Text>
+                      </View>
+                      <Text className="text-base font-bold text-blue-900">
+                        {previousCountAlive.toLocaleString()} con
+                      </Text>
+                    </View>
+                  )}
               </View>
             )}
 

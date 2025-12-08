@@ -1,3 +1,4 @@
+import { breedingProcessKeys } from '@/hooks/useBreedingProcess';
 import { useCreateEggBatch, useUpdateEggBatch } from '@/hooks/useEggBatch';
 import { useGetPonds } from '@/hooks/usePond';
 import { PondStatus } from '@/lib/api/services/fetchPond';
@@ -14,7 +15,6 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import Toast from 'react-native-toast-message';
 import ContextMenuField from '../ContextMenuField';
 import { CustomAlert } from '../CustomAlert';
 
@@ -129,7 +129,7 @@ export function CountEggModal({
     const errors: { [k: string]: string } = {};
 
     if (!isFinite(total) || total <= 0) {
-      errors.total = 'Vui lòng nhập tổng trọng lượng hợp lệ';
+      errors.total = 'Vui lòng nhập tổng trọng lượng lớn hơn 0';
     }
 
     let quantity = 0;
@@ -137,10 +137,10 @@ export function CountEggModal({
       const sample = parseFloat(String(sampleWeight).replace(',', '.'));
       const count = parseInt(sampleCount, 10);
       if (!isFinite(sample) || sample <= 0) {
-        errors.sampleWeight = 'Vui lòng nhập trọng lượng mẫu hợp lệ';
+        errors.sampleWeight = 'Vui lòng nhập trọng lượng mẫu lớn hơn 0';
       }
       if (!Number.isInteger(count) || count <= 0) {
-        errors.sampleCount = 'Vui lòng nhập số lượng mẫu hợp lệ';
+        errors.sampleCount = 'Vui lòng nhập số lượng mẫu lớn hơn 0';
       }
       if (!errors.sampleWeight && !errors.sampleCount && !errors.total) {
         const avgEggWeight = sample / count;
@@ -149,7 +149,7 @@ export function CountEggModal({
     } else {
       const avg = parseFloat(String(avgWeight).replace(',', '.'));
       if (!isFinite(avg) || avg <= 0) {
-        errors.avg = 'Vui lòng nhập trọng lượng trung bình hợp lệ';
+        errors.avg = 'Vui lòng nhập trọng lượng trung bình lớn hơn 0';
       }
       if (!errors.avg && !errors.total) {
         quantity = Math.round(total / avg);
@@ -185,22 +185,20 @@ export function CountEggModal({
             pondId: currentPondId!,
           },
         });
-        Toast.show({
-          type: 'success',
-          text1: 'Đã cập nhật lô trứng thành công!',
-        });
       } else {
         await createEggBatch.mutateAsync({
           breedingProcessId: breedingId,
           quantity,
           pondId: currentPondId!,
         });
-        Toast.show({ type: 'success', text1: 'Đã tạo lô trứng thành công!' });
       }
-      queryClient.invalidateQueries({ queryKey: ['breedingProcesses'] });
+      queryClient.invalidateQueries({ queryKey: breedingProcessKeys.all });
       if (breedingId) {
         queryClient.invalidateQueries({
           queryKey: ['eggBatch', 'by-breeding-process', breedingId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: breedingProcessKeys.detail(breedingId),
         });
       }
       handleClose();
@@ -325,7 +323,7 @@ export function CountEggModal({
                             keyboardType="numeric"
                           />
                           {totalWeightError ? (
-                            <Text className="mt-1 text-xs text-red-500">
+                            <Text className="mt-1 text-sm text-red-500">
                               {totalWeightError}
                             </Text>
                           ) : null}
@@ -354,7 +352,7 @@ export function CountEggModal({
                             keyboardType="numeric"
                           />
                           {sampleWeightError ? (
-                            <Text className="mt-1 text-xs text-red-500">
+                            <Text className="mt-1 text-sm text-red-500">
                               {sampleWeightError}
                             </Text>
                           ) : null}
@@ -383,7 +381,7 @@ export function CountEggModal({
                             keyboardType="numeric"
                           />
                           {sampleCountError ? (
-                            <Text className="mt-1 text-xs text-red-500">
+                            <Text className="mt-1 text-sm text-red-500">
                               {sampleCountError}
                             </Text>
                           ) : null}
@@ -414,7 +412,7 @@ export function CountEggModal({
                             keyboardType="numeric"
                           />
                           {totalWeightError ? (
-                            <Text className="mt-1 text-xs text-red-500">
+                            <Text className="mt-1 text-sm text-red-500">
                               {totalWeightError}
                             </Text>
                           ) : null}
@@ -443,7 +441,7 @@ export function CountEggModal({
                             keyboardType="numeric"
                           />
                           {avgWeightError ? (
-                            <Text className="mt-1 text-xs text-red-500">
+                            <Text className="mt-1 text-sm text-red-500">
                               {avgWeightError}
                             </Text>
                           ) : null}
@@ -483,7 +481,7 @@ export function CountEggModal({
                         placeholder="Chọn hồ"
                       />
                       {pondError ? (
-                        <Text className="mt-2 text-xs text-red-500">
+                        <Text className="text-sm text-red-500">
                           {pondError}
                         </Text>
                       ) : null}

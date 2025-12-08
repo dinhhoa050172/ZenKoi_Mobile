@@ -106,7 +106,7 @@ export function FrySurvivalRecordModal({
       fryCountAlive.trim() === '' ? NaN : parseInt(fryCountAlive, 10);
 
     if (!Number.isFinite(alive) || alive < 0)
-      errors.countAlive = 'Vui lòng nhập số lượng hợp lệ';
+      errors.countAlive = 'Nhập số cá sống lớn hơn hoặc bằng 0';
 
     const fryFish = fryFishQuery.data;
     if (!fryFish || !fryFish.id)
@@ -348,7 +348,7 @@ export function FrySurvivalRecordModal({
                         keyboardType="numeric"
                       />
                       {fryErrors.countAlive ? (
-                        <Text className="mt-1 text-xs text-red-500">
+                        <Text className="mt-1 text-sm text-red-500">
                           {fryErrors.countAlive}
                         </Text>
                       ) : null}
