@@ -169,11 +169,11 @@ export function useCreateKoiFish() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: koiFishKeys.lists() });
       qc.invalidateQueries({ queryKey: koiFishKeys.all });
-      Toast.show({
-        type: 'success',
-        text1: 'Tạo cá thành công',
-        position: 'top',
-      });
+      // Toast.show({
+      //   type: 'success',
+      //   text1: 'Tạo cá thành công',
+      //   position: 'top',
+      // });
     },
     onError: (err: any) => {
       Toast.show({
@@ -182,6 +182,7 @@ export function useCreateKoiFish() {
         text2: err?.message ?? String(err),
         position: 'top',
       });
+      console.error('Create Koi Fish Error:', err);
     },
   });
 }
@@ -199,11 +200,11 @@ export function useUpdateKoiFish() {
       return resp.result;
     },
     onSuccess: (_, vars) => {
-      Toast.show({
-        type: 'success',
-        text1: 'Cập nhật thành công',
-        position: 'top',
-      });
+      // Toast.show({
+      //   type: 'success',
+      //   text1: 'Cập nhật thành công',
+      //   position: 'top',
+      // });
       qc.invalidateQueries({ queryKey: koiFishKeys.details() });
       if (vars?.id)
         qc.invalidateQueries({ queryKey: koiFishKeys.detail(vars.id) });
@@ -213,9 +214,9 @@ export function useUpdateKoiFish() {
       Toast.show({
         type: 'error',
         text1: 'Cập nhật thất bại',
-        text2: err?.message ?? String(err),
         position: 'top',
       });
+      console.error('Update Koi Fish Error:', err);
     },
   });
 }
@@ -266,17 +267,18 @@ export function useDeleteKoiFish() {
       return resp.result;
     },
     onSuccess: () => {
-      Toast.show({ type: 'success', text1: 'Xóa thành công', position: 'top' });
+      // Toast.show({ type: 'success', text1: 'Xóa thành công', position: 'top' });
       qc.invalidateQueries({ queryKey: koiFishKeys.lists() });
       qc.invalidateQueries({ queryKey: koiFishKeys.all });
     },
     onError: (err: any) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Xóa thất bại',
-        text2: err?.message ?? String(err),
-        position: 'top',
-      });
+      // Toast.show({
+      //   type: 'error',
+      //   text1: 'Xóa thất bại',
+      //   text2: err?.message ?? String(err),
+      //   position: 'top',
+      // });
+      console.error('Delete Koi Fish Error:', err);
     },
   });
 }
@@ -327,23 +329,24 @@ export function useEnrollKoiReID() {
       return resp.result;
     },
     onSuccess: (_, vars) => {
-      Toast.show({
-        type: 'success',
-        text1: 'Đăng ký Re-ID thành công',
-        position: 'top',
-      });
+      // Toast.show({
+      //   type: 'success',
+      //   text1: 'Đăng ký Re-ID thành công',
+      //   position: 'top',
+      // });
       // Invalidate detail of the koi fish
       if (vars?.koiFishId) {
         qc.invalidateQueries({ queryKey: koiFishKeys.detail(vars.koiFishId) });
       }
     },
     onError: (err: any) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Đăng ký Re-ID thất bại',
-        text2: err?.message ?? String(err),
-        position: 'top',
-      });
+      // Toast.show({
+      //   type: 'error',
+      //   text1: 'Đăng ký Re-ID thất bại',
+      //   text2: err?.message ?? String(err),
+      //   position: 'top',
+      // });
+      console.error('Enroll Koi Re-ID Error:', err);
     },
   });
 }

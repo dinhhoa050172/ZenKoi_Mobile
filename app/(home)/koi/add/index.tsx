@@ -3,7 +3,11 @@ import { CustomAlert } from '@/components/CustomAlert';
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import InputField from '@/components/InputField';
-import { useCreateKoiFish, useEnrollKoiReID } from '@/hooks/useKoiFish';
+import {
+  useCreateKoiFish,
+  useDeleteKoiFish,
+  useEnrollKoiReID,
+} from '@/hooks/useKoiFish';
 import { useGetPatternByVarietyId } from '@/hooks/usePattern';
 import { useGetPonds } from '@/hooks/usePond';
 import { useUploadImage, useUploadVideo } from '@/hooks/useUpload';
@@ -129,7 +133,7 @@ export default function AddKoiPage() {
       setFormData({
         ...initialForm,
         breedingProcessId: breedingId,
-        birthDate: hatchedTime ? formatDate(hatchedTime, 'dd/MM/yyyy') : '',
+        birthDate: hatchedTime ? formatDate(hatchedTime, 'yyyy-MM-dd') : '',
       });
       setSizeText('');
       setErrors({});
@@ -287,6 +291,7 @@ export default function AddKoiPage() {
 
   const createKoi = useCreateKoiFish();
   const enrollKoiReID = useEnrollKoiReID();
+  const deleteKoiFish = useDeleteKoiFish();
   const isSaving = createKoi.isPending || enrollKoiReID.isPending;
   const uploadImage = useUploadImage();
   const uploadVideo = useUploadVideo();
@@ -703,14 +708,33 @@ export default function AddKoiPage() {
             },
             {
               onSuccess: () => {
+                Toast.show({
+                  type: 'success',
+                  text1: 'Tạo cá thành công',
+                  position: 'top',
+                });
                 router.replace({ pathname: redirect ?? '/koi' } as any);
               },
               onError: (err) => {
-                console.error('Failed to enroll Koi ReID video: ', err);
+                // Xóa cá vừa tạo nếu enroll thất bại
+                deleteKoiFish.mutate(createdKoi.id, {
+                  onSuccess: () => {
+                    console.log('Đã xóa cá thành công.');
+                  },
+                  onError: (deleteErr) => {
+                    console.error('Xóa cá thất bại:', deleteErr);
+                  },
+                });
+                console.log('Lỗi: ', err);
               },
             }
           );
         } else {
+          Toast.show({
+            type: 'success',
+            text1: 'Tạo cá thành công',
+            position: 'top',
+          });
           router.replace({ pathname: redirect ?? '/koi' } as any);
         }
       },
