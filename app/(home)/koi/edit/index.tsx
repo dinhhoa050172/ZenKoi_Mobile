@@ -746,7 +746,9 @@ export default function EditKoiPage() {
       { id: koiId, data: payload },
       {
         onSuccess: () => {
-          if (formData.videos && formData.videos.length > 0) {
+          const videosChanged =
+            JSON.stringify(formData.videos) !== JSON.stringify(koiData?.videos);
+          if (formData.videos && formData.videos.length > 0 && videosChanged) {
             enrollKoiReID.mutate(
               {
                 koiFishId: koiId,
@@ -755,6 +757,11 @@ export default function EditKoiPage() {
               },
               {
                 onSuccess: () => {
+                  Toast.show({
+                    type: 'success',
+                    text1: 'Cập nhật thành công',
+                    position: 'top',
+                  });
                   router.replace({ pathname: redirect ?? '/koi' } as any);
                 },
                 onError: (err) => {
@@ -763,6 +770,11 @@ export default function EditKoiPage() {
               }
             );
           } else {
+            Toast.show({
+              type: 'success',
+              text1: 'Cập nhật thành công',
+              position: 'top',
+            });
             router.replace({ pathname: redirect ?? '/koi' } as any);
           }
         },
