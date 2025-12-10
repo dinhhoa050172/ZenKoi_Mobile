@@ -189,6 +189,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (!currentToken || !currentRefresh) {
         console.warn('[AUTH] renewAccessToken: missing tokens');
+
+        // Show global alert for missing tokens
+        try {
+          const { useGlobalAlertStore } = await import('./globalAlertStore');
+          useGlobalAlertStore.getState().showAlert({
+            title: 'Phiên đăng nhập hết hạn',
+            message: 'Đã hết phiên đăng nhập. Vui lòng đăng nhập lại.',
+            type: 'warning',
+            confirmText: 'Đăng nhập lại',
+          });
+        } catch {}
+
         return false;
       }
 
