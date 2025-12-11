@@ -257,8 +257,8 @@ export default function IncidentDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-[#0A3D62]">
-        <StatusBar barStyle="light-content" backgroundColor="#0A3D62" />
+      <SafeAreaView className="flex-1 ">
+        <StatusBar barStyle="light-content" />
         <View className="flex-1 items-center justify-center">
           <Loading />
         </View>
