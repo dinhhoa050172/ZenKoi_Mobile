@@ -1,5 +1,6 @@
 import {
   WorkSchedule,
+  WorkScheduleCompleteAssignment,
   WorkScheduleListResponseWithoutPagination,
   WorkSchedulePagination,
   WorkScheduleRequest,
@@ -279,17 +280,14 @@ export function useCompleteStaffTask() {
   return useMutation({
     mutationFn: async ({
       workScheduleId,
-      staffId,
-      completionNotes,
+      assignement,
     }: {
       workScheduleId: number;
-      staffId: number;
-      completionNotes: string;
+      assignement: WorkScheduleCompleteAssignment;
     }) => {
-      const resp = await workScheduleServices.completeStaffTask(
+      const resp = await workScheduleServices.completeAssignmentTask(
         workScheduleId,
-        staffId,
-        completionNotes
+        assignement
       );
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể hoàn thành nhiệm vụ');
@@ -306,11 +304,13 @@ export function useCompleteStaffTask() {
         qc.invalidateQueries({
           queryKey: workScheduleKeys.detail(vars.workScheduleId),
         });
-      if (vars?.staffId)
-        qc.invalidateQueries({
-          queryKey: workScheduleKeys.staff(vars.staffId),
-        });
       qc.invalidateQueries({ queryKey: workScheduleKeys.lists() });
+      // Invalidate all self queries regardless of filters
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'workSchedules' && query.queryKey[1] === 'self',
+      });
+      qc.invalidateQueries({ queryKey: workScheduleKeys.all });
     },
     onError: (err: any) => {
       Toast.show({
