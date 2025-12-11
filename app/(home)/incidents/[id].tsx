@@ -17,6 +17,7 @@ import {
   PondIncident,
 } from '@/lib/api/services/fetchIncident';
 import { formatDate } from '@/lib/utils/formatDate';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -29,6 +30,7 @@ import {
   Edit,
   FileText,
   Heart,
+  Image as ImageIcon,
   TrendingUp,
   User,
   Waves,
@@ -187,7 +189,10 @@ export default function IncidentDetailScreen() {
     setShowResolveModal(true);
   };
 
-  const handleSubmitResolve = async (resolutionNotes: string) => {
+  const handleSubmitResolve = async (
+    resolutionNotes: string,
+    resolutionImages: string[]
+  ) => {
     if (!incidentData) return;
     setIsResolving(true);
     try {
@@ -196,6 +201,7 @@ export default function IncidentDetailScreen() {
         IncidentResolutionRequest: {
           status: 'Resolved',
           resolutionNotes: resolutionNotes,
+          resolutionImages: resolutionImages,
         },
       });
       setShowResolveModal(false);
@@ -219,7 +225,10 @@ export default function IncidentDetailScreen() {
     setShowCancelModal(true);
   };
 
-  const handleSubmitCancel = async (resolutionNotes: string) => {
+  const handleSubmitCancel = async (
+    resolutionNotes: string,
+    resolutionImages: string[]
+  ) => {
     if (!incidentData) return;
     setIsCancelling(true);
     try {
@@ -228,6 +237,7 @@ export default function IncidentDetailScreen() {
         IncidentResolutionRequest: {
           status: 'Cancelled',
           resolutionNotes: resolutionNotes,
+          resolutionImages: resolutionImages,
         },
       });
       setShowCancelModal(false);
@@ -312,13 +322,17 @@ export default function IncidentDetailScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleEdit}
-              className="rounded-full bg-white/10 p-3"
-              activeOpacity={0.8}
-            >
-              <Edit size={20} color="white" />
-            </TouchableOpacity>
+            {incidentData.status !== IncidentStatus.Resolved &&
+              incidentData.status !== IncidentStatus.Closed &&
+              incidentData.status !== IncidentStatus.Cancelled && (
+                <TouchableOpacity
+                  onPress={handleEdit}
+                  className="rounded-full bg-white/10 p-3"
+                  activeOpacity={0.8}
+                >
+                  <Edit size={20} color="white" />
+                </TouchableOpacity>
+              )}
           </View>
 
           {/* Tiêu đề & Loại */}
@@ -384,6 +398,40 @@ export default function IncidentDetailScreen() {
               </View>
             </InfoCard>
 
+            {/* Thẻ Hình Ảnh Minh Chứng */}
+            {incidentData.reportImages &&
+              incidentData.reportImages.length > 0 && (
+                <InfoCard title="Hình ảnh minh chứng" icon={<ImageIcon />}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="-mx-2"
+                    contentContainerStyle={{ paddingHorizontal: 8, gap: 12 }}
+                  >
+                    {incidentData.reportImages.map((imageUrl, index) => (
+                      <View
+                        key={index}
+                        className="overflow-hidden rounded-2xl shadow-lg"
+                        style={{ elevation: 4 }}
+                      >
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{ width: 200, height: 200 }}
+                          contentFit="cover"
+                          transition={300}
+                          // placeholder={require('@/assets/images/placeholder.png')}
+                        />
+                        <View className="absolute bottom-2 right-2 rounded-full bg-black/60 px-3 py-1">
+                          <Text className="text-xs font-bold text-white">
+                            {index + 1}/{incidentData.reportImages.length}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </InfoCard>
+              )}
+
             {/* Thẻ Tài Sản Bị Ảnh Hưởng */}
             {(incidentData.koiIncidents.length > 0 ||
               incidentData.pondIncidents.length > 0) && (
@@ -438,6 +486,39 @@ export default function IncidentDetailScreen() {
                 </View>
               </InfoCard>
             )}
+
+            {/* Thẻ Hình Ảnh Giải Quyết */}
+            {incidentData.resolutionImages &&
+              incidentData.resolutionImages.length > 0 && (
+                <InfoCard title="Hình ảnh giải quyết" icon={<ImageIcon />}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="-mx-2"
+                    contentContainerStyle={{ paddingHorizontal: 8, gap: 12 }}
+                  >
+                    {incidentData.resolutionImages.map((imageUrl, index) => (
+                      <View
+                        key={index}
+                        className="overflow-hidden rounded-2xl shadow-lg"
+                        style={{ elevation: 4 }}
+                      >
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={{ width: 200, height: 200 }}
+                          contentFit="cover"
+                          transition={300}
+                        />
+                        <View className="absolute bottom-2 right-2 rounded-full bg-black/60 px-3 py-1">
+                          <Text className="text-xs font-bold text-white">
+                            {index + 1}/{incidentData.resolutionImages.length}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </InfoCard>
+              )}
           </ScrollView>
         </Animated.View>
 
