@@ -1,16 +1,25 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import { useUpdateWorkScheduleStatus } from '@/hooks/useWorkSchedule';
-import {
-  WorkSchedule,
-  WorkScheduleStatus,
-} from '@/lib/api/services/fetchWorkSchedule';
+import { useUploadImage } from '@/hooks/useUpload';
+import { useCompleteStaffTask } from '@/hooks/useWorkSchedule';
+import { WorkSchedule } from '@/lib/api/services/fetchWorkSchedule';
 import { parseLocalDate, parseLocalDateTime } from '@/lib/utils/formatDate';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, CheckCircle, Clock, X } from 'lucide-react-native';
+import {
+  Calendar,
+  Camera,
+  CheckCircle,
+  Clock,
+  Image as ImageIcon,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Modal,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -33,6 +42,7 @@ export default function TaskCompletionModal({
   staffId,
 }: TaskCompletionModalProps) {
   const [completionNotes, setCompletionNotes] = useState('');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -47,7 +57,8 @@ export default function TaskCompletionModal({
     (() => void) | null
   >(null);
 
-  const updateStatusMutation = useUpdateWorkScheduleStatus();
+  const completeTaskMutation = useCompleteStaffTask();
+  const uploadImage = useUploadImage();
 
   useEffect(() => {
     if (visible) {
@@ -130,20 +141,55 @@ export default function TaskCompletionModal({
       return;
     }
 
+    if (selectedImages.length === 0) {
+      setCustomAlertTitle('Lỗi');
+      setCustomAlertMessage('Vui lòng thêm ít nhất 1 hình ảnh minh chứng.');
+      setCustomAlertType('danger');
+      setCustomAlertOnConfirm(() => null);
+      setCustomAlertVisible(true);
+      return;
+    }
+
     // Prevent double submission
-    if (isLoading || updateStatusMutation.isPending) {
+    if (isLoading || completeTaskMutation.isPending) {
       return;
     }
 
     setIsLoading(true);
     try {
-      await updateStatusMutation.mutateAsync({
-        id: task.id,
-        status: WorkScheduleStatus.COMPLETED,
-        notes: completionNotes.trim(),
+      // Upload images first if any
+      const uploadedUrls: string[] = [];
+
+      if (selectedImages.length > 0) {
+        for (const imageUri of selectedImages) {
+          const filename = imageUri.split('/').pop() || 'photo.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          const fileForUpload: any = { uri: imageUri, name: filename, type };
+
+          const uploadRes = await uploadImage.mutateAsync({
+            file: fileForUpload,
+          });
+          const remoteUrl = uploadRes?.result?.url;
+
+          if (remoteUrl) {
+            uploadedUrls.push(remoteUrl);
+          }
+        }
+      }
+
+      // Complete the task with notes and images
+      await completeTaskMutation.mutateAsync({
+        workScheduleId: task.id,
+        assignement: {
+          completionNotes: completionNotes.trim(),
+          images: uploadedUrls,
+        },
       });
 
       setCompletionNotes('');
+      setSelectedImages([]);
+
       onClose();
     } catch (error) {
       console.error('Error completing task:', error);
@@ -158,8 +204,75 @@ export default function TaskCompletionModal({
     }
   };
 
+  // Image picker functions
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      setCustomAlertTitle('Quyền truy cập bị từ chối');
+      setCustomAlertMessage('Vui lòng cho phép truy cập ảnh để chọn ảnh');
+      setCustomAlertType('warning');
+      setCustomAlertVisible(true);
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      setSelectedImages([...selectedImages, uri]);
+    } catch (err) {
+      console.warn('pickImage error', err);
+      setCustomAlertTitle('Lỗi');
+      setCustomAlertMessage('Không thể chọn ảnh. Thử lại sau.');
+      setCustomAlertType('danger');
+      setCustomAlertVisible(true);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      setCustomAlertTitle('Quyền truy cập bị từ chối');
+      setCustomAlertMessage('Vui lòng cho phép truy cập camera để chụp ảnh');
+      setCustomAlertType('warning');
+      setCustomAlertVisible(true);
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      setSelectedImages([...selectedImages, uri]);
+    } catch (err) {
+      console.warn('takePhoto error', err);
+      setCustomAlertTitle('Lỗi');
+      setCustomAlertMessage('Không thể chụp ảnh. Thử lại sau.');
+      setCustomAlertType('danger');
+      setCustomAlertVisible(true);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+  };
+
   const handleClose = () => {
     setCompletionNotes('');
+    setSelectedImages([]);
     onClose();
   };
 
@@ -302,6 +415,83 @@ export default function TaskCompletionModal({
                     </View>
                   </View>
                 </View>
+                {/* Image Upload Section */}
+                <View className="mb-5">
+                  <View className="mb-2 flex-row items-center">
+                    <Text className="text-base font-bold text-gray-900">
+                      Hình ảnh minh chứng
+                    </Text>
+                    <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
+                      <Text className="text-sm font-bold text-red-600">
+                        Bắt buộc
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Image Picker Buttons */}
+                  <View className="mb-3 flex-row gap-3">
+                    <TouchableOpacity
+                      onPress={takePhoto}
+                      disabled={isLoading}
+                      activeOpacity={0.7}
+                      className="flex-1 flex-row items-center justify-center gap-2 rounded-full border-2 border-blue-200 bg-blue-50 py-2 shadow-sm"
+                      style={{ elevation: 1 }}
+                    >
+                      <Camera size={20} color="#2563eb" />
+                      <Text className="text-sm font-bold text-blue-600">
+                        Chụp ảnh
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={pickImage}
+                      disabled={isLoading}
+                      activeOpacity={0.7}
+                      className="flex-1 flex-row items-center justify-center gap-2 rounded-full border-2 border-purple-200 bg-purple-50 py-3 shadow-sm"
+                      style={{ elevation: 1 }}
+                    >
+                      <ImageIcon size={20} color="#7c3aed" />
+                      <Text className="text-sm font-bold text-purple-600">
+                        Chọn ảnh
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Image Preview Grid */}
+                  {selectedImages.length > 0 && (
+                    <View className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white p-3 shadow-sm">
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 12 }}
+                      >
+                        {selectedImages.map((uri, index) => (
+                          <View key={index} className="relative">
+                            <Image
+                              source={{ uri }}
+                              className="h-24 w-24 rounded-xl"
+                              style={{ resizeMode: 'cover' }}
+                            />
+                            <TouchableOpacity
+                              onPress={() => removeImage(index)}
+                              disabled={isLoading}
+                              activeOpacity={0.7}
+                              className="absolute -right-2 -top-2 h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg"
+                              style={{ elevation: 3 }}
+                            >
+                              <Trash2 size={14} color="white" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                      <View className="mt-2 items-center">
+                        <Text className="text-xs text-gray-500">
+                          {selectedImages.length} ảnh đã chọn
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
 
                 {/* Completion Notes */}
                 <View className="mb-5">
@@ -354,14 +544,20 @@ export default function TaskCompletionModal({
 
                   <TouchableOpacity
                     onPress={handleComplete}
-                    disabled={isLoading || !completionNotes.trim()}
+                    disabled={
+                      isLoading ||
+                      !completionNotes.trim() ||
+                      selectedImages.length === 0
+                    }
                     activeOpacity={0.8}
                     className="flex-1 overflow-hidden rounded-2xl"
                     style={{ elevation: 3 }}
                   >
                     <LinearGradient
                       colors={
-                        isLoading || !completionNotes.trim()
+                        isLoading ||
+                        !completionNotes.trim() ||
+                        selectedImages.length === 0
                           ? ['#d1d5db', '#9ca3af']
                           : ['#10b981', '#059669']
                       }

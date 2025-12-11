@@ -106,16 +106,20 @@ export function useUpdateIncident() {
         throw new Error(resp.message || 'Không thể cập nhật sự cố');
       return resp.result;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: async (_, vars) => {
       Toast.show({
         type: 'success',
         text1: 'Cập nhật thành công',
         position: 'top',
       });
-      qc.invalidateQueries({ queryKey: incidentKeys.details() });
-      if (vars?.id)
-        qc.invalidateQueries({ queryKey: incidentKeys.detail(vars.id) });
-      qc.invalidateQueries({ queryKey: incidentKeys.lists() });
+
+      // Invalidate and refetch all incident queries
+      await qc.invalidateQueries({ queryKey: incidentKeys.all });
+
+      // Refetch specific detail if available
+      if (vars?.id) {
+        await qc.refetchQueries({ queryKey: incidentKeys.detail(vars.id) });
+      }
     },
     onError: (err: any) => {
       Toast.show({
