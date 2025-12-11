@@ -430,9 +430,9 @@ export default function TasksScreen() {
                 >
                   <View className="relative">
                     <View
-                      className="h-10 w-10 items-center justify-center"
+                      className="h-10 w-10 items-center justify-center overflow-hidden rounded-full"
                       style={{
-                        borderRadius: 20,
+                        // borderRadius: 20,
                         backgroundColor: isSelected ? '#0A3D62' : 'transparent',
                       }}
                     >
