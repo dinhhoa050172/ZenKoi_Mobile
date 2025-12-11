@@ -27,24 +27,24 @@ export function formatDateSmart(dateString?: string): string {
     startOfDayBeforeYesterday.setDate(startOfToday.getDate() - 2);
 
     if (date >= startOfToday) {
-      return `hôm nay ${format(date, 'HH:mm')}`;
+      return `hôm nay ${format(date, 'HH:mm', { locale: vi })}`;
     }
 
     if (date >= startOfYesterday && date < startOfToday) {
-      return `hôm qua ${format(date, 'HH:mm')}`;
+      return `hôm qua ${format(date, 'HH:mm', { locale: vi })}`;
     }
 
     if (date >= startOfDayBeforeYesterday && date < startOfYesterday) {
-      return `hôm kia ${format(date, 'HH:mm')}`;
+      return `hôm kia ${format(date, 'HH:mm', { locale: vi })}`;
     }
 
     // same year -> dd/MM HH:mm
     if (date.getFullYear() === now.getFullYear()) {
-      return format(date, 'dd/MM HH:mm');
+      return format(date, 'dd/MM HH:mm', { locale: vi });
     }
 
     // different year -> dd/MM/yyyy HH:mm
-    return format(date, 'dd/MM/yyyy HH:mm');
+    return format(date, 'dd/MM/yyyy HH:mm', { locale: vi });
   } catch (error) {
     console.error('Error formatting smart date:', error);
     return 'N/A';
@@ -67,7 +67,7 @@ export function formatDate(
     const date = parseISO(dateString);
 
     if (isValid(date)) {
-      return format(date, formatStr);
+      return format(date, formatStr, { locale: vi });
     }
 
     return 'N/A';
@@ -114,7 +114,7 @@ export function formatDateWithLocale(
 
 export const formatTimeAgo = (date: string | Date) => {
   if (!date) return '';
-  return formatDistanceToNow(new Date(date), { addSuffix: true });
+  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: vi });
 };
 
 export function formatTimeFromISOString(
@@ -130,7 +130,7 @@ export function formatTimeFromISOString(
     const utcMinutes = date.getUTCMinutes().toString().padStart(2, '0');
     return `${utcHours}:${utcMinutes}`;
   } else {
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: hour12,
@@ -155,7 +155,7 @@ export function parseLocalDate(dateStr?: string): Date | null {
     const y = parts[0] || 0;
     const m = parts[1] || 1;
     const d = parts[2] || 1;
-    return new Date(y, m - 1, d);
+    return new Date(y, m - 1, d); // Local timezone, not UTC
   } catch (error) {
     console.warn('parseLocalDate failed for', dateStr, error);
     return null;
