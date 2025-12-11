@@ -20,7 +20,6 @@ import { IncidentType } from '@/lib/api/services/fetchIncidentType';
 import { Gender, KoiFish, SaleStatus } from '@/lib/api/services/fetchKoiFish';
 import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -42,6 +41,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -765,13 +765,11 @@ export default function EditIncidentScreen() {
                   {selectedImages.map((uri, index) => (
                     <View
                       key={index}
-                      className="relative overflow-hidden rounded-xl"
+                      className="relative overflow-hidden rounded-3xl"
                     >
                       <Image
                         source={{ uri }}
-                        style={{ width: 120, height: 120 }}
-                        contentFit="cover"
-                        transition={200}
+                        style={{ width: 120, height: 120, resizeMode: 'cover' }}
                       />
                       <TouchableOpacity
                         onPress={() => removeImage(index)}
