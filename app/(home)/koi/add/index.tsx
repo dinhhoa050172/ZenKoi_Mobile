@@ -648,7 +648,8 @@ export default function AddKoiPage() {
     if (!formData.type) nextErrors.type = 'Vui lòng chọn loại';
     if (!formData.rfid || !formData.rfid.trim())
       nextErrors.rfid = 'Vui lòng nhập mã RFID';
-    if (!formData.size) nextErrors.size = 'Vui lòng chọn chiều dài';
+    if (!formData.size || Number(formData.size) <= 0)
+      nextErrors.size = 'Vui lòng nhập chiều dài > 0';
     if (!formData.birthDate) nextErrors.birthDate = 'Vui lòng chọn ngày sinh';
     if (!formData.gender) nextErrors.gender = 'Vui lòng chọn giới tính';
     if (!formData.origin || !formData.origin.trim())

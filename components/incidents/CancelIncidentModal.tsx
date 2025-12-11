@@ -1,13 +1,30 @@
+import { useUploadImage } from '@/hooks/useUpload';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertTriangle, FileText, X, XCircle } from 'lucide-react-native';
+import {
+  Camera,
+  FileText,
+  Image as ImageIcon,
+  Trash2,
+  X,
+  XCircle,
+} from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 interface CancelIncidentModalProps {
   visible: boolean;
   onClose: () => void;
-  onCancel: (resolutionNotes: string) => void;
+  onCancel: (resolutionNotes: string, resolutionImages: string[]) => void;
   isSubmitting?: boolean;
   incidentTitle?: string;
 }
@@ -20,19 +37,115 @@ export default function CancelIncidentModal({
   incidentTitle = 'sự cố này',
 }: CancelIncidentModalProps) {
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadImageMutation = useUploadImage();
 
-  const handleSubmit = () => {
-    if (resolutionNotes.trim()) {
-      onCancel(resolutionNotes.trim());
+  const handleSubmit = async () => {
+    if (!resolutionNotes.trim() || isSubmitting || isUploading) return;
+
+    setIsUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      // Upload new images (skip existing URLs)
+      for (const imageUri of selectedImages) {
+        if (imageUri.startsWith('http')) {
+          uploadedUrls.push(imageUri);
+          continue;
+        }
+
+        const filename =
+          imageUri.split('/').pop() || 'incident-cancellation.jpg';
+        const match = /\.([\w]+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+        const fileForUpload = {
+          uri: imageUri,
+          name: filename,
+          type,
+        };
+
+        const result = await uploadImageMutation.mutateAsync({
+          file: fileForUpload as any,
+        });
+        if (result?.result?.url) uploadedUrls.push(result.result.url);
+      }
+
+      onCancel(resolutionNotes.trim(), uploadedUrls);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleClose = () => {
+    if (isSubmitting || isUploading) return;
     setResolutionNotes('');
+    setSelectedImages([]);
+    setIsUploading(false);
     onClose();
   };
 
+  // Image picker functions
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Vui lòng cho phép truy cập ảnh để chọn ảnh');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      setSelectedImages([...selectedImages, uri]);
+    } catch (err) {
+      console.warn('pickImage error', err);
+      alert('Không thể chọn ảnh. Thử lại sau.');
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Vui lòng cho phép truy cập camera để chụp ảnh');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      setSelectedImages([...selectedImages, uri]);
+    } catch (err) {
+      console.warn('takePhoto error', err);
+      alert('Không thể chụp ảnh. Thử lại sau.');
+    }
+  };
+
+  const removeImage = (index: number) => {
+    if (isSubmitting || isUploading) return;
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+  };
+
   const isFormValid = resolutionNotes.trim().length > 0;
+  const isLoading = isSubmitting || isUploading;
 
   return (
     <Modal
@@ -43,25 +156,23 @@ export default function CancelIncidentModal({
       onRequestClose={handleClose}
     >
       <View className="flex-1 bg-black/60">
-        <KeyboardAwareScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: 'center',
-            padding: 24,
-          }}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={10}
+        <TouchableOpacity
+          className="flex-1"
+          activeOpacity={1}
+          onPress={handleClose}
         >
-          <TouchableOpacity activeOpacity={1} onPress={handleClose}>
+          <View className="flex-1 justify-center px-6">
             <TouchableOpacity activeOpacity={1}>
-              <View className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+              <View
+                className="max-w-full overflow-hidden rounded-3xl bg-white shadow-2xl "
+                style={{ maxHeight: '90%' }}
+              >
                 {/* Header */}
                 <LinearGradient
                   colors={['#ef4444', '#dc2626', '#b91c1c']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  className="relative overflow-hidden px-6 py-8"
+                  className="relative overflow-hidden px-6 py-4"
                 >
                   {/* Decorative Elements */}
                   <View className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-white/10" />
@@ -85,8 +196,8 @@ export default function CancelIncidentModal({
                     <TouchableOpacity
                       onPress={handleClose}
                       className="rounded-full bg-white/20 p-2 backdrop-blur-sm"
-                      disabled={isSubmitting}
-                      style={{ opacity: isSubmitting ? 0.5 : 1 }}
+                      disabled={isLoading}
+                      style={{ opacity: isLoading ? 0.5 : 1 }}
                     >
                       <X size={20} color="white" />
                     </TouchableOpacity>
@@ -94,10 +205,19 @@ export default function CancelIncidentModal({
                 </LinearGradient>
 
                 {/* Content */}
-                <View className="max-h-96 px-6 pt-6">
-                  <View className="gap-4">
+                <KeyboardAwareScrollView
+                  contentContainerStyle={{
+                    paddingHorizontal: 24,
+                    paddingTop: 40,
+                    paddingBottom: 24,
+                  }}
+                  bottomOffset={40}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View className="space-y-6">
                     {/* Warning Notice */}
-                    <View className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                    {/* <View className="rounded-2xl border border-red-200 bg-red-50 p-4">
                       <View className="mb-2 flex-row items-center">
                         <AlertTriangle size={20} color="#dc2626" />
                         <Text className="ml-2 text-sm font-semibold text-red-800">
@@ -108,6 +228,80 @@ export default function CancelIncidentModal({
                         Sau khi hủy, sự cố sẽ không thể khôi phục. Vui lòng ghi
                         rõ lý do hủy để tham khảo sau này.
                       </Text>
+                    </View> */}
+
+                    {/* Image Upload Section */}
+                    <View>
+                      <View className="mb-3 flex-row items-center">
+                        <ImageIcon size={20} color="#374151" />
+                        <Text className="ml-2 text-base font-semibold text-slate-900">
+                          Hình ảnh minh chứng
+                        </Text>
+                      </View>
+
+                      {/* Image Picker Buttons */}
+                      <View className="mb-3 flex-row gap-3">
+                        <TouchableOpacity
+                          onPress={takePhoto}
+                          disabled={isLoading}
+                          activeOpacity={0.7}
+                          className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-red-50 py-3 shadow-sm"
+                          style={{ opacity: isLoading ? 0.5 : 1 }}
+                        >
+                          <Camera size={20} color="#dc2626" />
+                          <Text className="text-sm font-bold text-red-700">
+                            Chụp ảnh
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={pickImage}
+                          disabled={isLoading}
+                          activeOpacity={0.7}
+                          className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-red-50 py-3 shadow-sm"
+                          style={{ opacity: isLoading ? 0.5 : 1 }}
+                        >
+                          <ImageIcon size={20} color="#dc2626" />
+                          <Text className="text-sm font-bold text-red-700">
+                            Chọn ảnh
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Image Preview Grid */}
+                      {selectedImages.length > 0 && (
+                        <View className="overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm">
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ gap: 12 }}
+                          >
+                            {selectedImages.map((uri, index) => (
+                              <View key={index} className="relative">
+                                <Image
+                                  source={{ uri }}
+                                  className="h-24 w-24 rounded-xl"
+                                  style={{ resizeMode: 'cover' }}
+                                />
+                                <TouchableOpacity
+                                  onPress={() => removeImage(index)}
+                                  disabled={isLoading}
+                                  activeOpacity={0.7}
+                                  className="absolute -right-2 -top-2 h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg"
+                                  style={{ opacity: isLoading ? 0.5 : 1 }}
+                                >
+                                  <Trash2 size={14} color="white" />
+                                </TouchableOpacity>
+                              </View>
+                            ))}
+                          </ScrollView>
+                          <View className="mt-2 items-center">
+                            <Text className="text-xs text-slate-500">
+                              {selectedImages.length} ảnh đã chọn
+                            </Text>
+                          </View>
+                        </View>
+                      )}
                     </View>
 
                     {/* Cancellation Notes Input */}
@@ -130,7 +324,7 @@ export default function CancelIncidentModal({
                           multiline
                           numberOfLines={6}
                           textAlignVertical="top"
-                          editable={!isSubmitting}
+                          editable={!isLoading}
                           style={{
                             fontSize: 16,
                             lineHeight: 24,
@@ -144,17 +338,17 @@ export default function CancelIncidentModal({
                       </Text>
                     </View>
                   </View>
-                </View>
+                </KeyboardAwareScrollView>
 
                 {/* Footer Actions */}
-                <View className="border-t border-slate-100 px-6 py-6">
+                <View className="border-t border-slate-100 bg-white px-6 py-4">
                   <View className="flex-row gap-4">
                     {/* Cancel Button */}
                     <TouchableOpacity
                       onPress={handleClose}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                       className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 py-4"
-                      style={{ opacity: isSubmitting ? 0.5 : 1 }}
+                      style={{ opacity: isLoading ? 0.5 : 1 }}
                     >
                       <Text className="text-center text-base font-semibold text-slate-700">
                         Đóng
@@ -185,22 +379,17 @@ export default function CancelIncidentModal({
                             <XCircle size={20} color="white" className="mr-2" />
                           )}
                           <Text className="text-base font-bold text-white">
-                            {isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy'}
+                            {isSubmitting ? 'Đang xử lý...' : 'Hủy'}
                           </Text>
                         </View>
                       </LinearGradient>
                     </TouchableOpacity>
                   </View>
-
-                  {/* Help text */}
-                  <Text className="mt-4 text-center text-xs text-slate-500">
-                    Bằng việc xác nhận, sự cố sẽ được đánh dấu là đã hủy
-                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
-          </TouchableOpacity>
-        </KeyboardAwareScrollView>
+          </View>
+        </TouchableOpacity>
       </View>
     </Modal>
   );

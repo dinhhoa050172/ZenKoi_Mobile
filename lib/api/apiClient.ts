@@ -175,23 +175,6 @@ export class ApiService {
               // Refresh thất bại (ví dụ: refresh token hết hạn)
               console.warn('🔒 [API] Token renew failed, logging out.');
               this.processQueue(apiError, null); // "Xả" hàng đợi với lỗi
-
-              // Show global alert for session expiration
-              const { useGlobalAlertStore } = await import(
-                '../store/globalAlertStore'
-              );
-              useGlobalAlertStore.getState().showAlert({
-                title: 'Phiên đăng nhập hết hạn',
-                message: 'Đã hết phiên đăng nhập. Vui lòng đăng nhập lại.',
-                type: 'warning',
-                confirmText: 'Đăng nhập lại',
-                onConfirm: () => {
-                  if (this.onAuthError) {
-                    this.onAuthError(); // Gọi hàm logout
-                  }
-                },
-              });
-
               return Promise.reject(apiError);
             }
           } catch (renewError: any) {
@@ -200,24 +183,6 @@ export class ApiService {
               renewError
             );
             this.processQueue(renewError, null); // "Xả" hàng đợi với lỗi
-
-            // Show global alert for session expiration
-            try {
-              const { useGlobalAlertStore } = await import(
-                '../store/globalAlertStore'
-              );
-              useGlobalAlertStore.getState().showAlert({
-                title: 'Phiên đăng nhập hết hạn',
-                message: 'Đã hết phiên đăng nhập. Vui lòng đăng nhập lại.',
-                type: 'warning',
-                confirmText: 'Đăng nhập lại',
-                onConfirm: () => {
-                  if (this.onAuthError) {
-                    this.onAuthError(); // Gọi hàm logout
-                  }
-                },
-              });
-            } catch {}
 
             return Promise.reject(renewError);
           } finally {
@@ -395,21 +360,23 @@ const handleAuthError = async () => {
 
   // Clear token from SecureStore
   await SecureStore.deleteItemAsync('auth-token');
+  await SecureStore.deleteItemAsync('auth-refresh-token');
 
   const authStore = await import('../store/authStore');
   try {
-    const refresh = await SecureStore.getItemAsync('auth-refresh-token');
-    await authStore.useAuthStore
-      .getState()
-      .logout(refresh as unknown as string);
+    await authStore.useAuthStore.setState({
+      token: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
   } catch {
+    // Redirect to login screen
     try {
-      (
-        authStore.useAuthStore.getState()
-          .logout as unknown as () => Promise<void>
-      )();
-    } catch {
-      /* ignore */
+      const { router } = await import('expo-router');
+      router.replace('/(auth)/login');
+    } catch (err) {
+      console.error('Error redirecting to login:', err);
     }
   }
 };

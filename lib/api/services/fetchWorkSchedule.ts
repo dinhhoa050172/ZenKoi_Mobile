@@ -103,6 +103,11 @@ export interface WorkScheduleResponse {
   result: WorkSchedule;
 }
 
+export interface WorkScheduleCompleteAssignment {
+  completionNotes: string;
+  images: string[];
+}
+
 // Convert WorkScheduleSearchParams to RequestParams
 export const convertWorkScheduleFilter = (
   filters?: WorkScheduleSearchParams
@@ -244,6 +249,17 @@ export const workScheduleServices = {
     const response = await apiService.delete<WorkScheduleResponse>(
       `/api/WorkSchedule/${id}`
     );
+    return response.data;
+  },
+
+  completeAssignmentTask: async (
+    workScheduleId: number,
+    assignment: WorkScheduleCompleteAssignment
+  ): Promise<WorkScheduleResponse> => {
+    const response = await apiService.post<
+      WorkScheduleResponse,
+      WorkScheduleCompleteAssignment
+    >(`/api/WorkSchedule/${workScheduleId}/complete-my-assignment`, assignment);
     return response.data;
   },
 };
