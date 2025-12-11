@@ -9,6 +9,7 @@ import { useGetIncidentById, useUpdateIncident } from '@/hooks/useIncident';
 import { useGetIncidentTypes } from '@/hooks/useIncidentType';
 import { useGetKoiFish } from '@/hooks/useKoiFish';
 import { useGetPonds } from '@/hooks/usePond';
+import { useUploadImage } from '@/hooks/useUpload';
 import {
   KoiAffectedStatus,
   KoiIncidentRequest,
@@ -19,6 +20,8 @@ import { IncidentType } from '@/lib/api/services/fetchIncidentType';
 import { Gender, KoiFish, SaleStatus } from '@/lib/api/services/fetchKoiFish';
 import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import KoiCard from '@/components/incidents/KoiCard';
@@ -26,17 +29,19 @@ import PondCard from '@/components/incidents/PondCard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   AlertCircle,
+  Camera,
   Check,
   ChevronLeft,
   Clock,
   FileText,
+  Image as ImageIcon,
+  Trash2,
   Waves,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -45,6 +50,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Extended types
@@ -119,6 +125,10 @@ export default function EditIncidentScreen() {
   const [selectedPonds, setSelectedPonds] = useState<SelectedPond[]>([]);
   const [selectedKois, setSelectedKois] = useState<SelectedKoi[]>([]);
 
+  // Image state
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const uploadImageMutation = useUploadImage();
+
   // Modal States
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -140,6 +150,11 @@ export default function EditIncidentScreen() {
         description: incident.description,
         occurredAt: incident.occurredAt,
       });
+
+      // Pre-populate images
+      if (incident.reportImages && incident.reportImages.length > 0) {
+        setSelectedImages(incident.reportImages);
+      }
 
       if (incident.pondIncidents && ponds?.data) {
         const selectedPondsList: SelectedPond[] = incident.pondIncidents
@@ -222,6 +237,42 @@ export default function EditIncidentScreen() {
     setIsSubmitting(true);
 
     try {
+      // Upload images first
+      const uploadedUrls: string[] = [];
+      for (const imageUri of selectedImages) {
+        // Skip images that are already uploaded (URLs)
+        if (imageUri.startsWith('http')) {
+          uploadedUrls.push(imageUri);
+          continue;
+        }
+
+        try {
+          const filename = imageUri.split('/').pop() || 'incident.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          const fileForUpload: any = { uri: imageUri, name: filename, type };
+
+          const uploadRes = await uploadImageMutation.mutateAsync({
+            file: fileForUpload,
+          });
+          const remoteUrl = uploadRes?.result?.url;
+
+          if (remoteUrl) {
+            uploadedUrls.push(remoteUrl);
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          setAlertConfig({
+            visible: true,
+            title: 'Lỗi',
+            message: 'Không thể tải lên ảnh. Vui lòng thử lại.',
+            type: 'danger',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const affectedPonds: PondIncidentRequest[] = selectedPonds.map(
         (pond) => ({
           pondId: pond.id,
@@ -250,6 +301,7 @@ export default function EditIncidentScreen() {
         incidentTitle: formData.incidentTitle!,
         description: formData.description!,
         occurredAt: formData.occurredAt!,
+        reportImages: uploadedUrls,
         affectedPonds: affectedPonds.length > 0 ? affectedPonds : undefined,
         affectedKoiFish:
           affectedKoiFish.length > 0 ? affectedKoiFish : undefined,
@@ -365,6 +417,79 @@ export default function EditIncidentScreen() {
       k.id === koiId ? { ...k, [field]: value } : k
     );
     setSelectedKois(updatedKois);
+  };
+
+  // Image picker functions
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        setAlertConfig({
+          visible: true,
+          title: 'Quyền truy cập',
+          message: 'Cần quyền truy cập camera để chụp ảnh.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImages((prev) => [...prev, result.assets[0].uri]);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Không thể chụp ảnh. Vui lòng thử lại.',
+        type: 'danger',
+      });
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setAlertConfig({
+          visible: true,
+          title: 'Quyền truy cập',
+          message: 'Cần quyền truy cập thư viện ảnh.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newImages = result.assets.map((asset) => asset.uri);
+        setSelectedImages((prev) => [...prev, ...newImages]);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      setAlertConfig({
+        visible: true,
+        title: 'Lỗi',
+        message: 'Không thể chọn ảnh. Vui lòng thử lại.',
+        type: 'danger',
+      });
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Loading screen
@@ -494,234 +619,310 @@ export default function EditIncidentScreen() {
       </View>
 
       {/* Content */}
-      <KeyboardAvoidingView
-        className="flex-1 "
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAwareScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        bottomOffset={20}
+        contentContainerStyle={{ paddingBottom: 10 }}
       >
-        <ScrollView className="flex-1 " showsVerticalScrollIndicator={false}>
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
-            className="p-6"
-          >
-            {/* Basic Information Section */}
-            {activeSection === 'basic' && (
-              <View className="flex-1 gap-4">
-                <InputField
-                  // icon={<FileText size={20} color="#6b7280" />}
-                  label="Tiêu đề sự cố *"
-                  placeholder="Nhập tiêu đề sự cố"
-                  value={formData.incidentTitle}
-                  onChangeText={(text: string) =>
-                    setFormData({ ...formData, incidentTitle: text })
-                  }
-                  // iconBg="bg-blue-100"
-                  multiline
-                />
+        {/* <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}
+          className="p-6"
+        > */}
+        {/* Basic Information Section */}
+        {activeSection === 'basic' && (
+          <View className="flex-1 gap-4 p-2">
+            <InputField
+              // icon={<FileText size={20} color="#6b7280" />}
+              label="Tiêu đề sự cố *"
+              placeholder="Nhập tiêu đề sự cố"
+              value={formData.incidentTitle}
+              onChangeText={(text: string) =>
+                setFormData({ ...formData, incidentTitle: text })
+              }
+              // iconBg="bg-blue-100"
+              multiline
+            />
 
-                <InputField
-                  // icon={<FileText size={20} color="#6b7280" />}
-                  label="Mô tả chi tiết *"
-                  placeholder="Mô tả chi tiết về sự cố..."
-                  value={formData.description}
-                  onChangeText={(text: string) =>
-                    setFormData({ ...formData, description: text })
-                  }
-                  // iconBg="bg-blue-100"
-                  multiline
-                />
+            <InputField
+              // icon={<FileText size={20} color="#6b7280" />}
+              label="Mô tả chi tiết *"
+              placeholder="Mô tả chi tiết về sự cố..."
+              value={formData.description}
+              onChangeText={(text: string) =>
+                setFormData({ ...formData, description: text })
+              }
+              // iconBg="bg-blue-100"
+              multiline
+            />
 
-                {/* Form Fields */}
-                <View>
-                  <ContextMenuField
-                    label="Loại sự cố"
-                    options={
-                      incidentTypes?.data?.map((t: IncidentType) => ({
-                        label: t.name,
-                        value: String(t.id),
-                        meta: t.description || undefined,
-                      })) || []
-                    }
-                    value={
-                      formData.incidentTypeId
-                        ? String(formData.incidentTypeId)
-                        : undefined
-                    }
-                    onPress={() => incidentTypesQuery.refetch()}
-                    onSelect={(v) => {
-                      setFormData({
-                        ...formData,
-                        incidentTypeId: v ? Number(v) : undefined,
-                      });
-                    }}
-                    placeholder="Chọn loại sự cố"
-                  />
+            {/* Form Fields */}
+            <View>
+              <ContextMenuField
+                label="Loại sự cố"
+                options={
+                  incidentTypes?.data?.map((t: IncidentType) => ({
+                    label: t.name,
+                    value: String(t.id),
+                    meta: t.description || undefined,
+                  })) || []
+                }
+                value={
+                  formData.incidentTypeId
+                    ? String(formData.incidentTypeId)
+                    : undefined
+                }
+                onPress={() => incidentTypesQuery.refetch()}
+                onSelect={(v) => {
+                  setFormData({
+                    ...formData,
+                    incidentTypeId: v ? Number(v) : undefined,
+                  });
+                }}
+                placeholder="Chọn loại sự cố"
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm"
+              style={{ elevation: 2 }}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center justify-between px-4 py-4">
+                <View className="flex-1 flex-row items-center">
+                  <Text className="ml-3 text-base font-medium text-gray-600">
+                    Ngày xảy ra *
+                  </Text>
                 </View>
+                <View className="flex-row gap-4">
+                  <Text className="text-base text-gray-900">
+                    {formData.occurredAt
+                      ? new Date(formData.occurredAt).toLocaleDateString(
+                          'vi-VN'
+                        )
+                      : 'Chọn ngày'}
+                  </Text>
+                  <Clock size={20} color="#6b7280" />
+                </View>
+              </View>
+            </TouchableOpacity>
 
+            {/* Image Upload Section */}
+            <View className="gap-3">
+              <Text className="text-base font-semibold text-gray-700">
+                Hình ảnh minh chứng
+              </Text>
+
+              {/* Image Picker Buttons */}
+              <View className="flex-row gap-3">
                 <TouchableOpacity
-                  onPress={() => setShowDatePicker(true)}
-                  className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm"
+                  onPress={takePhoto}
+                  className="flex-1 overflow-hidden rounded-full shadow-sm"
                   style={{ elevation: 2 }}
                   activeOpacity={0.7}
                 >
-                  <View className="flex-row items-center justify-between px-4 py-4">
-                    <View className="flex-1 flex-row items-center">
-                      <Text className="ml-3 text-base font-medium text-gray-600">
-                        Ngày xảy ra *
-                      </Text>
-                    </View>
-                    <View className="flex-row gap-4">
-                      <Text className="text-base text-gray-900">
-                        {formData.occurredAt
-                          ? new Date(formData.occurredAt).toLocaleDateString(
-                              'vi-VN'
-                            )
-                          : 'Chọn ngày'}
-                      </Text>
-                      <Clock size={20} color="#6b7280" />
-                    </View>
-                  </View>
+                  <LinearGradient
+                    colors={['#3b82f6', '#2563eb']}
+                    className="flex-row items-center justify-center gap-2 p-4"
+                  >
+                    <Camera size={20} color="white" />
+                    <Text className="text-sm font-semibold text-white">
+                      Chụp ảnh
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={pickImage}
+                  className="flex-1 overflow-hidden rounded-full shadow-sm"
+                  style={{ elevation: 2 }}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={['#8b5cf6', '#7c3aed']}
+                    className="flex-row items-center justify-center gap-2 p-4"
+                  >
+                    <ImageIcon size={20} color="white" />
+                    <Text className="text-sm font-semibold text-white">
+                      Chọn ảnh
+                    </Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
-            )}
 
-            {/* Assets Section */}
-            {activeSection === 'assets' && (
-              <View className="flex-1 gap-6">
-                {/* Summary Stats */}
-                <View className="flex-row gap-3">
-                  <View
-                    className="flex-1 overflow-hidden rounded-2xl shadow-md"
-                    style={{ elevation: 3 }}
-                  >
-                    <LinearGradient
-                      colors={['#06b6d4', '#0891b2']}
-                      className="items-center p-5"
+              {/* Image Preview */}
+              {selectedImages.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="gap-3"
+                  contentContainerStyle={{ gap: 12 }}
+                >
+                  {selectedImages.map((uri, index) => (
+                    <View
+                      key={index}
+                      className="relative overflow-hidden rounded-xl"
                     >
-                      <PondSvg size={32} color="white" />
-                      <Text className="mt-3 text-3xl font-black text-white">
-                        {selectedPonds.length}
-                      </Text>
-                      <Text className="mt-1 text-sm font-semibold text-white/90">
-                        Ao nuôi
-                      </Text>
-                    </LinearGradient>
-                  </View>
-
-                  <View
-                    className="flex-1 overflow-hidden rounded-2xl shadow-md"
-                    style={{ elevation: 3 }}
-                  >
-                    <LinearGradient
-                      colors={['#f97316', '#ea580c']}
-                      className="items-center p-5"
-                    >
-                      <FishSvg size={32} color="white" />
-                      <Text className="mt-3 text-3xl font-black text-white">
-                        {selectedKois.length}
-                      </Text>
-                      <Text className="mt-1 text-sm font-semibold text-white/90">
-                        Cá Koi
-                      </Text>
-                    </LinearGradient>
-                  </View>
-                </View>
-
-                {/* Ponds Section */}
-                <View>
-                  <View className="mb-4">
-                    <Text className="mb-2 text-xl font-black text-gray-900">
-                      Ao nuôi
-                    </Text>
-                    <Text className="mb-3 text-sm text-gray-500">
-                      Ao bị ảnh hưởng bởi sự cố
-                    </Text>
-                    <ContextMenuMultiSelect
-                      label="Chọn ao nuôi"
-                      placeholder="Chọn các ao bị ảnh hưởng"
-                      options={
-                        pondsLoading
-                          ? [{ label: 'Đang tải...', value: '', meta: '' }]
-                          : (ponds?.data || []).map((pond: Pond) => ({
-                              label: pond.pondName,
-                              value: pond.id.toString(),
-                              meta: `${pond.pondTypeName || 'N/A'} - ${pond.capacityLiters}L`,
-                            }))
-                      }
-                      values={selectedPonds.map((p) => p.id.toString())}
-                      onChange={handlePondSelectionChange}
-                      disabled={pondsLoading}
-                    />
-                  </View>
-
-                  {selectedPonds.length > 0 ? (
-                    selectedPonds.map((pond, index) => (
-                      <PondCard
-                        key={pond.id}
-                        pond={pond}
-                        index={index}
-                        onRemove={() => removePond(pond.id)}
-                        onUpdate={updatePondField}
+                      <Image
+                        source={{ uri }}
+                        style={{ width: 120, height: 120 }}
+                        contentFit="cover"
+                        transition={200}
                       />
-                    ))
-                  ) : (
-                    <EmptyState
-                      icon={<PondSvg size={48} color="#94a3b8" />}
-                      text="Chưa chọn ao nào"
-                    />
-                  )}
-                </View>
+                      <TouchableOpacity
+                        onPress={() => removeImage(index)}
+                        className="absolute right-2 top-2 overflow-hidden rounded-full bg-red-500 p-2 shadow-lg"
+                        style={{ elevation: 4 }}
+                        activeOpacity={0.7}
+                      >
+                        <Trash2 size={16} color="white" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        )}
 
-                {/* Koi Section */}
-                <View>
-                  <View className="mb-4">
-                    <Text className="mb-2 text-xl font-black text-gray-900">
-                      Cá Koi
-                    </Text>
-                    <Text className="mb-3 text-sm text-gray-500">
-                      Cá bị ảnh hưởng bởi sự cố
-                    </Text>
-                    <ContextMenuMultiSelect
-                      label="Chọn cá Koi"
-                      placeholder="Chọn các cá bị ảnh hưởng"
-                      options={
-                        koisLoading
-                          ? [{ label: 'Đang tải...', value: '', meta: '' }]
-                          : (koiFishes?.data || []).map((koi: KoiFish) => ({
-                              label: koi.rfid || `Cá #${koi.id}`,
-                              value: koi.id.toString(),
-                              meta: `${koi.variety?.varietyName || 'Không xác định'} - ${koi.gender === Gender.MALE ? 'Đực' : 'Cái'}`,
-                            }))
-                      }
-                      values={selectedKois.map((k) => k.id.toString())}
-                      onChange={handleKoiSelectionChange}
-                      disabled={koisLoading}
-                    />
-                  </View>
-
-                  {selectedKois.length > 0 ? (
-                    selectedKois.map((koi, index) => (
-                      <KoiCard
-                        key={koi.id}
-                        koi={koi}
-                        index={index}
-                        onRemove={() => removeKoi(koi.id)}
-                        onUpdate={updateKoiField}
-                      />
-                    ))
-                  ) : (
-                    <EmptyState
-                      icon={<FishSvg size={48} color="#94a3b8" />}
-                      text="Chưa chọn cá nào"
-                    />
-                  )}
-                </View>
+        {/* Assets Section */}
+        {activeSection === 'assets' && (
+          <View className="flex-1 gap-6 p-2">
+            {/* Summary Stats */}
+            <View className="flex-row gap-3">
+              <View
+                className="flex-1 overflow-hidden rounded-2xl shadow-md"
+                style={{ elevation: 3 }}
+              >
+                <LinearGradient
+                  colors={['#06b6d4', '#0891b2']}
+                  className="items-center p-5"
+                >
+                  <PondSvg size={32} color="white" />
+                  <Text className="mt-3 text-3xl font-black text-white">
+                    {selectedPonds.length}
+                  </Text>
+                  <Text className="mt-1 text-sm font-semibold text-white/90">
+                    Ao nuôi
+                  </Text>
+                </LinearGradient>
               </View>
-            )}
-          </Animated.View>
-        </ScrollView>
+
+              <View
+                className="flex-1 overflow-hidden rounded-2xl shadow-md"
+                style={{ elevation: 3 }}
+              >
+                <LinearGradient
+                  colors={['#f97316', '#ea580c']}
+                  className="items-center p-5"
+                >
+                  <FishSvg size={32} color="white" />
+                  <Text className="mt-3 text-3xl font-black text-white">
+                    {selectedKois.length}
+                  </Text>
+                  <Text className="mt-1 text-sm font-semibold text-white/90">
+                    Cá Koi
+                  </Text>
+                </LinearGradient>
+              </View>
+            </View>
+
+            {/* Ponds Section */}
+            <View>
+              <View className="mb-4">
+                <Text className="mb-2 text-xl font-black text-gray-900">
+                  Ao nuôi
+                </Text>
+                <Text className="mb-3 text-sm text-gray-500">
+                  Ao bị ảnh hưởng bởi sự cố
+                </Text>
+                <ContextMenuMultiSelect
+                  label="Chọn ao nuôi"
+                  placeholder="Chọn các ao bị ảnh hưởng"
+                  options={
+                    pondsLoading
+                      ? [{ label: 'Đang tải...', value: '', meta: '' }]
+                      : (ponds?.data || []).map((pond: Pond) => ({
+                          label: pond.pondName,
+                          value: pond.id.toString(),
+                          meta: `${pond.pondTypeName || 'N/A'} - ${pond.capacityLiters}L`,
+                        }))
+                  }
+                  values={selectedPonds.map((p) => p.id.toString())}
+                  onChange={handlePondSelectionChange}
+                  disabled={pondsLoading}
+                />
+              </View>
+
+              {selectedPonds.length > 0 ? (
+                selectedPonds.map((pond, index) => (
+                  <PondCard
+                    key={pond.id}
+                    pond={pond}
+                    index={index}
+                    onRemove={() => removePond(pond.id)}
+                    onUpdate={updatePondField}
+                  />
+                ))
+              ) : (
+                <EmptyState
+                  icon={<PondSvg size={48} color="#94a3b8" />}
+                  text="Chưa chọn ao nào"
+                />
+              )}
+            </View>
+
+            {/* Koi Section */}
+            <View>
+              <View className="mb-4">
+                <Text className="mb-2 text-xl font-black text-gray-900">
+                  Cá Koi
+                </Text>
+                <Text className="mb-3 text-sm text-gray-500">
+                  Cá bị ảnh hưởng bởi sự cố
+                </Text>
+                <ContextMenuMultiSelect
+                  label="Chọn cá Koi"
+                  placeholder="Chọn các cá bị ảnh hưởng"
+                  options={
+                    koisLoading
+                      ? [{ label: 'Đang tải...', value: '', meta: '' }]
+                      : (koiFishes?.data || []).map((koi: KoiFish) => ({
+                          label: koi.rfid || `Cá #${koi.id}`,
+                          value: koi.id.toString(),
+                          meta: `${koi.variety?.varietyName || 'Không xác định'} - ${koi.gender === Gender.MALE ? 'Đực' : 'Cái'}`,
+                        }))
+                  }
+                  values={selectedKois.map((k) => k.id.toString())}
+                  onChange={handleKoiSelectionChange}
+                  disabled={koisLoading}
+                />
+              </View>
+
+              {selectedKois.length > 0 ? (
+                selectedKois.map((koi, index) => (
+                  <KoiCard
+                    key={koi.id}
+                    koi={koi}
+                    index={index}
+                    onRemove={() => removeKoi(koi.id)}
+                    onUpdate={updateKoiField}
+                  />
+                ))
+              ) : (
+                <EmptyState
+                  icon={<FishSvg size={48} color="#94a3b8" />}
+                  text="Chưa chọn cá nào"
+                />
+              )}
+            </View>
+          </View>
+        )}
+        {/* </Animated.View> */}
 
         {/* Bottom Action Bar */}
         <View
@@ -759,7 +960,7 @@ export default function EditIncidentScreen() {
             </View>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* Date Picker Modal */}
       {showDatePicker &&
@@ -796,12 +997,18 @@ export default function EditIncidentScreen() {
                       return;
                     }
 
-                    const dateOnly = new Date(selectedDate);
-                    dateOnly.setHours(0, 0, 0, 0);
+                    // Format date as YYYY-MM-DD and append time to avoid timezone issues
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(
+                      2,
+                      '0'
+                    );
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    const dateString = `${year}-${month}-${day}T00:00:00.000Z`;
 
                     setFormData({
                       ...formData,
-                      occurredAt: dateOnly.toISOString(),
+                      occurredAt: dateString,
                     });
                   }}
                   style={{ height: 200 }}
@@ -846,12 +1053,18 @@ export default function EditIncidentScreen() {
                   return;
                 }
 
-                const dateOnly = new Date(selectedDate);
-                dateOnly.setHours(0, 0, 0, 0);
+                // Format date as YYYY-MM-DD and append time to avoid timezone issues
+                const year = selectedDate.getFullYear();
+                const month = String(selectedDate.getMonth() + 1).padStart(
+                  2,
+                  '0'
+                );
+                const day = String(selectedDate.getDate()).padStart(2, '0');
+                const dateString = `${year}-${month}-${day}T00:00:00.000Z`;
 
                 setFormData({
                   ...formData,
-                  occurredAt: dateOnly.toISOString(),
+                  occurredAt: dateString,
                 });
               }
             }}

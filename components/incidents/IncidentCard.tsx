@@ -6,6 +6,7 @@ import {
 import { formatDate } from '@/lib/utils/formatDate';
 import {
   AlertTriangle,
+  Calendar,
   CheckCircle,
   Clock,
   Lock,
@@ -181,9 +182,9 @@ export default function IncidentCard({ incident, onPress }: IncidentCardProps) {
 
       {/* Footer with Date and Time */}
       <View className="flex-row items-center justify-end border-t border-gray-200 pt-3">
-        <Clock size={16} color="#6b7280" />
+        <Calendar size={16} color="#6b7280" />
         <Text className="ml-1 text-base text-gray-500">
-          {formatDate(incident.occurredAt, 'HH:mm dd/MM/yyyy')}
+          {formatDate(incident.occurredAt, 'dd/MM/yyyy')}
         </Text>
       </View>
     </TouchableOpacity>

@@ -79,6 +79,7 @@ export interface Incident {
   incidentTitle: string;
   description: string;
   // severity: IncidentSeverity;
+  reportImages: string[];
   status: IncidentStatus;
   occurredAt: string;
   createdAt: string;
@@ -89,6 +90,7 @@ export interface Incident {
   resolvedByUserId: number | null;
   resolvedByUserName: string | null;
   resolutionNotes: string | null;
+  resolutionImages: string[];
   koiIncidents: KoiIncident[];
   pondIncidents: PondIncident[];
 }
@@ -133,7 +135,7 @@ export interface RequestIncident {
   incidentTypeId: number;
   incidentTitle: string;
   description: string;
-  // severity: IncidentSeverity;
+  reportImages: string[];
   occurredAt: string;
   status?: string;
   resolutionNotes?: string;
@@ -144,6 +146,7 @@ export interface RequestIncident {
 export interface IncidentResolutionRequest {
   status: string;
   resolutionNotes: string;
+  resolutionImages: string[];
 }
 
 // Convert IncidentSearchParams to RequestParams

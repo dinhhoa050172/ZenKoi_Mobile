@@ -415,42 +415,6 @@ export default function TaskCompletionModal({
                     </View>
                   </View>
                 </View>
-
-                {/* Completion Notes */}
-                <View className="mb-5">
-                  <View className="mb-2 flex-row items-center">
-                    <Text className="text-base font-bold text-gray-900">
-                      Ghi chú hoàn thành
-                    </Text>
-                    <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
-                      <Text className="text-sm font-bold text-red-600">
-                        Bắt buộc
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm">
-                    <TextInput
-                      value={completionNotes}
-                      onChangeText={setCompletionNotes}
-                      placeholder="Nhập chi tiết về việc hoàn thành công việc, tình trạng, ghi chú..."
-                      placeholderTextColor="#9ca3af"
-                      multiline
-                      numberOfLines={4}
-                      className="p-4 text-base leading-6 text-gray-900"
-                      style={{
-                        textAlignVertical: 'top',
-                        minHeight: 120,
-                      }}
-                      editable={!isLoading}
-                    />
-                    <View className="items-end border-t border-gray-100 bg-gray-50 px-4 py-2">
-                      <Text className="text-xs text-gray-500">
-                        {completionNotes.length} ký tự
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
                 {/* Image Upload Section */}
                 <View className="mb-5">
                   <View className="mb-2 flex-row items-center">
@@ -470,7 +434,7 @@ export default function TaskCompletionModal({
                       onPress={takePhoto}
                       disabled={isLoading}
                       activeOpacity={0.7}
-                      className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border-2 border-blue-200 bg-blue-50 py-3 shadow-sm"
+                      className="flex-1 flex-row items-center justify-center gap-2 rounded-full border-2 border-blue-200 bg-blue-50 py-2 shadow-sm"
                       style={{ elevation: 1 }}
                     >
                       <Camera size={20} color="#2563eb" />
@@ -483,7 +447,7 @@ export default function TaskCompletionModal({
                       onPress={pickImage}
                       disabled={isLoading}
                       activeOpacity={0.7}
-                      className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border-2 border-purple-200 bg-purple-50 py-3 shadow-sm"
+                      className="flex-1 flex-row items-center justify-center gap-2 rounded-full border-2 border-purple-200 bg-purple-50 py-3 shadow-sm"
                       style={{ elevation: 1 }}
                     >
                       <ImageIcon size={20} color="#7c3aed" />
@@ -527,6 +491,41 @@ export default function TaskCompletionModal({
                       </View>
                     </View>
                   )}
+                </View>
+
+                {/* Completion Notes */}
+                <View className="mb-5">
+                  <View className="mb-2 flex-row items-center">
+                    <Text className="text-base font-bold text-gray-900">
+                      Ghi chú hoàn thành
+                    </Text>
+                    <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
+                      <Text className="text-sm font-bold text-red-600">
+                        Bắt buộc
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-sm">
+                    <TextInput
+                      value={completionNotes}
+                      onChangeText={setCompletionNotes}
+                      placeholder="Nhập chi tiết về việc hoàn thành công việc, tình trạng, ghi chú..."
+                      placeholderTextColor="#9ca3af"
+                      multiline
+                      numberOfLines={4}
+                      className="p-4 text-base leading-6 text-gray-900"
+                      style={{
+                        textAlignVertical: 'top',
+                        minHeight: 120,
+                      }}
+                      editable={!isLoading}
+                    />
+                    <View className="items-end border-t border-gray-100 bg-gray-50 px-4 py-2">
+                      <Text className="text-xs text-gray-500">
+                        {completionNotes.length} ký tự
+                      </Text>
+                    </View>
+                  </View>
                 </View>
 
                 {/* Action Buttons */}
