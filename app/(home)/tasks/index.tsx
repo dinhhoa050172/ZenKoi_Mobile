@@ -39,6 +39,11 @@ export default function TasksScreen() {
   const staffId = user?.id ? Number(user.id) : 0;
 
   // Calculate week range for fetching data
+  const formatDateToYMD = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
+
   const getWeekRange = (weekOffset: number) => {
     const currentDate = new Date();
     const startDate = new Date(currentDate);
@@ -48,8 +53,8 @@ export default function TasksScreen() {
     endDate.setDate(startDate.getDate() + 6);
 
     return {
-      from: startDate.toISOString().split('T')[0],
-      to: endDate.toISOString().split('T')[0],
+      from: formatDateToYMD(startDate),
+      to: formatDateToYMD(endDate),
     };
   };
 
@@ -87,7 +92,8 @@ export default function TasksScreen() {
   ];
 
   // Filter tasks for selected date and group by time periods
-  const selectedDateString = selectedDate.toISOString().split('T')[0];
+  // Format selectedDate to YYYY-MM-DD without UTC conversion
+  const selectedDateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
   const workSchedules = workScheduleData?.result || [];
 
   // Filter tasks for the selected date only
@@ -98,6 +104,7 @@ export default function TasksScreen() {
       : schedule.scheduledDate;
     return scheduleDate === selectedDateString;
   });
+
   const timeToMinutes = (t?: string) => {
     if (!t) return 0;
     const m = String(t).match(/(\d{1,2}):(\d{2})/);
@@ -137,7 +144,7 @@ export default function TasksScreen() {
     const days = [];
     const currentDate = new Date();
     const startDate = new Date(currentDate);
-    startDate.setDate(today - 3 + weekOffset * 7);
+    startDate.setDate(today - 4 + weekOffset * 7);
 
     for (let i = 0; i < 7; i++) {
       const dayDate = new Date(startDate);
@@ -190,26 +197,21 @@ export default function TasksScreen() {
     setSelectedDate(dayInfo.fullDate);
   };
 
-  // Check if current time is within task time range
-  const isTaskTimeValid = (task: WorkSchedule): boolean => {
+  // Check if current time is within task time range for the selected date
+  const isTaskTimeValid = (task: WorkSchedule, selectedDate: Date): boolean => {
     const now = new Date();
-
-    // Parse scheduled date using utility function
     const scheduledDateLocal = parseLocalDate(task.scheduledDate);
     if (!scheduledDateLocal) return false;
 
-    // Check if it's the scheduled date (compare local date components)
+    // Check if task is scheduled for the selected date
     const isScheduledDate =
-      now.getFullYear() === scheduledDateLocal.getFullYear() &&
-      now.getMonth() === scheduledDateLocal.getMonth() &&
-      now.getDate() === scheduledDateLocal.getDate();
+      selectedDate.getFullYear() === scheduledDateLocal.getFullYear() &&
+      selectedDate.getMonth() === scheduledDateLocal.getMonth() &&
+      selectedDate.getDate() === scheduledDateLocal.getDate();
 
-    // If task is not scheduled for today, don't allow completion
-    if (!isScheduledDate) {
-      return false;
-    }
+    if (!isScheduledDate) return false;
 
-    // Parse start and end time using utility function
+    // Parse start and end time
     const startDateTime = parseLocalDateTime(
       task.scheduledDate,
       task.startTime
@@ -218,7 +220,7 @@ export default function TasksScreen() {
 
     if (!startDateTime || !endDateTime) return false;
 
-    // Check if current time is within range
+    // Check if current time is within the task's time range
     const currentTime = now.getTime();
     return (
       currentTime >= startDateTime.getTime() &&
@@ -234,27 +236,11 @@ export default function TasksScreen() {
       task.status === WorkScheduleStatus.IN_PROGRESS
     ) {
       // Check if current time is within task time range
-      if (!isTaskTimeValid(task)) {
-        const now = new Date();
-        const scheduledDateLocal = parseLocalDate(task.scheduledDate);
-
-        const isScheduledDate =
-          scheduledDateLocal &&
-          now.getFullYear() === scheduledDateLocal.getFullYear() &&
-          now.getMonth() === scheduledDateLocal.getMonth() &&
-          now.getDate() === scheduledDateLocal.getDate();
-
-        if (!isScheduledDate) {
-          setCustomAlertTitle('Không thể hoàn thành');
-          setCustomAlertMessage(
-            'Công việc này không được lên lịch cho hôm nay.'
-          );
-        } else {
-          setCustomAlertTitle('Chưa đến giờ làm việc');
-          setCustomAlertMessage(
-            `Công việc này chỉ có thể hoàn thành trong khung giờ ${task.startTime} - ${task.endTime}.`
-          );
-        }
+      if (!isTaskTimeValid(task, selectedDate)) {
+        setCustomAlertTitle('Không thể hoàn thành');
+        setCustomAlertMessage(
+          `Công việc này chỉ có thể hoàn thành trong khung giờ ${task.startTime} - ${task.endTime} vào ngày được lên lịch.`
+        );
         setCustomAlertType('warning');
         setCustomAlertVisible(true);
         return;
@@ -411,9 +397,12 @@ export default function TasksScreen() {
                 dayInfo.fullDate.toDateString() === selectedDate.toDateString();
 
               // Count tasks for this day
-              const dayDateString = dayInfo.fullDate
-                .toISOString()
-                .split('T')[0];
+              const dayDateString = `${dayInfo.fullDate.getFullYear()}-${String(
+                dayInfo.fullDate.getMonth() + 1
+              ).padStart(2, '0')}-${String(dayInfo.fullDate.getDate()).padStart(
+                2,
+                '0'
+              )}`;
               const dayTaskCount = workSchedules.filter((schedule) => {
                 // Handle both date formats: "2025-11-13" or "2025-11-13T00:00:00"
                 const scheduleDate = schedule.scheduledDate.includes('T')
