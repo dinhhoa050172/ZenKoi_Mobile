@@ -1,9 +1,7 @@
 import { useUploadImage } from '@/hooks/useUpload';
-import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  AlertTriangle,
   Camera,
   FileText,
   Image as ImageIcon,
@@ -13,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  Image,
   Modal,
   ScrollView,
   Text,
@@ -101,15 +100,14 @@ export default function CancelIncidentModal({
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsMultipleSelection: true,
         quality: 0.8,
       });
 
-      if (result.canceled) return;
-      const uri = result.assets?.[0]?.uri;
-      if (!uri) return;
-
-      setSelectedImages([...selectedImages, uri]);
+      if (!result.canceled && result.assets.length > 0) {
+        const newImages = result.assets.map((asset) => asset.uri);
+        setSelectedImages((prev) => [...prev, ...newImages]);
+      }
     } catch (err) {
       console.warn('pickImage error', err);
       alert('Không thể chọn ảnh. Thử lại sau.');
@@ -278,17 +276,23 @@ export default function CancelIncidentModal({
                             contentContainerStyle={{ gap: 12 }}
                           >
                             {selectedImages.map((uri, index) => (
-                              <View key={index} className="relative">
+                              <View
+                                key={index}
+                                className="relative overflow-hidden rounded-3xl"
+                              >
                                 <Image
                                   source={{ uri }}
-                                  className="h-24 w-24 rounded-xl"
-                                  style={{ resizeMode: 'cover' }}
+                                  style={{
+                                    width: 120,
+                                    height: 120,
+                                    resizeMode: 'cover',
+                                  }}
                                 />
                                 <TouchableOpacity
                                   onPress={() => removeImage(index)}
                                   disabled={isLoading}
                                   activeOpacity={0.7}
-                                  className="absolute -right-2 -top-2 h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg"
+                                  className="absolute right-2 top-2 overflow-hidden rounded-full bg-red-500 p-2 shadow-lg"
                                   style={{ opacity: isLoading ? 0.5 : 1 }}
                                 >
                                   <Trash2 size={14} color="white" />
