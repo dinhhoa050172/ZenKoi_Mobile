@@ -61,7 +61,7 @@ import Toast from 'react-native-toast-message';
 export default function BreedingDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, redirect } = useLocalSearchParams();
 
   const breedingId = Number(id);
   const breedingDetailQuery = useGetBreedingProcessDetailById(
@@ -321,7 +321,13 @@ export default function BreedingDetailScreen() {
           <View className="mb-4 flex-row items-center">
             <TouchableOpacity
               className="mr-3"
-              onPress={() => router.push('/breeding')}
+              onPress={() => {
+                if (redirect) {
+                  router.push(redirect as any);
+                } else {
+                  router.push('/breeding');
+                }
+              }}
             >
               <ArrowLeft size={24} color="white" />
             </TouchableOpacity>
