@@ -246,6 +246,47 @@ export interface KoiReIDIdentifyResponse {
   result: KoiReIDIdentifyResult;
 }
 
+export interface BreedingPartner {
+  id: number;
+  rfid: string;
+  varietyName: string;
+  isMutated: boolean;
+  mutationDescription: string | null;
+  images: string[];
+}
+
+export interface BreedingHistoryItem {
+  breedingProcessId: number;
+  code: string;
+  partner: BreedingPartner;
+  totalEggs: number;
+  fertilizationRate: number;
+  hatchingRate: number | null;
+  survivalRate: number;
+  totalFishQualified: number;
+  mutationRate: number | null;
+  totalPackage: number;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+}
+
+export interface KoiBreedingResult {
+  koiId: number;
+  rfid: string;
+  varietyName: string;
+  gender: string;
+  images: string[];
+  breedingHistory: BreedingHistoryItem[];
+}
+
+export interface BreedingHistoryResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  message: string;
+  result: KoiBreedingResult;
+}
+
 // Convert KoiFishSearchParams to RequestParams
 export const convertKoiFishFilter = (
   filters?: KoiFishSearchParams
@@ -378,6 +419,16 @@ export const koiFishServices = {
       {
         imageUrl,
       }
+    );
+    return response.data;
+  },
+
+  // Get breeding history of a koi fish
+  getKoiBreedingHistory: async (
+    koiId: number
+  ): Promise<BreedingHistoryResponse> => {
+    const response = await apiService.get<BreedingHistoryResponse>(
+      `/api/koifish/${koiId}/breeding-history`
     );
     return response.data;
   },

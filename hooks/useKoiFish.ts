@@ -1,4 +1,5 @@
 import {
+  KoiBreedingResult,
   KoiFish,
   KoiFishFamily,
   KoiFishHealth,
@@ -146,6 +147,25 @@ export function useGetKoiFishHealthByKoiId(id: number, enabled = true) {
       const resp = await koiFishServices.getKoiFishHealthByKoiId(id);
       if (!resp.isSuccess)
         throw new Error(resp.message || 'Không thể tải lịch sử sức khỏe cá');
+      return resp.result;
+    },
+    enabled: enabled && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/*
+ * Hook to get breeding history / result of a koi fish
+ */
+export function useGetKoiBreedingHistory(id: number, enabled = true) {
+  return useQuery({
+    queryKey: koiFishKeys.detail(`breeding-${id}`),
+    queryFn: async (): Promise<KoiBreedingResult> => {
+      const resp = await koiFishServices.getKoiBreedingHistory(id);
+      if (!resp.isSuccess)
+        throw new Error(resp.message || 'Không thể tải lịch sử sinh sản');
       return resp.result;
     },
     enabled: enabled && !!id,
