@@ -1,5 +1,9 @@
 import { useGetWaterParameterThresholds } from '@/hooks/useWaterParameterThreshold';
 import type { WaterParameterRecord } from '@/lib/api/services/fetchWaterParameterRecord';
+import {
+  WaterParameterThreshold,
+  WaterParameterType,
+} from '@/lib/api/services/fetchWaterParameterThreshold';
 import { formatDateSmart } from '@/lib/utils/formatDate';
 import {
   AlertTriangle,
@@ -77,21 +81,14 @@ export default function RecordDetailModal({
   const { data: thresholdsResp } = useGetWaterParameterThresholds(undefined);
   const thresholdsList = thresholdsResp?.data || [];
 
-  const findThreshold = (candidates: string[]) => {
+  const findThreshold = (type: WaterParameterType) => {
     if (!thresholdsList || thresholdsList.length === 0) return undefined;
-    const lowered = (s: string) => s?.toLowerCase?.() || '';
-    for (const t of thresholdsList) {
-      const name = lowered(String(t.parameterName || ''));
-      for (const c of candidates) {
-        if (name.includes(lowered(c))) return t;
-      }
-    }
-    return undefined;
+    return thresholdsList.find((t) => t.parameterName === type);
   };
 
   const evaluateAgainstThreshold = (
     value: number | undefined,
-    threshold?: any
+    threshold?: WaterParameterThreshold
   ) => {
     if (value === undefined || value === null) return null;
     if (!threshold) return null;
@@ -127,25 +124,16 @@ export default function RecordDetailModal({
   };
 
   // Find thresholds for parameters
-  const phThreshold = findThreshold(['ph', 'pH']);
-  const tempThreshold = findThreshold(['temperature', 'temp', 'nhiệt']);
-  const oxygenThreshold = findThreshold(['oxygen', 'oxy']);
-  const ammoniaThreshold = findThreshold(['ammonia', 'amoniac', 'nh3']);
-  const nitriteThreshold = findThreshold(['nitrite', 'nitrit', 'no2']);
-  const nitrateThreshold = findThreshold(['nitrate', 'no3']);
-  const khThreshold = findThreshold([
-    'kh',
-    'carbon',
-    'hardness',
-    'cacbonat',
-    'độ cứng',
-  ]);
-  const waterLevelThreshold = findThreshold([
-    'water level',
-    'mực nước',
-    'waterlevel',
-    'muc nuoc',
-  ]);
+  const phThreshold = findThreshold(WaterParameterType.PH_LEVEL);
+  const tempThreshold = findThreshold(WaterParameterType.TEMPERATURE_CELSIUS);
+  const oxygenThreshold = findThreshold(WaterParameterType.OXYGEN_LEVEL);
+  const ammoniaThreshold = findThreshold(WaterParameterType.AMMONIA_LEVEL);
+  const nitriteThreshold = findThreshold(WaterParameterType.NITRITE_LEVEL);
+  const nitrateThreshold = findThreshold(WaterParameterType.NITRATE_LEVEL);
+  const khThreshold = findThreshold(WaterParameterType.CARBON_HARDNESS);
+  const waterLevelThreshold = findThreshold(
+    WaterParameterType.WATER_LEVEL_METERS
+  );
 
   const phStatus =
     record && typeof record.phLevel === 'number'
@@ -251,7 +239,7 @@ export default function RecordDetailModal({
               {/* Header */}
               <View className="bg-primary px-5 py-4">
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-medium text-white opacity-80">
+                  <Text className="text-base font-medium text-white opacity-80">
                     THÔNG TIN BẢN GHI
                   </Text>
                   <Pressable
@@ -266,7 +254,7 @@ export default function RecordDetailModal({
                     Chi tiết đo lường
                   </Text>
                   {record && (
-                    <Text className="mt-1 text-sm text-white/90">
+                    <Text className="mt-1 text-base text-white/90">
                       {formatDateSmart(record.recordedAt)}
                     </Text>
                   )}
@@ -294,7 +282,7 @@ export default function RecordDetailModal({
                   <View>
                     {/* Critical Parameters */}
                     <View>
-                      <Text className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <Text className="mb-3 text-base font-semibold uppercase tracking-wide text-gray-500">
                         Thông số quan trọng
                       </Text>
 
@@ -308,7 +296,7 @@ export default function RecordDetailModal({
                               <FlaskConical size={18} color="white" />
                             </View>
                             <View>
-                              <Text className="text-xs font-medium text-gray-600">
+                              <Text className="text-sm font-medium text-gray-600">
                                 Độ pH
                               </Text>
                               <Text className="text-2xl font-bold text-gray-900">
@@ -321,7 +309,7 @@ export default function RecordDetailModal({
                               className={`rounded-full px-3 py-1 ${phStatus.color} border ${phStatus.border}`}
                             >
                               <Text
-                                className={`text-xs font-semibold ${phStatus.textColor}`}
+                                className={`text-sm font-semibold ${phStatus.textColor}`}
                               >
                                 {phStatus.label}
                               </Text>
@@ -340,7 +328,7 @@ export default function RecordDetailModal({
                               <Thermometer size={18} color="white" />
                             </View>
                             <View>
-                              <Text className="text-xs font-medium text-gray-600">
+                              <Text className="text-sm font-medium text-gray-600">
                                 Nhiệt độ
                               </Text>
                               <Text className="text-2xl font-bold text-gray-900">
@@ -353,7 +341,7 @@ export default function RecordDetailModal({
                               className={`rounded-full px-3 py-1 ${tempStatus.color} border ${tempStatus.border}`}
                             >
                               <Text
-                                className={`text-xs font-semibold ${tempStatus.textColor}`}
+                                className={`text-sm font-semibold ${tempStatus.textColor}`}
                               >
                                 {tempStatus.label}
                               </Text>
@@ -365,7 +353,7 @@ export default function RecordDetailModal({
 
                     {/* Water Quality Parameters */}
                     <View>
-                      <Text className="mb-3 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <Text className="mb-3 mt-4 text-base font-semibold uppercase tracking-wide text-gray-500">
                         Chất lượng nước
                       </Text>
                       <View className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -431,7 +419,7 @@ export default function RecordDetailModal({
                     {/* Other Information */}
                     {record.waterLevelMeters !== undefined && (
                       <View>
-                        <Text className="mb-3 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <Text className="mb-3 mt-4 text-base font-semibold uppercase tracking-wide text-gray-500">
                           Thông tin khác
                         </Text>
                         <View className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -441,7 +429,7 @@ export default function RecordDetailModal({
                             </View>
                             <View className="w-[87%] flex-row items-center justify-between">
                               <View className="flex-col">
-                                <Text className="text-xs font-medium text-gray-600">
+                                <Text className="text-sm font-medium text-gray-600">
                                   Mực nước
                                 </Text>
                                 <Text className="text-lg font-semibold text-gray-900">
@@ -453,7 +441,7 @@ export default function RecordDetailModal({
                                   className={`${waterLevelStatus?.color ?? 'bg-gray-100'} ml-3 rounded-full border px-2 py-1 ${waterLevelStatus?.border ?? 'border-gray-200'}`}
                                 >
                                   <Text
-                                    className={`${waterLevelStatus?.textColor ?? 'text-gray-700'} text-xs font-semibold`}
+                                    className={`${waterLevelStatus?.textColor ?? 'text-gray-700'} text-sm font-semibold`}
                                   >
                                     {waterLevelStatus?.label}
                                   </Text>
@@ -468,15 +456,15 @@ export default function RecordDetailModal({
                     {/* Notes */}
                     {record.notes && (
                       <View>
-                        <Text className="mb-3 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <Text className="mb-3 mt-4 text-base font-semibold uppercase tracking-wide text-gray-500">
                           Ghi chú
                         </Text>
                         <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                          <View className="flex-row">
+                          <View className="flex-row items-center">
                             <View className="mr-3">
                               <FileText size={20} color="#92400e" />
                             </View>
-                            <Text className="flex-1 text-sm leading-5 text-gray-700">
+                            <Text className="flex-1 text-base leading-5">
                               {record.notes}
                             </Text>
                           </View>
@@ -537,7 +525,7 @@ function MetricRow({
         {icon}
       </View>
       <View className="flex-1">
-        <Text className="text-xs font-medium text-gray-600">{label}</Text>
+        <Text className="text-sm font-medium text-gray-600">{label}</Text>
         <Text
           className={`text-base font-semibold ${warning ? 'text-orange-600' : 'text-gray-900'}`}
         >
@@ -549,7 +537,7 @@ function MetricRow({
           className={`${statusColor ?? 'bg-gray-100'} rounded-full border px-2 py-1 ${statusColor === 'bg-green-100' ? 'border-green-200' : statusColor === 'bg-orange-100' ? 'border-orange-200' : 'border-red-200'}`}
         >
           <Text
-            className={`${statusTextColor ?? 'text-gray-700'} text-xs font-semibold`}
+            className={`${statusTextColor ?? 'text-gray-700'} text-sm font-semibold`}
           >
             {statusLabel}
           </Text>

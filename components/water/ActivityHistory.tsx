@@ -107,16 +107,16 @@ export default function ActivityHistory({
 
                 <View className="flex-1">
                   <View className="flex-row items-start justify-between">
-                    <Text className="font-medium text-gray-900">
+                    <Text className="text-base font-medium text-gray-900">
                       Đo chất lượng nước
                     </Text>
-                    <Text className="text-sm text-gray-500">
+                    <Text className="text-base text-gray-500">
                       {formatDateSmart(rec.recordedAt)}
                     </Text>
                   </View>
 
-                  <View className="mt-2 flex-row items-center justify-between">
-                    <Text className="text-sm text-gray-600">
+                  <View className="mt-1 flex-row items-center justify-between">
+                    <Text className="text-base text-gray-600">
                       pH: {rec.phLevel} · Nhiệt độ: {rec.temperatureCelsius}°C
                     </Text>
 
@@ -170,10 +170,7 @@ export default function ActivityHistory({
           </View>
 
           {!showAll && records.length > 4 && (
-            <TouchableOpacity
-              onPress={() => setShowAll(true)}
-              className="mt-4 py-2"
-            >
+            <TouchableOpacity onPress={() => setShowAll(true)} className="py-2">
               <Text className="text-center font-medium text-blue-500">
                 Xem tất cả lịch sử
               </Text>
@@ -183,7 +180,7 @@ export default function ActivityHistory({
           {showAll && records.length > 4 && (
             <TouchableOpacity
               onPress={() => setShowAll(false)}
-              className="mt-4 py-2"
+              className="py-2"
             >
               <Text className="text-center font-medium text-blue-500">
                 Thu gọn

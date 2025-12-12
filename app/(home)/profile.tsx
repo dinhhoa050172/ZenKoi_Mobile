@@ -1,3 +1,4 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import { useLogout } from '@/hooks/useAuth';
 import { useUploadImage } from '@/hooks/useUpload';
 import {
@@ -39,7 +40,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
 
 interface UserInfo {
   name: string;
@@ -50,7 +50,7 @@ interface UserInfo {
   joinDate: string;
   address: string;
   avatar?: string;
-  gender?: string;
+  gender: string;
 }
 
 export default function ProfileScreen() {
@@ -58,6 +58,16 @@ export default function ProfileScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errors, setErrors] = useState({
+    name: '',
+    phone: '',
+    birthday: '',
+    gender: '',
+    address: '',
+  });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { profile, isLoading, refetch } = useUserDetails();
   const updateAvatarMutation = useUpdateAvatar();
@@ -114,15 +124,49 @@ export default function ProfileScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleSaveProfile = async () => {
+    // Validate required fields
+    const newErrors = {
+      name: '',
+      phone: '',
+      birthday: '',
+      gender: '',
+      address: '',
+    };
+    let hasError = false;
+
+    if (!editForm.name.trim()) {
+      newErrors.name = 'Họ và tên không được để trống';
+      hasError = true;
+    }
+    if (!editForm.phone.trim()) {
+      newErrors.phone = 'Số điện thoại không được để trống';
+      hasError = true;
+    }
+    if (!editForm.birthday.trim()) {
+      newErrors.birthday = 'Ngày sinh không được để trống';
+      hasError = true;
+    }
+    if (!editForm.gender.trim()) {
+      newErrors.gender = 'Giới tính không được để trống';
+      hasError = true;
+    }
+    if (!editForm.address.trim()) {
+      newErrors.address = 'Địa chỉ không được để trống';
+      hasError = true;
+    }
+
+    setErrors(newErrors);
+    if (hasError) return;
+
     setShowEditModal(false);
     try {
       const payload: UpdateProfileRequest = {
-        fullName: editForm.name || profile?.fullName || '',
-        phoneNumber: editForm.phone || (profile as any)?.phoneNumber || '',
-        dateOfBirth: editForm.birthday || profile?.dateOfBirth || '',
-        gender: editForm.gender || (profile as any)?.gender || '',
+        fullName: editForm.name || '',
+        phoneNumber: editForm.phone || '',
+        dateOfBirth: editForm.birthday || '',
+        gender: editForm.gender || '',
         avatarURL: profile?.avatarURL || '',
-        address: editForm.address || profile?.address || '',
+        address: editForm.address || '',
       };
 
       await updateProfileMutation.mutateAsync(payload);
@@ -134,12 +178,9 @@ export default function ProfileScreen() {
       } catch {}
     } catch (err) {
       console.error('Update profile failed', err);
-      Toast.show({
-        type: 'error',
-        text1: 'Lỗi',
-        text2: 'Không thể cập nhật hồ sơ',
-        position: 'top',
-      });
+      setErrorTitle('Lỗi');
+      setErrorMessage('Không thể cập nhật hồ sơ');
+      setShowErrorAlert(true);
     }
   };
 
@@ -165,12 +206,9 @@ export default function ProfileScreen() {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Toast.show({
-          type: 'error',
-          text1: 'Quyền truy cập bị từ chối',
-          text2: 'Vui lòng cho phép truy cập ảnh để chọn ảnh đại diện',
-          position: 'top',
-        });
+        setErrorTitle('Quyền truy cập bị từ chối');
+        setErrorMessage('Vui lòng cho phép truy cập ảnh để chọn ảnh đại diện');
+        setShowErrorAlert(true);
         return;
       }
 
@@ -214,12 +252,9 @@ export default function ProfileScreen() {
                   } catch {}
                 } catch (err) {
                   console.error('Update avatar failed', err);
-                  Toast.show({
-                    type: 'error',
-                    text1: 'Lỗi',
-                    text2: 'Không thể cập nhật ảnh đại diện',
-                    position: 'top',
-                  });
+                  setErrorTitle('Lỗi');
+                  setErrorMessage('Không thể cập nhật ảnh đại diện');
+                  setShowErrorAlert(true);
                 } finally {
                   setIsUploadingAvatar(false);
                 }
@@ -231,24 +266,18 @@ export default function ProfileScreen() {
           onError: (error) => {
             console.error('Upload failed:', error);
             setIsUploadingAvatar(false);
-            Toast.show({
-              type: 'error',
-              text1: 'Lỗi',
-              text2: 'Không thể tải ảnh lên. Vui lòng thử lại sau.',
-              position: 'top',
-            });
+            setErrorTitle('Lỗi');
+            setErrorMessage('Không thể tải ảnh lên. Vui lòng thử lại sau.');
+            setShowErrorAlert(true);
           },
         }
       );
     } catch (error) {
       console.error('Error picking image:', error);
       setIsUploadingAvatar(false);
-      Toast.show({
-        type: 'error',
-        text1: 'Lỗi',
-        text2: 'Có lỗi xảy ra khi chọn ảnh. Vui lòng thử lại.',
-        position: 'top',
-      });
+      setErrorTitle('Lỗi');
+      setErrorMessage('Có lỗi xảy ra khi chọn ảnh. Vui lòng thử lại.');
+      setShowErrorAlert(true);
     }
   };
 
@@ -309,6 +338,13 @@ export default function ProfileScreen() {
                 className="h-10 w-10 items-center justify-center rounded-full bg-white/20"
                 onPress={() => {
                   setEditForm({ ...userInfo });
+                  setErrors({
+                    name: '',
+                    phone: '',
+                    birthday: '',
+                    gender: '',
+                    address: '',
+                  });
                   setShowEditModal(true);
                 }}
               >
@@ -475,21 +511,25 @@ export default function ProfileScreen() {
                   icon={<User size={18} color="#6b7280" />}
                   label="Họ và tên"
                   value={editForm.name}
-                  onChangeText={(text) =>
-                    setEditForm({ ...editForm, name: text })
-                  }
+                  onChangeText={(text) => {
+                    setEditForm({ ...editForm, name: text });
+                    if (errors.name) setErrors({ ...errors, name: '' });
+                  }}
                   placeholder="Nhập họ và tên"
+                  error={errors.name}
                 />
 
                 <FormField
                   icon={<Phone size={18} color="#6b7280" />}
                   label="Số điện thoại"
                   value={editForm.phone}
-                  onChangeText={(text) =>
-                    setEditForm({ ...editForm, phone: text })
-                  }
+                  onChangeText={(text) => {
+                    setEditForm({ ...editForm, phone: text });
+                    if (errors.phone) setErrors({ ...errors, phone: '' });
+                  }}
                   placeholder="0123 456 789"
                   keyboardType="phone-pad"
+                  error={errors.phone}
                 />
 
                 {/* Date Picker Field */}
@@ -499,14 +539,17 @@ export default function ProfileScreen() {
                   </Text>
                   <TouchableOpacity
                     className="overflow-hidden rounded-2xl border-2 border-gray-200 bg-white"
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={() => {
+                      setShowDatePicker(true);
+                      if (errors.birthday)
+                        setErrors({ ...errors, birthday: '' });
+                    }}
                   >
                     <View className="flex-row items-center px-4 py-4">
                       <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-blue-50">
                         <Calendar size={20} color="#3b82f6" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm text-gray-500">Ngày sinh</Text>
                         <Text className="mt-0.5 text-base font-semibold text-gray-900">
                           {formatDate(editForm.birthday, 'dd/MM/yyyy') ||
                             'Chọn ngày sinh'}
@@ -514,6 +557,11 @@ export default function ProfileScreen() {
                       </View>
                     </View>
                   </TouchableOpacity>
+                  {errors.birthday ? (
+                    <Text className="mt-1 px-4 text-sm text-red-500">
+                      {errors.birthday}
+                    </Text>
+                  ) : null}
                 </View>
 
                 {/* Gender Selection */}
@@ -523,9 +571,10 @@ export default function ProfileScreen() {
                   </Text>
                   <View className="flex-row gap-3">
                     <TouchableOpacity
-                      onPress={() =>
-                        setEditForm({ ...editForm, gender: 'Male' })
-                      }
+                      onPress={() => {
+                        setEditForm({ ...editForm, gender: 'Male' });
+                        if (errors.gender) setErrors({ ...errors, gender: '' });
+                      }}
                       className={`flex-1 overflow-hidden rounded-2xl border-2 ${
                         editForm.gender === 'Male'
                           ? 'border-primary bg-primary'
@@ -551,9 +600,10 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      onPress={() =>
-                        setEditForm({ ...editForm, gender: 'Female' })
-                      }
+                      onPress={() => {
+                        setEditForm({ ...editForm, gender: 'Female' });
+                        if (errors.gender) setErrors({ ...errors, gender: '' });
+                      }}
                       className={`flex-1 overflow-hidden rounded-2xl border-2 ${
                         editForm.gender === 'Female'
                           ? 'border-pink-500 bg-pink-500'
@@ -614,17 +664,24 @@ export default function ProfileScreen() {
                       </View>
                     </TouchableOpacity> */}
                   </View>
+                  {errors.gender ? (
+                    <Text className="mt-1 px-4 text-sm text-red-500">
+                      {errors.gender}
+                    </Text>
+                  ) : null}
                 </View>
 
                 <FormField
                   icon={<MapPin size={18} color="#6b7280" />}
                   label="Địa chỉ"
                   value={editForm.address}
-                  onChangeText={(text) =>
-                    setEditForm({ ...editForm, address: text })
-                  }
+                  onChangeText={(text) => {
+                    setEditForm({ ...editForm, address: text });
+                    if (errors.address) setErrors({ ...errors, address: '' });
+                  }}
                   placeholder="Nhập địa chỉ chi tiết"
                   multiline
+                  error={errors.address}
                 />
               </View>
             </KeyboardAwareScrollView>
@@ -702,6 +759,14 @@ export default function ProfileScreen() {
                     maximumDate={new Date()}
                     onChange={(e: any, selected?: Date) => {
                       if (!selected) return;
+                      const today = new Date();
+                      today.setHours(23, 59, 59, 999);
+                      if (selected > today) {
+                        setErrorTitle('Lỗi');
+                        setErrorMessage('Không được chọn ngày trong tương lai');
+                        setShowErrorAlert(true);
+                        return;
+                      }
                       const y = selected.getFullYear();
                       const m = String(selected.getMonth() + 1).padStart(
                         2,
@@ -709,6 +774,8 @@ export default function ProfileScreen() {
                       );
                       const d = String(selected.getDate()).padStart(2, '0');
                       setEditForm({ ...editForm, birthday: `${y}-${m}-${d}` });
+                      if (errors.birthday)
+                        setErrors({ ...errors, birthday: '' });
                     }}
                     style={{ height: 200 }}
                   />
@@ -726,10 +793,19 @@ export default function ProfileScreen() {
               onChange={(e: any, selected?: Date) => {
                 setShowDatePicker(false);
                 if (!selected) return;
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                if (selected > today) {
+                  setErrorTitle('Lỗi');
+                  setErrorMessage('Không được chọn ngày trong tương lai');
+                  setShowErrorAlert(true);
+                  return;
+                }
                 const y = selected.getFullYear();
                 const m = String(selected.getMonth() + 1).padStart(2, '0');
                 const d = String(selected.getDate()).padStart(2, '0');
                 setEditForm({ ...editForm, birthday: `${y}-${m}-${d}` });
+                if (errors.birthday) setErrors({ ...errors, birthday: '' });
               }}
             />
           ))}
@@ -798,6 +874,17 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <CustomAlert
+        visible={showErrorAlert}
+        title={errorTitle}
+        message={errorMessage}
+        onCancel={() => setShowErrorAlert(false)}
+        onConfirm={() => setShowErrorAlert(false)}
+        cancelText="Đóng"
+        confirmText="OK"
+        type="danger"
+      />
     </SafeAreaView>
   );
 }
@@ -811,6 +898,7 @@ const FormField = ({
   placeholder,
   keyboardType,
   multiline,
+  error,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -819,6 +907,7 @@ const FormField = ({
   placeholder: string;
   keyboardType?: any;
   multiline?: boolean;
+  error?: string;
 }) => (
   <View className="mb-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
     <View className="flex-row items-center border-b border-gray-100 px-4 py-3">
@@ -836,5 +925,8 @@ const FormField = ({
       numberOfLines={multiline ? 3 : 1}
       textAlignVertical={multiline ? 'top' : 'center'}
     />
+    {error ? (
+      <Text className="px-4 pb-2 text-sm text-red-500">{error}</Text>
+    ) : null}
   </View>
 );

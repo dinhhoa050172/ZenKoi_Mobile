@@ -97,6 +97,27 @@ export default function EditWaterParameterRecordScreen() {
       return;
     }
 
+    // Validate required fields
+    const missing: string[] = [];
+    if (!phLevel || phLevel.trim() === '') missing.push('Độ pH');
+    if (!temperatureCelsius || temperatureCelsius.trim() === '')
+      missing.push('Nhiệt độ');
+    if (!oxygenLevel || oxygenLevel.trim() === '') missing.push('Độ oxy');
+    if (!ammoniaLevel || ammoniaLevel.trim() === '') missing.push('Amoniac');
+    if (!nitriteLevel || nitriteLevel.trim() === '') missing.push('Nitrit');
+    if (!nitrateLevel || nitrateLevel.trim() === '') missing.push('Nitrate');
+    if (!carbonHardness || carbonHardness.trim() === '')
+      missing.push('Độ cứng');
+    if (!waterLevelMeters || waterLevelMeters.trim() === '')
+      missing.push('Mực nước');
+
+    if (missing.length > 0) {
+      setAlertTitle('Thiếu thông tin');
+      setAlertMessage(`Vui lòng nhập trường: ${missing.join(', ')}`);
+      setAlertVisible(true);
+      return;
+    }
+
     const payload: WaterParameterRecordRequest = {
       pondId: record?.pondId ?? 0,
       phLevel: parseFloat(phLevel) || 0,
@@ -388,7 +409,7 @@ export default function EditWaterParameterRecordScreen() {
         onConfirm={() => setAlertVisible(false)}
         cancelText="Đóng"
         confirmText="OK"
-        type="warning"
+        type="danger"
       />
     </SafeAreaView>
   );
