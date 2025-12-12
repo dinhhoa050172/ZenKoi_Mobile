@@ -1,4 +1,5 @@
 import ContextMenuField from '@/components/ContextMenuField';
+import PondSvg from '@/components/icons/PondSvg';
 import Loading from '@/components/Loading';
 import CreatePondModal from '@/components/water/CreatePondModal';
 import EditPondModal from '@/components/water/EditPondModal';
@@ -304,14 +305,14 @@ export default function PondManagementScreen() {
                 ) : (
                   <View className="items-center rounded-2xl bg-white p-8 shadow-sm">
                     <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-                      <Droplet size={40} color="#3b82f6" />
+                      <PondSvg size={40} color="#3b82f6" />
                     </View>
                     {hasActiveFilters ? (
                       <>
                         <Text className="mb-2 text-lg font-semibold text-gray-900">
                           Không tìm thấy kết quả
                         </Text>
-                        <Text className="mb-6 text-center text-sm text-gray-600">
+                        <Text className="mb-6 text-center text-base text-gray-600">
                           Không có hồ cá nào phù hợp với bộ lọc hiện tại
                         </Text>
                         <View className="flex-row">
@@ -444,7 +445,7 @@ export default function PondManagementScreen() {
           >
             {/* Filters Section */}
             <View className="mb-4">
-              <Text className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
                 Lọc theo tiêu chí
               </Text>
 

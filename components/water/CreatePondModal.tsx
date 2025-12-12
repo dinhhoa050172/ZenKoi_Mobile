@@ -263,6 +263,7 @@ export default function CreatePondModal({
       handleClose();
     } catch (error) {
       console.error('Error creating pond:', error);
+      showAlert('Lỗi', 'Không thể tạo hồ. Vui lòng thử lại.', 'danger');
     }
   };
 
