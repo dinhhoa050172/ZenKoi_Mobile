@@ -169,6 +169,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
 
   const uploadImage = useUploadImage();
 
+  const onlyDigits = (s: string) => s.replace(/[^0-9]/g, '');
   const pickImageFromLibrary = async () => {
     if (images.length >= 6) {
       showCustomAlert(
@@ -419,8 +420,6 @@ export const CreatePacketFishModal: React.FC<Props> = ({
     }
   };
 
-  // size label mapping removed
-
   return (
     <Modal
       visible={visible}
@@ -453,7 +452,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingTop: 20,
-            paddingBottom: 100,
+            paddingBottom: 80,
           }}
           bottomOffset={20}
           keyboardShouldPersistTaps="handled"
@@ -633,7 +632,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                     </View>
                     <TextInput
                       value={pricePerPacket}
-                      onChangeText={setPricePerPacket}
+                      onChangeText={(t) => setPricePerPacket(onlyDigits(t))}
                       keyboardType="numeric"
                       placeholder="VD: 50000"
                       placeholderTextColor="#9ca3af"
@@ -651,7 +650,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                   </Text>
                   <TextInput
                     value={minSize}
-                    onChangeText={setMinSize}
+                    onChangeText={(t) => setMinSize(onlyDigits(t))}
                     keyboardType="numeric"
                     placeholder="VD: 21cm"
                     placeholderTextColor="#9ca3af"
@@ -664,7 +663,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                   </Text>
                   <TextInput
                     value={maxSize}
-                    onChangeText={setMaxSize}
+                    onChangeText={(t) => setMaxSize(onlyDigits(t))}
                     keyboardType="numeric"
                     placeholder="VD: 25cm"
                     placeholderTextColor="#9ca3af"
@@ -686,7 +685,7 @@ export const CreatePacketFishModal: React.FC<Props> = ({
                   </View>
                   <TextInput
                     value={fishPerPacket}
-                    onChangeText={setFishPerPacket}
+                    onChangeText={(t) => setFishPerPacket(onlyDigits(t))}
                     keyboardType="numeric"
                     placeholder="VD: 10"
                     placeholderTextColor="#9ca3af"

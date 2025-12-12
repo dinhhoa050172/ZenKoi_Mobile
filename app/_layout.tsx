@@ -1,3 +1,4 @@
+import { GlobalAlert } from '@/components/GlobalAlert';
 import Loading from '@/components/Loading';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSignalR } from '@/hooks/useSignalR';
@@ -74,6 +75,7 @@ function AppContent() {
     <>
       <Stack screenOptions={{ headerShown: false }} />
       <Toast />
+      <GlobalAlert />
 
       {isLoading && (
         <View
