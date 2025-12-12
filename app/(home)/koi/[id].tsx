@@ -1,9 +1,11 @@
 import FishSvg from '@/components/icons/FishSvg';
 import PondSvg from '@/components/icons/PondSvg';
 import {
+  useGetKoiBreedingHistory,
   useGetKoiFishById,
   useGetKoiFishHealthByKoiId,
 } from '@/hooks/useKoiFish';
+import { BreedingStatus } from '@/lib/api/services/fetchBreedingProcess';
 import {
   Gender,
   HealthStatus,
@@ -35,6 +37,7 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -48,13 +51,21 @@ import {
 export default function KoiDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id, redirect } = useLocalSearchParams();
-  const [activeTab, setActiveTab] = useState<'info' | 'health'>('info');
+  const { id, redirect, tab } = useLocalSearchParams();
+  const [activeTab, setActiveTab] = useState<'info' | 'health' | 'breeding'>(
+    'info'
+  );
 
   useFocusEffect(
     useCallback(() => {
-      setActiveTab('info');
-    }, [])
+      if (tab === 'breeding') {
+        setActiveTab('breeding');
+      } else if (tab === 'health') {
+        setActiveTab('health');
+      } else {
+        setActiveTab('info');
+      }
+    }, [tab])
   );
 
   const koiId = Number(id);
@@ -64,6 +75,29 @@ export default function KoiDetailScreen() {
     activeTab === 'health' && !!koiId
   );
   const healthItems = healthQuery.data ?? [];
+
+  const breedingQuery = useGetKoiBreedingHistory(
+    koiId,
+    activeTab === 'breeding' && !!koiId
+  );
+  const breedingData = breedingQuery.data;
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Refresh queries based on active tab
+      if (activeTab === 'health') {
+        await healthQuery.refetch();
+      } else if (activeTab === 'breeding') {
+        await breedingQuery.refetch();
+      }
+      // For info tab, we could refetch koi data if available
+    } finally {
+      setRefreshing(false);
+    }
+  }, [activeTab, healthQuery, breedingQuery]);
 
   const getHealthColor = (health?: HealthStatus | string) => {
     switch (health) {
@@ -147,6 +181,35 @@ export default function KoiDetailScreen() {
     }).format(amount);
   };
 
+  const mapStatus = (status?: BreedingStatus | string) => {
+    switch (status) {
+      case BreedingStatus.PAIRING:
+        return 'Đang ghép cặp';
+      case BreedingStatus.SPAWNED:
+        return 'Đã đẻ';
+      case BreedingStatus.EGG_BATCH:
+        return 'Ấp trứng';
+      case BreedingStatus.FRY_FISH:
+        return 'Nuôi cá bột';
+      case BreedingStatus.CLASSIFICATION:
+        return 'Tuyển chọn';
+      case BreedingStatus.FAILED:
+        return 'Hủy ghép cặp';
+      case BreedingStatus.COMPLETE:
+        return 'Hoàn thành';
+      default:
+        const s = String(status ?? '');
+        if (/pairing/i.test(s)) return 'Đang ghép cặp';
+        if (/spawned/i.test(s)) return 'Đã đẻ';
+        if (/egg/i.test(s)) return 'Ấp trứng';
+        if (/fry/i.test(s)) return 'Nuôi cá bột';
+        if (/classification/i.test(s)) return 'Tuyển chọn';
+        if (/failed/i.test(s)) return 'Hủy ghép cặp';
+        if (/complete/i.test(s)) return 'Hoàn thành';
+        return s;
+    }
+  };
+
   const healthColors = getHealthColor(koi?.healthStatus);
 
   return (
@@ -190,6 +253,14 @@ export default function KoiDetailScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#3b82f6']}
+            tintColor="#3b82f6"
+          />
+        }
       >
         {/* Image Card */}
         <View className="mx-4 mt-4 overflow-hidden rounded-3xl bg-white shadow-lg">
@@ -278,6 +349,18 @@ export default function KoiDetailScreen() {
                 }`}
               >
                 Sức khỏe
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`flex-1 py-4 ${activeTab === 'breeding' ? 'border-b-2 border-blue-500' : ''}`}
+              onPress={() => setActiveTab('breeding')}
+            >
+              <Text
+                className={`text-center text-base font-semibold ${
+                  activeTab === 'breeding' ? 'text-blue-500' : 'text-gray-500'
+                }`}
+              >
+                Lịch sử sinh sản
               </Text>
             </TouchableOpacity>
           </View>
@@ -666,6 +749,184 @@ export default function KoiDetailScreen() {
                         </View>
                       );
                     })}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {activeTab === 'breeding' && (
+              <View>
+                <View className="mb-4 flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <View className="mr-2 rounded-2xl bg-pink-100 p-2">
+                      <FishSvg size={20} color="#ec4899" />
+                    </View>
+                    <Text className="text-lg font-bold text-gray-900">
+                      Lịch sử sinh sản
+                    </Text>
+                  </View>
+                  {breedingData?.breedingHistory &&
+                    breedingData.breedingHistory.length > 0 && (
+                      <View className="rounded-full bg-blue-100 px-3 py-1">
+                        <Text className="text-sm font-bold text-blue-700">
+                          {breedingData.breedingHistory.length} lần sinh sản
+                        </Text>
+                      </View>
+                    )}
+                </View>
+
+                {breedingQuery.isLoading ? (
+                  <View className="items-center rounded-2xl border border-gray-200 bg-white py-12">
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <Text className="mt-3 text-base font-medium text-gray-600">
+                      Đang tải lịch sử sinh sản...
+                    </Text>
+                  </View>
+                ) : !breedingData?.breedingHistory ||
+                  breedingData.breedingHistory.length === 0 ? (
+                  <View className="items-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-8">
+                    <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-gray-200">
+                      <FishSvg size={36} color="#9ca3af" />
+                    </View>
+                    <Text className="mb-1 text-lg font-bold text-gray-700">
+                      Chưa có lịch sử sinh sản
+                    </Text>
+                    <Text className="text-base text-gray-500">
+                      Cá Koi chưa tham gia quá trình sinh sản
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="gap-3">
+                    {breedingData.breedingHistory.map((item, index) => (
+                      <TouchableOpacity
+                        key={item.breedingProcessId}
+                        className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                        onPress={() =>
+                          router.push(
+                            `/breeding/${item.breedingProcessId}?redirect=${encodeURIComponent(`/koi/${koiId}?tab=breeding`)}`
+                          )
+                        }
+                      >
+                        {/* Header */}
+                        <View className="flex-row items-center justify-between border-b bg-pink-50 px-4 py-3">
+                          <View className="flex-row items-center">
+                            <View className="mr-2 h-2 w-2 rounded-full bg-pink-500" />
+                            <Text className="text-base font-bold text-pink-700">
+                              {item.code}
+                            </Text>
+                          </View>
+                          <View className="rounded-full bg-pink-100 px-3 py-1">
+                            <Text className="text-sm font-bold text-pink-700">
+                              {mapStatus(item.status)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Content */}
+                        <View className="p-4">
+                          {/* Partner Info */}
+                          <View className="mb-4">
+                            <View className="flex-row items-center">
+                              <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-pink-100">
+                                <FishSvg size={18} color="#ec4899" />
+                              </View>
+                              <View className="flex-1">
+                                <Text className="text-base font-medium text-gray-500">
+                                  Đối tác sinh sản
+                                </Text>
+                                <Text className="text-base font-bold text-gray-900">
+                                  {item.partner.rfid} -{' '}
+                                  {item.partner.varietyName}
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+
+                          {/* Stats Grid */}
+                          <View className="mb-4 flex-row gap-3">
+                            <View className="flex-1 rounded-2xl border border-blue-200 bg-blue-50 p-3">
+                              <Text className="text-sm font-medium text-blue-700">
+                                Tổng trứng
+                              </Text>
+                              <Text className="text-lg font-bold text-blue-900">
+                                {item.totalEggs}
+                              </Text>
+                            </View>
+                            <View className="flex-1 rounded-2xl border border-green-200 bg-green-50 p-3">
+                              <Text className="text-sm font-medium text-green-700">
+                                Tỷ lệ thụ tinh
+                              </Text>
+                              <Text className="text-lg font-bold text-green-900">
+                                {item.fertilizationRate.toFixed(1)}%
+                              </Text>
+                            </View>
+                          </View>
+
+                          <View className="mb-4 flex-row gap-3">
+                            <View className="flex-1 rounded-2xl border border-purple-200 bg-purple-50 p-3">
+                              <Text className="text-sm font-medium text-purple-700">
+                                Tỷ lệ nở
+                              </Text>
+                              <Text className="text-lg font-bold text-purple-900">
+                                {item.hatchingRate
+                                  ? `${item.hatchingRate.toFixed(1)}%`
+                                  : 'N/A'}
+                              </Text>
+                            </View>
+                            <View className="flex-1 rounded-2xl border border-orange-200 bg-orange-50 p-3">
+                              <Text className="text-sm font-medium text-orange-700">
+                                Cá sống sót
+                              </Text>
+                              <Text className="text-lg font-bold text-orange-900">
+                                {item.totalFishQualified}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Additional Stats */}
+                          <View className="mb-4 flex-row">
+                            <View className="mr-2 flex-1 rounded-2xl border border-indigo-200 bg-indigo-50 p-3">
+                              <Text className="text-sm font-medium text-indigo-700">
+                                Tỷ lệ sống sót
+                              </Text>
+                              <Text className="text-lg font-bold text-indigo-900">
+                                {item.survivalRate.toFixed(1)}%
+                              </Text>
+                            </View>
+                            <View className="flex-1 rounded-2xl border border-teal-200 bg-teal-50 p-3">
+                              <Text className="text-sm font-medium text-teal-700">
+                                Tỷ lệ đột biến
+                              </Text>
+                              <Text className="text-lg font-bold text-teal-900">
+                                {item.mutationRate
+                                  ? `${item.mutationRate}%`
+                                  : 'N/A'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Dates */}
+                          <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center">
+                              <Calendar size={16} color="#6b7280" />
+                              <Text className="ml-2 text-base text-gray-500">
+                                Bắt đầu:{' '}
+                                {formatDate(item.startDate, 'dd/MM/yyyy')}
+                              </Text>
+                            </View>
+                            {item.endDate && (
+                              <View className="flex-row items-center">
+                                <Calendar size={16} color="#6b7280" />
+                                <Text className="ml-2 text-base text-gray-500">
+                                  Kết thúc:{' '}
+                                  {formatDate(item.endDate, 'dd/MM/yyyy')}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 )}
               </View>
