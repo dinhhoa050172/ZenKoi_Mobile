@@ -20,7 +20,6 @@ import { IncidentType } from '@/lib/api/services/fetchIncidentType';
 import { Gender, KoiFish } from '@/lib/api/services/fetchKoiFish';
 import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -40,6 +39,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -358,15 +358,14 @@ export default function CreateIncidentScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsMultipleSelection: true,
         quality: 0.8,
       });
 
-      if (result.canceled) return;
-      const uri = result.assets?.[0]?.uri;
-      if (!uri) return;
-
-      setSelectedImages([...selectedImages, uri]);
+      if (!result.canceled && result.assets.length > 0) {
+        const newImages = result.assets.map((asset) => asset.uri);
+        setSelectedImages((prev) => [...prev, ...newImages]);
+      }
     } catch (err) {
       console.warn('pickImage error', err);
       setAlertConfig({
@@ -522,8 +521,8 @@ export default function CreateIncidentScreen() {
             <View>
               <InputField
                 // icon={<FileText size={20} color="#6b7280" />}
-                label="Tiêu đề sự cố *"
-                placeholder="Nhập tiêu đề sự cố"
+                label="Tên sự cố *"
+                placeholder="Nhập tên sự cố"
                 value={formData.incidentTitle}
                 onChangeText={(text: string) =>
                   setFormData({ ...formData, incidentTitle: text })
@@ -655,17 +654,23 @@ export default function CreateIncidentScreen() {
                     contentContainerStyle={{ gap: 12 }}
                   >
                     {selectedImages.map((uri, index) => (
-                      <View key={index} className="relative">
+                      <View
+                        key={index}
+                        className="relative overflow-hidden rounded-3xl"
+                      >
                         <Image
                           source={{ uri }}
-                          className="h-24 w-24 rounded-xl"
-                          style={{ resizeMode: 'cover' }}
+                          style={{
+                            width: 120,
+                            height: 120,
+                            resizeMode: 'cover',
+                          }}
                         />
                         <TouchableOpacity
                           onPress={() => removeImage(index)}
                           disabled={isSubmitting}
                           activeOpacity={0.7}
-                          className="absolute -right-2 -top-2 h-7 w-7 items-center justify-center rounded-full bg-red-500 shadow-lg"
+                          className="absolute right-2 top-2 overflow-hidden rounded-full bg-red-500 p-2 shadow-lg"
                           style={{ elevation: 3 }}
                         >
                           <Trash2 size={14} color="white" />

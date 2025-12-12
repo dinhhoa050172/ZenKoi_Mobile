@@ -42,3 +42,6 @@ app-example
 # generated native folders
 android/
 ios/
+
+.github/prompts/
+.shared/

@@ -224,6 +224,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false;
     } catch (err) {
       console.error('[AUTH] renewAccessToken failed:', err);
+      set({ token: null, refreshToken: null, isAuthenticated: false });
+      const { router } = await import('expo-router');
+      router.replace('/(auth)/login');
       return false;
     }
   },
