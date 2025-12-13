@@ -53,6 +53,9 @@ interface UserInfo {
   gender: string;
 }
 
+// Vietnam phone numbers starting with 0 and 10 digits (03,05,07,08,09...)
+const REGEX_PHONE_VN = /^0[35789][0-9]{8}$/;
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [showEditModal, setShowEditModal] = useState(false);
@@ -141,6 +144,13 @@ export default function ProfileScreen() {
     if (!editForm.phone.trim()) {
       newErrors.phone = 'Số điện thoại không được để trống';
       hasError = true;
+    } else {
+      // Validate format: must start with 0 and be a valid VN mobile number (10 digits)
+      if (!REGEX_PHONE_VN.test(editForm.phone.trim())) {
+        newErrors.phone =
+          "Số điện thoại không hợp lệ. Phải bắt đầu bằng '0' và có 10 chữ số.";
+        hasError = true;
+      }
     }
     if (!editForm.birthday.trim()) {
       newErrors.birthday = 'Ngày sinh không được để trống';
@@ -524,7 +534,9 @@ export default function ProfileScreen() {
                   label="Số điện thoại"
                   value={editForm.phone}
                   onChangeText={(text) => {
-                    setEditForm({ ...editForm, phone: text });
+                    // allow only digits while typing
+                    const digits = text.replace(/\D/g, '');
+                    setEditForm({ ...editForm, phone: digits });
                     if (errors.phone) setErrors({ ...errors, phone: '' });
                   }}
                   placeholder="0123 456 789"
