@@ -43,7 +43,17 @@ export default function ActivityHistory({
     isExpanded
   );
 
-  const records = useMemo(() => data?.data ?? [], [data]);
+  const records = useMemo(() => {
+    const arr = data?.data ? [...data.data] : [];
+    arr.sort((a, b) => {
+      const ta = new Date(a.recordedAt).getTime();
+      const tb = new Date(b.recordedAt).getTime();
+      return tb - ta; // newest -> oldest
+    });
+    return arr;
+  }, [data]);
+
+  const newestRecordId = records.length > 0 ? records[0].id : null;
   const displayed = showAll ? records : records.slice(0, 4);
 
   const deleteMutation = useDeleteWaterParameterRecord();
@@ -132,28 +142,32 @@ export default function ActivityHistory({
                         <Eye size={16} color="#0ea5e9" />
                       </TouchableOpacity>
 
-                      <TouchableOpacity
-                        onPress={() =>
-                          router.push(
-                            `/water/edit-record?id=${rec.id}&redirect=pondDetail&redirectId=${pondId}`
-                          )
-                        }
-                        className="mr-3 rounded-lg bg-gray-100 p-2"
-                        accessibilityLabel="Sửa bản ghi"
-                      >
-                        <Edit size={16} color="#0ea5e9" />
-                      </TouchableOpacity>
+                      {rec.id === newestRecordId && (
+                        <>
+                          <TouchableOpacity
+                            onPress={() =>
+                              router.push(
+                                `/water/edit-record?id=${rec.id}&redirect=pondDetail&redirectId=${pondId}`
+                              )
+                            }
+                            className="mr-3 rounded-lg bg-gray-100 p-2"
+                            accessibilityLabel="Sửa bản ghi"
+                          >
+                            <Edit size={16} color="#0ea5e9" />
+                          </TouchableOpacity>
 
-                      <TouchableOpacity
-                        onPress={() => {
-                          setTargetDeleteId(Number(rec.id));
-                          setConfirmVisible(true);
-                        }}
-                        className="rounded-lg bg-gray-100 p-2"
-                        accessibilityLabel="Xóa bản ghi"
-                      >
-                        <Trash2 size={16} color="#ef4444" />
-                      </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setTargetDeleteId(Number(rec.id));
+                              setConfirmVisible(true);
+                            }}
+                            className="rounded-lg bg-gray-100 p-2"
+                            accessibilityLabel="Xóa bản ghi"
+                          >
+                            <Trash2 size={16} color="#ef4444" />
+                          </TouchableOpacity>
+                        </>
+                      )}
                     </View>
                   </View>
 

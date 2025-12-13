@@ -35,7 +35,7 @@ export const koiFishKeys = {
 export function useGetKoiFish(
   filters?: KoiFishSearchParams,
   enabled = true,
-  pageSize = 30
+  pageSize = 100
 ) {
   const iq = useInfiniteQuery<KoiFishPagination, Error>({
     queryKey: koiFishKeys.list(filters || {}),
