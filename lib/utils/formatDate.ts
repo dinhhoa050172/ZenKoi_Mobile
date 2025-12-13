@@ -14,6 +14,10 @@ export function formatDateSmart(dateString?: string): string {
   try {
     const date = parseISO(dateString);
     if (!isValid(date)) return 'N/A';
+
+    // Add 7 hours to the date
+    const adjustedDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+
     const now = new Date();
 
     const startOfToday = new Date(
@@ -26,25 +30,28 @@ export function formatDateSmart(dateString?: string): string {
     const startOfDayBeforeYesterday = new Date(startOfToday);
     startOfDayBeforeYesterday.setDate(startOfToday.getDate() - 2);
 
-    if (date >= startOfToday) {
-      return `hôm nay ${format(date, 'HH:mm', { locale: vi })}`;
+    if (adjustedDate >= startOfToday) {
+      return `hôm nay ${format(adjustedDate, 'HH:mm', { locale: vi })}`;
     }
 
-    if (date >= startOfYesterday && date < startOfToday) {
-      return `hôm qua ${format(date, 'HH:mm', { locale: vi })}`;
+    if (adjustedDate >= startOfYesterday && adjustedDate < startOfToday) {
+      return `hôm qua ${format(adjustedDate, 'HH:mm', { locale: vi })}`;
     }
 
-    if (date >= startOfDayBeforeYesterday && date < startOfYesterday) {
-      return `hôm kia ${format(date, 'HH:mm', { locale: vi })}`;
+    if (
+      adjustedDate >= startOfDayBeforeYesterday &&
+      adjustedDate < startOfYesterday
+    ) {
+      return `hôm kia ${format(adjustedDate, 'HH:mm', { locale: vi })}`;
     }
 
     // same year -> dd/MM HH:mm
-    if (date.getFullYear() === now.getFullYear()) {
-      return format(date, 'dd/MM HH:mm', { locale: vi });
+    if (adjustedDate.getFullYear() === now.getFullYear()) {
+      return format(adjustedDate, 'dd/MM HH:mm', { locale: vi });
     }
 
     // different year -> dd/MM/yyyy HH:mm
-    return format(date, 'dd/MM/yyyy HH:mm', { locale: vi });
+    return format(adjustedDate, 'dd/MM/yyyy HH:mm', { locale: vi });
   } catch (error) {
     console.error('Error formatting smart date:', error);
     return 'N/A';

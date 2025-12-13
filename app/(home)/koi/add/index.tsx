@@ -209,10 +209,6 @@ export default function AddKoiPage() {
         return 'Đực';
       case Gender.FEMALE:
         return 'Cái';
-      case Gender.OTHER:
-        return 'Chưa xác định';
-      default:
-        return g;
     }
   };
 
