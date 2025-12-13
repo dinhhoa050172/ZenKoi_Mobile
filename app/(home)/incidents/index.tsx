@@ -44,7 +44,7 @@ export default function IncidentsScreen() {
     () => ({
       ...filters,
       Search: debouncedSearchQuery || filters.Search,
-      pageSize: 20,
+      pageSize: 200,
     }),
     [filters, debouncedSearchQuery]
   );
