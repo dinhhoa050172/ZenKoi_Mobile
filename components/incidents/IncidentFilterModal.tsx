@@ -29,13 +29,7 @@ interface IncidentFilterModalProps {
 
 const statusOptions = [
   { value: IncidentStatus.Reported, label: 'Đã báo cáo', color: '#3b82f6' },
-  {
-    value: IncidentStatus.Investigating,
-    label: 'Đang điều tra',
-    color: '#f59e0b',
-  },
   { value: IncidentStatus.Resolved, label: 'Đã giải quyết', color: '#10b981' },
-  { value: IncidentStatus.Closed, label: 'Đã đóng', color: '#6b7280' },
   { value: IncidentStatus.Cancelled, label: 'Đã hủy', color: '#ef4444' },
 ];
 
