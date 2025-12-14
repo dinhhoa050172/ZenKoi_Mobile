@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ZenKoi",
-    "slug": "ZenKoi",
+    "slug": "zenkoi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_ZenKoi.png",
@@ -71,7 +71,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "aabc20fa-376a-48f1-bb96-56f98f6f9630"
+        "projectId": "eb8ac2ca-a067-42e0-af6b-266e0083e272"
       }
     }
   }

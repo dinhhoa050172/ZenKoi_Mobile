@@ -260,8 +260,6 @@ export default function EditKoiPage() {
         return 'Đực';
       case Gender.FEMALE:
         return 'Cái';
-      case Gender.OTHER:
-        return 'Chưa xác định';
       default:
         return g;
     }
@@ -1121,7 +1119,9 @@ export default function EditKoiPage() {
                 label="Mã RFID *"
                 placeholder="Nhập mã RFID"
                 value={formData.rfid}
+                editable={false}
                 onChangeText={(t) => {
+                  // RFID is read-only on edit page; keep handler for compatibility
                   setFormData({ ...formData, rfid: t });
                   setErrors((prev) => {
                     const copy = { ...prev };
