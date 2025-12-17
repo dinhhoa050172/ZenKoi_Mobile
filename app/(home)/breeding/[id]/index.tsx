@@ -343,21 +343,27 @@ export default function BreedingDetailScreen() {
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => {
-                const redirect = `/breeding/${breedingId}`;
-                router.push(
-                  `/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent(
-                    redirect
-                  )}`
-                );
-              }}
-              className="ml-3 rounded-2xl bg-white/10 px-3 py-2"
-            >
-              <Text className="text-sm font-semibold text-white">
-                Định danh cá
-              </Text>
-            </TouchableOpacity>
+            {(breedingDetail.status === BreedingStatus.COMPLETE ||
+              (breedingDetail.status === BreedingStatus.CLASSIFICATION &&
+                breedingDetail.classificationStage?.classificationRecords &&
+                breedingDetail.classificationStage.classificationRecords
+                  .length >= 4)) && (
+              <TouchableOpacity
+                onPress={() => {
+                  const redirect = `/breeding/${breedingId}`;
+                  router.push(
+                    `/breeding/${breedingId}/fish-list?redirect=${encodeURIComponent(
+                      redirect
+                    )}`
+                  );
+                }}
+                className="ml-3 rounded-2xl bg-white/10 px-3 py-2"
+              >
+                <Text className="text-sm font-semibold text-white">
+                  Định danh cá
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Status Badge */}
