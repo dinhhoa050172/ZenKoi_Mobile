@@ -634,8 +634,8 @@ export default function AddKoiPage() {
       nextErrors.healthStatus = 'Vui lòng chọn tình trạng sức khỏe';
     if (!formData.images || formData.images.length === 0)
       nextErrors.images = 'Vui lòng thêm ít nhất 1 ảnh';
-    if (!formData.videos || formData.videos.length === 0)
-      nextErrors.videos = 'Vui lòng thêm ít nhất 1 video';
+    // if (!formData.videos || formData.videos.length === 0)
+    //   nextErrors.videos = 'Vui lòng thêm ít nhất 1 video';
     if (!formData.sellingPrice || Number(formData.sellingPrice) <= 0)
       nextErrors.sellingPrice = 'Vui lòng nhập giá bán > 0';
     if (!formData.description.trim())
@@ -648,9 +648,9 @@ export default function AddKoiPage() {
     if (nextErrors.images) {
       Toast.show({ type: 'error', text1: nextErrors.images, position: 'top' });
     }
-    if (nextErrors.videos) {
-      Toast.show({ type: 'error', text1: nextErrors.videos, position: 'top' });
-    }
+    // if (nextErrors.videos) {
+    //   Toast.show({ type: 'error', text1: nextErrors.videos, position: 'top' });
+    // }
     if (Object.keys(nextErrors).length > 0) return;
 
     const payload: KoiFishRequest = {
@@ -906,7 +906,7 @@ export default function AddKoiPage() {
         {/* Videos Section */}
         <View className="mb-4">
           <Text className="mb-3 px-1 text-base font-semibold uppercase tracking-wide text-gray-500">
-            Video cá Koi
+            Video cá Koi(tùy chọn)
           </Text>
 
           <View className="rounded-2xl border border-gray-200 bg-white p-4">
