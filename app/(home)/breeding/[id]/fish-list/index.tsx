@@ -107,7 +107,8 @@ export default function FishListScreen() {
 
   const currentFishCount = koiFishList?.length ?? 0;
   const expectedCount =
-    breedingDetail?.classificationStage?.showQualifiedCount ?? 0;
+    (breedingDetail?.classificationStage?.showQualifiedCount ?? 0) +
+    (breedingDetail?.classificationStage?.highQualifiedCount ?? 0);
   const isComplete = currentFishCount === expectedCount;
   const progress =
     expectedCount > 0 ? (currentFishCount / expectedCount) * 100 : 0;

@@ -745,6 +745,11 @@ export default function EditKoiPage() {
                 },
                 onError: (err) => {
                   console.error('Failed to enroll Koi ReID video: ', err);
+                  showCustomAlert({
+                    title: 'Lỗi đăng ký nhận diện cá',
+                    message: 'Không thể đăng ký video nhận diện cá.',
+                    type: 'warning',
+                  });
                 },
               }
             );
