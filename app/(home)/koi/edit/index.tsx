@@ -31,7 +31,6 @@ import {
   Blend,
   Calendar,
   Camera,
-  Coins,
   Dna,
   DollarSign,
   Hash,
@@ -282,21 +281,6 @@ export default function EditKoiPage() {
     }
   };
 
-  const saleStatusToLabel = (s: SaleStatus) => {
-    switch (s) {
-      case SaleStatus.NOT_FOR_SALE:
-        return 'Không bán';
-      case SaleStatus.AVAILABLE:
-        return 'Có sẵn';
-      case SaleStatus.SOLD:
-        return 'Đã bán';
-      default:
-        return s;
-    }
-  };
-
-  // mutation labels are dynamic or not provided via enums here
-
   const typeOptionsVN = Object.values(KoiType).map((t) => ({
     label: t,
     value: t,
@@ -309,10 +293,6 @@ export default function EditKoiPage() {
   const healthOptionsVN = Object.values(HealthStatus).map((h) => ({
     label: healthToLabel(h),
     value: h,
-  }));
-  const saleStatusOptionsVN = Object.values(SaleStatus).map((s) => ({
-    label: saleStatusToLabel(s),
-    value: s,
   }));
   const patternQuery = useGetPatternByVarietyId(
     formData?.varietyId ?? 0,
@@ -1406,31 +1386,6 @@ export default function EditKoiPage() {
                       {errors.healthStatus}
                     </Text>
                   )}
-                </View>
-              </View>
-            </View>
-
-            {/* Sale Status */}
-            <View className="mb-4">
-              <View className="flex-row items-start">
-                <View className="mr-3 mt-5 h-9 w-9 items-center justify-center rounded-full bg-rose-100">
-                  <Coins size={18} color="#f43f5e" />
-                </View>
-                <View className="flex-1">
-                  <ContextMenuField
-                    label="Trạng thái bán"
-                    value={formData.saleStatus}
-                    options={saleStatusOptionsVN}
-                    onSelect={(v: string) => {
-                      setFormData({ ...formData, saleStatus: v as SaleStatus });
-                      setErrors((prev) => {
-                        const copy = { ...prev };
-                        delete copy.saleStatus;
-                        return copy;
-                      });
-                    }}
-                    placeholder="Chọn trạng thái bán"
-                  />
                 </View>
               </View>
             </View>

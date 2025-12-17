@@ -48,7 +48,7 @@ export function useLogin() {
             payload[
               'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
             ];
-          const allowed = ['FarmStaff', 'Manager'];
+          const allowed = ['FarmStaff'];
           const hasRole = Array.isArray(roleClaim)
             ? roleClaim.some((r: string) => allowed.includes(r))
             : typeof roleClaim === 'string'
