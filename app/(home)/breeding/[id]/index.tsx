@@ -1146,8 +1146,13 @@ export default function BreedingDetailScreen() {
                                 )}
                             </View>
 
-                            {breedingDetail.classificationStage.classificationRecords.map(
-                              (record, idx) => (
+                            {breedingDetail.classificationStage.classificationRecords
+                              .sort(
+                                (a, b) =>
+                                  Number(a.stageNumber ?? 0) -
+                                  Number(b.stageNumber ?? 0)
+                              )
+                              .map((record, idx) => (
                                 <View
                                   key={record.id}
                                   className={`flex-row items-center p-2 ${
@@ -1254,8 +1259,7 @@ export default function BreedingDetailScreen() {
                                       </View>
                                     )}
                                 </View>
-                              )
-                            )}
+                              ))}
                           </View>
 
                           <View className="mt-3 rounded-lg bg-white p-3">
