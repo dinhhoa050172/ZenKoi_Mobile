@@ -49,7 +49,7 @@ export class ApiService {
   private isRefreshing = false;
   private failedQueue: FailedRequestQueueItem[] = [];
 
-  constructor(baseURL: string, timeout = 120000, onAuthError?: () => void) {
+  constructor(baseURL: string, timeout = 300000, onAuthError?: () => void) {
     this.client = axios.create({
       baseURL,
       headers: {
@@ -384,7 +384,7 @@ const handleAuthError = async () => {
 // Create and export the default API service instance
 const apiService = new ApiService(
   process.env.EXPO_PUBLIC_API_URL || '',
-  120000, // 2 minute timeout for mobile (increased for video processing)
+  300000, // 5 minute timeout for mobile (increased for video processing and Re-ID enrollment)
   handleAuthError
 );
 
