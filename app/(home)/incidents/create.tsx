@@ -143,23 +143,18 @@ export default function CreateIncidentScreen() {
       formData.description.trim() &&
       formData.occurredAt;
 
+    // Require at least one pond or koi
+    const hasAssets = selectedPonds.length > 0 || selectedKois.length > 0;
+
     const pondsValid = selectedPonds.every((pond) => {
-      return (
-        pond.environmentalChanges?.trim() ||
-        pond.correctiveActions?.trim() ||
-        pond.notes?.trim()
-      );
+      return pond.environmentalChanges?.trim();
     });
 
     const koisValid = selectedKois.every((koi) => {
-      return (
-        koi.specificSymptoms?.trim() ||
-        koi.treatmentNotes?.trim() ||
-        koi.affectedStatus
-      );
+      return koi.specificSymptoms?.trim();
     });
 
-    return basicFormValid && pondsValid && koisValid;
+    return basicFormValid && hasAssets && pondsValid && koisValid;
   };
 
   // Handle form submission
@@ -204,8 +199,8 @@ export default function CreateIncidentScreen() {
           pondName: pond.pondName,
           environmentalChanges: pond.environmentalChanges || '',
           requiresWaterChange: pond.requiresWaterChange || false,
-          fishDiedCount: pond.fishDiedCount || 0,
-          correctiveActions: pond.correctiveActions || '',
+          fishDiedCount: 0,
+          correctiveActions: '',
           notes: pond.notes || '',
         })
       );
@@ -858,7 +853,7 @@ export default function CreateIncidentScreen() {
           <View className="mt-3 flex-row items-center justify-center">
             <AlertCircle size={16} color="#ef4444" />
             <Text className="ml-2 text-sm font-medium text-red-600">
-              Vui lòng điền đầy đủ thông tin bắt buộc
+              Vui lòng điền thông tin và chọn ít nhất 1 hồ hoặc 1 cá
             </Text>
           </View>
         )}
