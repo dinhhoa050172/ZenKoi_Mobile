@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Droplets, FileText, Fish, Wrench, X } from 'lucide-react-native';
+import { Droplets, FileText, X } from 'lucide-react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
 import PondSvg from '../icons/PondSvg';
 import InputField from '../InputField';
@@ -42,7 +42,7 @@ export default function PondCard({ pond, index, onRemove, onUpdate }: any) {
       <View className="flex-1 gap-4 p-5">
         <InputField
           icon={<Droplets size={20} color="#0891b2" />}
-          label="Thay đổi môi trường"
+          label="Thay đổi môi trường *"
           placeholder="Mô tả các thay đổi môi trường..."
           value={pond.environmentalChanges || ''}
           onChangeText={(text: string) =>
@@ -50,30 +50,6 @@ export default function PondCard({ pond, index, onRemove, onUpdate }: any) {
           }
           iconBg="bg-cyan-100"
           multiline
-        />
-
-        <InputField
-          icon={<Wrench size={20} color="#0891b2" />}
-          label="Biện pháp khắc phục"
-          placeholder="Các biện pháp đã thực hiện..."
-          value={pond.correctiveActions || ''}
-          onChangeText={(text: string) =>
-            onUpdate(pond.id, 'correctiveActions', text)
-          }
-          iconBg="bg-cyan-100"
-          multiline
-        />
-
-        <InputField
-          icon={<Fish size={20} color="#0891b2" />}
-          label="Số cá chết"
-          placeholder="0"
-          value={pond.fishDiedCount?.toString() || '0'}
-          onChangeText={(text: string) =>
-            onUpdate(pond.id, 'fishDiedCount', parseInt(text) || 0)
-          }
-          iconBg="bg-cyan-100"
-          keyboardType="numeric"
         />
 
         <InputField
@@ -89,7 +65,7 @@ export default function PondCard({ pond, index, onRemove, onUpdate }: any) {
         <View className="flex-row items-center justify-between rounded-2xl bg-cyan-50 px-4 py-3">
           <View className="flex-row items-center">
             <Droplets size={20} color="#0891b2" />
-            <Text className="ml-2 font-bold text-cyan-900">Cần thay nước</Text>
+            <Text className="ml-2 font-bold text-cyan-900">Cần thay nước </Text>
           </View>
           <TouchableOpacity
             onPress={() =>

@@ -92,7 +92,7 @@ export default function KoiCard({ koi, index, onRemove, onUpdate }: any) {
 
           <InputField
             icon={<Stethoscope size={20} color="#ea580c" />}
-            label="Triệu chứng"
+            label="Triệu chứng *"
             placeholder="Mô tả triệu chứng cụ thể..."
             value={koi.specificSymptoms || ''}
             onChangeText={(text: string) =>

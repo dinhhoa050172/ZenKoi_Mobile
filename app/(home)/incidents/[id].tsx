@@ -478,7 +478,10 @@ export default function IncidentDetailScreen() {
 
             {/* Thẻ Ghi Chú Giải Quyết */}
             {incidentData.resolutionNotes && (
-              <InfoCard title="Ghi chú giải quyết" icon={<CheckCircle />}>
+              <InfoCard
+                title={`Ghi chú báo cáo ${incidentData.status === 'Resolved' ? 'đã giải quyết' : 'đã hủy'}`}
+                icon={<CheckCircle />}
+              >
                 <View className="rounded-2xl bg-emerald-50 p-4">
                   <Text className="text-base leading-7 text-emerald-800">
                     {incidentData.resolutionNotes}
@@ -490,7 +493,10 @@ export default function IncidentDetailScreen() {
             {/* Thẻ Hình Ảnh Giải Quyết */}
             {incidentData.resolutionImages &&
               incidentData.resolutionImages.length > 0 && (
-                <InfoCard title="Hình ảnh giải quyết" icon={<ImageIcon />}>
+                <InfoCard
+                  title={`Hình ảnh báo cáo ${incidentData.status === 'Resolved' ? 'đã giải quyết' : 'đã hủy'}`}
+                  icon={<ImageIcon />}
+                >
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
