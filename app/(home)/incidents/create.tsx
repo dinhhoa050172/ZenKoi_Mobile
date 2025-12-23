@@ -32,13 +32,11 @@ import {
   Clock,
   FileText,
   Image as ImageIcon,
-  Trash2,
   Waves,
+  X,
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Animated,
-  Easing,
   Image,
   Modal,
   Platform,
@@ -74,26 +72,26 @@ type SelectedKoi = KoiFish & {
 
 export default function CreateIncidentScreen() {
   const router = useRouter();
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  // const [fadeAnim] = useState(new Animated.Value(0));
+  // const [slideAnim] = useState(new Animated.Value(50));
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // useEffect(() => {
+  //   Animated.parallel([
+  //     Animated.timing(fadeAnim, {
+  //       toValue: 1,
+  //       duration: 500,
+  //       easing: Easing.out(Easing.cubic),
+  //       useNativeDriver: true,
+  //     }),
+  //     Animated.timing(slideAnim, {
+  //       toValue: 0,
+  //       duration: 500,
+  //       easing: Easing.out(Easing.cubic),
+  //       useNativeDriver: true,
+  //     }),
+  //   ]).start();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   // API Hooks
   const createIncidentMutation = useCreateIncident();
@@ -104,7 +102,9 @@ export default function CreateIncidentScreen() {
     pageIndex: 1,
     pageSize: 100,
   });
-  const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish();
+  const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish({
+    isSale: true,
+  });
 
   // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -498,7 +498,7 @@ export default function CreateIncidentScreen() {
       {/* Content */}
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         bottomOffset={20}
@@ -668,7 +668,7 @@ export default function CreateIncidentScreen() {
                           className="absolute right-2 top-2 overflow-hidden rounded-full bg-red-500 p-2 shadow-lg"
                           style={{ elevation: 3 }}
                         >
-                          <Trash2 size={14} color="white" />
+                          <X size={14} color="white" />
                         </TouchableOpacity>
                       </View>
                     ))}

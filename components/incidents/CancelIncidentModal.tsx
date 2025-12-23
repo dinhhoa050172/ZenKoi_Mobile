@@ -5,7 +5,6 @@ import {
   Camera,
   FileText,
   Image as ImageIcon,
-  Trash2,
   X,
   XCircle,
 } from 'lucide-react-native';
@@ -295,12 +294,12 @@ export default function CancelIncidentModal({
                                   className="absolute right-2 top-2 overflow-hidden rounded-full bg-red-500 p-2 shadow-lg"
                                   style={{ opacity: isLoading ? 0.5 : 1 }}
                                 >
-                                  <Trash2 size={14} color="white" />
+                                  <X size={14} color="white" />
                                 </TouchableOpacity>
                               </View>
                             ))}
                           </ScrollView>
-                          <View className="mt-2 items-center">
+                          <View className="my-2 items-center">
                             <Text className="text-xs text-slate-500">
                               {selectedImages.length} ảnh đã chọn
                             </Text>

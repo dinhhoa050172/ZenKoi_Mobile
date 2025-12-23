@@ -17,7 +17,7 @@ import {
   RequestIncident,
 } from '@/lib/api/services/fetchIncident';
 import { IncidentType } from '@/lib/api/services/fetchIncidentType';
-import { Gender, KoiFish, SaleStatus } from '@/lib/api/services/fetchKoiFish';
+import { Gender, KoiFish } from '@/lib/api/services/fetchKoiFish';
 import { Pond } from '@/lib/api/services/fetchPond';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
@@ -34,13 +34,11 @@ import {
   Clock,
   FileText,
   Image as ImageIcon,
-  Trash2,
   Waves,
+  X,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Animated,
-  Easing,
   Image,
   Modal,
   Platform,
@@ -74,25 +72,25 @@ type SelectedKoi = KoiFish & {
 export default function EditIncidentScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  // const [fadeAnim] = useState(new Animated.Value(0));
+  // const [slideAnim] = useState(new Animated.Value(50));
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
+  // useEffect(() => {
+  //   Animated.parallel([
+  //     Animated.timing(fadeAnim, {
+  //       toValue: 1,
+  //       duration: 500,
+  //       easing: Easing.out(Easing.cubic),
+  //       useNativeDriver: true,
+  //     }),
+  //     Animated.timing(slideAnim, {
+  //       toValue: 0,
+  //       duration: 500,
+  //       easing: Easing.out(Easing.cubic),
+  //       useNativeDriver: true,
+  //     }),
+  //   ]).start();
+  // }, [fadeAnim, slideAnim]);
 
   // API Hooks
   const incidentId = parseInt(id, 10);
@@ -106,7 +104,7 @@ export default function EditIncidentScreen() {
     pageSize: 100,
   });
   const { data: koiFishes, isLoading: koisLoading } = useGetKoiFish({
-    saleStatus: SaleStatus.NOT_FOR_SALE,
+    isSale: true,
   });
 
   // Form State
@@ -615,10 +613,11 @@ export default function EditIncidentScreen() {
 
       {/* Content */}
       <KeyboardAwareScrollView
-        className="flex-1"
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         bottomOffset={20}
-        contentContainerStyle={{ paddingBottom: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }}
+        keyboardShouldPersistTaps="handled"
       >
         {/* <Animated.View
           style={{
@@ -772,7 +771,7 @@ export default function EditIncidentScreen() {
                         style={{ elevation: 4 }}
                         activeOpacity={0.7}
                       >
-                        <Trash2 size={16} color="white" />
+                        <X size={16} color="white" />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -916,44 +915,44 @@ export default function EditIncidentScreen() {
           </View>
         )}
         {/* </Animated.View> */}
-
-        {/* Bottom Action Bar */}
-        <View
-          className="border-t border-gray-200 bg-white px-6 py-4 shadow-lg"
-          style={{ elevation: 8 }}
-        >
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={!isFormValid() || isSubmitting}
-            className="overflow-hidden rounded-2xl shadow-md"
-            style={{ elevation: 4 }}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={
-                isFormValid() && !isSubmitting
-                  ? ['#2563eb', '#1e40af']
-                  : ['#cbd5e1', '#94a3b8']
-              }
-              className="flex-row items-center justify-center py-4"
-            >
-              <Check size={20} color="white" />
-              <Text className="ml-2 text-lg font-black text-white">
-                {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật sự cố'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {!isFormValid() && (
-            <View className="mt-3 flex-row items-center justify-center">
-              <AlertCircle size={16} color="#ef4444" />
-              <Text className="ml-2 text-sm font-medium text-red-600">
-                Vui lòng điền thông tin và chọn ít nhất 1 hồ hoặc 1 cá
-              </Text>
-            </View>
-          )}
-        </View>
       </KeyboardAwareScrollView>
+
+      {/* Bottom Action Bar */}
+      <View
+        className="border-t border-gray-200 bg-white px-6 py-4 shadow-lg"
+        style={{ elevation: 8 }}
+      >
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={!isFormValid() || isSubmitting}
+          className="overflow-hidden rounded-2xl shadow-md"
+          style={{ elevation: 4 }}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={
+              isFormValid() && !isSubmitting
+                ? ['#2563eb', '#1e40af']
+                : ['#cbd5e1', '#94a3b8']
+            }
+            className="flex-row items-center justify-center py-4"
+          >
+            <Check size={20} color="white" />
+            <Text className="ml-2 text-lg font-black text-white">
+              {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật sự cố'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {!isFormValid() && (
+          <View className="mt-3 flex-row items-center justify-center">
+            <AlertCircle size={16} color="#ef4444" />
+            <Text className="ml-2 text-sm font-medium text-red-600">
+              Vui lòng điền thông tin và chọn ít nhất 1 hồ hoặc 1 cá
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Date Picker Modal */}
       {showDatePicker &&

@@ -114,7 +114,7 @@ export default function KoiManagementScreen() {
     isFetchingNextPage,
     refetch,
     isRefetching,
-  } = useGetKoiFish(appliedFilters);
+  } = useGetKoiFish({ ...appliedFilters, isSale: true });
   const koiList: KoiFish[] = koiPagination?.data ?? [];
 
   const getSizeLabel = (size?: KoiFish['size']) => {
@@ -146,8 +146,6 @@ export default function KoiManagementScreen() {
         return 'Đực';
       case Gender.FEMALE:
         return 'Cái';
-      case Gender.OTHER:
-        return 'Chưa xác định';
       default:
         return g;
     }
