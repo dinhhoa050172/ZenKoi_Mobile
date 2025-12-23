@@ -59,6 +59,7 @@ export interface KoiFishSearchParams {
   search?: string;
   gender?: Gender;
   health?: HealthStatus;
+  isSale?: boolean;
   varietyId?: number;
   minSize?: number;
   maxSize?: number;
@@ -298,6 +299,7 @@ export const convertKoiFishFilter = (
   if (filters.search) params.search = filters.search;
   if (filters.gender) params.gender = filters.gender;
   if (filters.health) params.health = filters.health;
+  if (filters.isSale !== undefined) params.isSale = filters.isSale;
   if (filters.varietyId) params.varietyId = filters.varietyId;
   if (filters.minSize) params.minSize = filters.minSize;
   if (filters.maxSize) params.maxSize = filters.maxSize;

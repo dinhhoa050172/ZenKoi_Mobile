@@ -6,7 +6,6 @@ import {
   CheckCircle,
   FileText,
   Image as ImageIcon,
-  Trash2,
   X,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -294,12 +293,12 @@ export default function ResolveIncidentModal({
                                   className="absolute right-2 top-2 overflow-hidden rounded-full bg-red-500 p-2 shadow-lg"
                                   style={{ opacity: isLoading ? 0.5 : 1 }}
                                 >
-                                  <Trash2 size={14} color="white" />
+                                  <X size={14} color="white" />
                                 </TouchableOpacity>
                               </View>
                             ))}
                           </ScrollView>
-                          <View className="mt-2 items-center">
+                          <View className="my-2 items-center">
                             <Text className="text-xs text-slate-500">
                               {selectedImages.length} ảnh đã chọn
                             </Text>

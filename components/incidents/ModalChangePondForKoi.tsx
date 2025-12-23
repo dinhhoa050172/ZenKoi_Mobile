@@ -18,6 +18,7 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -346,7 +347,7 @@ export default function ModalChangePondForKoi({
               >
                 <View className="flex-row items-center">
                   {changeKoiFishPondMutation.isPending ? (
-                    <Loading />
+                    <ActivityIndicator />
                   ) : (
                     <>
                       <ArrowRight size={20} color="white" />

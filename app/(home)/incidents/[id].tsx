@@ -385,10 +385,7 @@ export default function IncidentDetailScreen() {
                 <InfoRow
                   icon={<Calendar size={20} color="#0A3D62" />}
                   label="Ngày xảy ra"
-                  value={formatDate(
-                    incidentData.occurredAt,
-                    'dd/MM/yyyy HH:mm'
-                  )}
+                  value={formatDate(incidentData.occurredAt, 'dd/MM/yyyy')}
                 />
                 <InfoRow
                   icon={<User size={20} color="#0A3D62" />}
